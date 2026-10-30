@@ -1,0 +1,11 @@
+DEMONSTRATION ONLY — REPLACE WITH A REAL REFERENCE SYSTEM INPUT
+System: Simple hydraulic actuator circuit
+Purpose: Move a mechanical load on command.
+Components:
+1. Pump: supplies hydraulic pressure.
+2. Reservoir: stores hydraulic fluid.
+3. Valve: directs fluid flow.
+4. Actuator: converts pressure into motion.
+5. Pressure sensor: monitors line pressure.
+Requirements: Deliver commanded motion; detect abnormal pressure; avoid unintended movement.
+Operating conditions: Variable load; normal ambient temperatures.
