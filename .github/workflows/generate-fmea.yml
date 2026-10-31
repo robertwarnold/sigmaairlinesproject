@@ -1,0 +1,63 @@
+name: Generate FMEA with shared Gemini key
+
+on:
+  workflow_dispatch:
+    inputs:
+      system:
+        description: System description to analyze (uses the shared API quota)
+        required: true
+        type: choice
+        options:
+          - system_1
+          - system_2_nasa_fmeca
+      model:
+        description: Gemini model ID available to the team account
+        required: true
+        default: gemini-3.8-flash
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install generator dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Generate FMEA
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SELECTED_SYSTEM: ${{ inputs.system }}
+          SELECTED_MODEL: ${{ inputs.model }}
+        shell: bash
+        run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "::error::Add the GEMINI_API_KEY repository secret under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          case "$SELECTED_SYSTEM" in
+            system_1|system_2_nasa_fmeca) ;;
+            *) echo "::error::Unknown system selection"; exit 1 ;;
+          esac
+          python fmea_generator.py \
+            --system "system_descriptions/${SELECTED_SYSTEM}.txt" \
+            --case-id "$SELECTED_SYSTEM" \
+            --model "$SELECTED_MODEL"
+      - name: Upload generated results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: fmea-results-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            results/*.csv
+            results/*_raw.txt
+          if-no-files-found: ignore
+          retention-days: 14

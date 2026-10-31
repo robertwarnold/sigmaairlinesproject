@@ -1,5 +1,23 @@
 # Sigma Airlines FMEA engineering support
 
+## Team generation with the shared Gemini secret
+
+Store the team's key as a repository Actions secret named `GEMINI_API_KEY`
+under **Settings > Secrets and variables > Actions**. Do not commit a key or `.env`.
+The generator already reads this environment variable; GitHub supplies it during
+the generation step. Local runs still need a locally configured key.
+
+After `.github/workflows/generate-fmea.yml` is pushed to the default branch,
+teammates with write access can open **Actions > Generate FMEA with shared Gemini key >
+Run workflow**, select a system description and an accessible model, and start a run.
+This manually triggered workflow uses the team's API quota; pushes and pull requests
+do not trigger generation. A model overload (503) may require trying again later.
+
+Open the completed run and download **fmea-results-...** under **Artifacts** for
+the CSV and raw model response. Results are retained for 14 days, including a raw
+response when generation succeeds but parsing fails. Outputs require engineering review.
+
+
 **Research deadline prototype:** real OpenAI/Anthropic adapters, baseline/improved
 conditions, a 24-generation runner, deterministic evaluation and descriptive analysis
 are now available locally. Start with [the research runbook](docs/research-prototype.md).

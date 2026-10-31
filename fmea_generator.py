@@ -77,7 +77,8 @@ def call_gemini(system_text, model=None):
     load_local_env()
     key = os.getenv("GEMINI_API_KEY")
     if not key:
-        raise RuntimeError("GEMINI_API_KEY missing. Add it to .env (see .env.example).")
+        raise RuntimeError("GEMINI_API_KEY missing. Set it in the environment or local .env; "
+                           "on GitHub Actions, configure the GEMINI_API_KEY repository secret.")
     try:
         from google import genai
         from google.genai import types
