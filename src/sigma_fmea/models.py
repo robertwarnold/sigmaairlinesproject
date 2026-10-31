@@ -5,7 +5,7 @@ import re
 
 from .integrity import canonical_json, digest, validate_json
 
-from .methodology import get_profile
+from .methodology import get_profile, scope_assessment
 
 TEXT_FIELDS = ("function", "failure_mode", "effect_local", "effect_next_level", "effect_end_effect")
 LIST_FIELDS = ("failure_causes", "existing_prevention_controls", "existing_detection_controls", "existing_mitigation_controls", "recommended_actions")
@@ -187,14 +187,14 @@ class FMEADraft:
             raise ValueError("Draft requires typed context and rows")
         validate_json({**vars(self), "context": vars(self.context), "rows": [vars(r) for r in self.rows]})
         self.context.__post_init__()
-        profile = get_profile(self.profile_id)
+        profile = get_profile(self.profile_id, self.profile_version)
         if self.profile_version != profile.version or self.schema_version != "0.2":
             raise ValueError("Unsupported schema/profile version")
         if self.label != "FMEA draft — engineering review required":
             raise ValueError("Invalid draft label")
         if self.approval_status != "unauthenticated_draft":
             raise ValueError("Authenticated engineering approval cannot be asserted")
-        if not isinstance(self.metadata, dict) or set(self.metadata) - {"provider", "conversion_mapping_version"}:
+        if not isinstance(self.metadata, dict) or set(self.metadata) - {"provider", "conversion_mapping_version", "research_execution_sha256"}:
             raise ValueError("Unsupported metadata keys; approval claims are forbidden")
         for value in self.metadata.values():
             require_text(value, "metadata value")
@@ -203,6 +203,9 @@ class FMEADraft:
         ids = set()
         for row in self.rows:
             row.validate()
+            required_flags = scope_assessment(self.context, profile)["review_flags"]
+            if not set(required_flags).issubset(row.review_flags):
+                raise ValueError("Missing methodology scope review flags")
             if row.record_id in ids:
                 raise ValueError(f"Duplicate record_id: {row.record_id}")
             ids.add(row.record_id)

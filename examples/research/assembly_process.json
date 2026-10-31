@@ -1,0 +1,14 @@
+{
+  "input_version": "scenario-1",
+  "classification": "author_created_research_scenario_not_validated_operational_system",
+  "context": {
+    "analysis_id": "research-assembly-1", "system_id": "sensor-module-assembly",
+    "scope": "Bench assembly and acceptance screening of a generic sensor module; process FMEA",
+    "hierarchy_level": "ordered process steps", "operating_phase": "manual assembly and acceptance screening",
+    "assumptions": ["Items are listed in process order", "Generic manual manufacturing scenario", "No measured process capability or defect rates"],
+    "requirement_refs": ["P1: assemble the specified components", "P2: retain the electrical connection mechanically", "P3: identify modules passing the prescribed functional screen"],
+    "interface_refs": ["operator-to-work-instruction interface", "module-to-test-fixture electrical interface"],
+    "items": [{"name": "Select components", "function": "Select the specified sensor and harness"}, {"name": "Install connector", "function": "Seat and latch the electrical connector"}, {"name": "Fasten module", "function": "Secure the module with the specified fasteners"}, {"name": "Run functional screen", "function": "Check module electrical response"}, {"name": "Label and release", "function": "Identify and release modules that passed screening"}]
+  },
+  "description": "The manual process is performed in this order: select the sensor and harness from labeled bins using a work instruction; seat the connector until its latch engages; install module fasteners using a torque driver; connect the module to a bench fixture and run a functional screen; apply a serial label and release the module if the operator records a passing result. The torque driver and screen are stated process tools, but current calibration status, torque values, test coverage, fixture diagnostics, independent inspection, measured defect rates and interlocks are not supplied. The screen measures electrical response only; do not assume it verifies every mechanical or configuration requirement. Analyze process errors and consequences for the assembled module and downstream user. Proposed inspections must remain proposed actions, not asserted existing controls."
+}

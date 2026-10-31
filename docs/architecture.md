@@ -2,6 +2,16 @@
 
 Status: local first milestone; owners remain Unassigned.
 
+Deadline override (preliminary results due November 1, 2026): the local research prototype
+now adds real-provider adapters, allowlisted guidance, two conditions, a configurable
+runner, deterministic evaluation and descriptive analysis. See research-prototype.md
+and research-verification.md. No paid calls have been authorized/executed.
+
+Update after foundation merge: profile version 0.3 adds distinct preliminary scope
+checks, workflows and review questions; see profile-policies.md. Schema/mapping stay
+0.2 and legacy profile 0.2 remains verifiable. A limited public conversion candidate is
+documented in public-conversion-candidate.md; it is not an approved benchmark.
+
 ## Architecture
 
 `EngineeringContext -> selected Profile -> Provider -> FMEADraft -> validation -> export`
@@ -90,7 +100,8 @@ converted benchmark look complete. Holdout answers must never enter generation c
 ## Evidence still required
 
 - Legitimate access and detailed rule verification for licensed standards.
-- Public source fixture visually checked against original pages; current fixture is synthetic.
+- Independent engineering review of the visually checked two-row public candidate;
+  synthetic fixtures remain software tests rather than ground truth.
 - Four controlled system contexts and independently reviewed benchmark conversions.
 - Review authority, matching/adjudication rules, and rubric calibration.
 - Optional provider adapter contracts, reproducibility settings, and data-use approval.

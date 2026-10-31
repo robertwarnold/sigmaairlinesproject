@@ -1,0 +1,60 @@
+[
+  {
+    "source_id": "NASA-CR-2019-220217",
+    "source_edition": "June 2019",
+    "source_locator": "Appendix B, Table B-1, printed B-1, PDF page 109, row 1A1",
+    "item": "Provide HVDC power to propulsion system and batteries",
+    "function": "Provide HVDC power to propulsion system and batteries",
+    "failure_mode": "Turboshaft engine fails to provide output shaft power to gearbox",
+    "causes": ["Turboshaft engine failure (no output)"],
+    "local_effect": "Loss of Engine power output to gearbox, AC generator and accessory loads",
+    "next_level_effect": "Loss of electrical power to drive motors and accessory loads. Batteries provide electric power for 2 minutes.",
+    "end_effect": "Loss of all propulsion after battery power is depleted. Loss of aircraft if pilot cannot find safe landing area and land within 2 minutes.",
+    "controls": [
+      {"kind": "detection", "description": "Visual and audible warning provided to pilot. Pilot detects abnormal engine noise", "status": "unknown", "evidence_refs": [{"source_id": "NASA-CR-2019-220217", "locator": "B-1, row 1A1, Detection Method; conceptual design implementation unverified", "field": "controls"}]},
+      {"kind": "mitigation", "description": "Emergency procedures defined in flight manual", "status": "unknown", "evidence_refs": [{"source_id": "NASA-CR-2019-220217", "locator": "B-1, row 1A1, Compensating Provisions; implementation unverified", "field": "controls"}]}
+    ],
+    "severity": "I",
+    "failure_rate": "2.67E-06",
+    "failure_rate_units": "failures per flight hour",
+    "alpha": "1.00",
+    "beta": "1.200E-01",
+    "criticality": "3.20E-07",
+    "criticality_units": "probability over the source default one-hour mission",
+    "mission_time": "1",
+    "mission_time_units": "hour",
+    "risk_scheme": "Source section 8.1; severity code, alpha, beta and failure-mode criticality; no FMEA S/O/D equivalence",
+    "source_mission_phase": "All",
+    "beta_basis_locator": "B-1, row 1A1, Beta Mode Ratio Explanation; retained in original PDF",
+    "review_flags": ["candidate_not_reviewed_benchmark", "functional_item_label_uses_source_function", "control_implementation_unverified", "independent_source_page_review_required"]
+  },
+  {
+    "source_id": "NASA-CR-2019-220217",
+    "source_edition": "June 2019",
+    "source_locator": "Appendix B, Table B-1, printed B-1, PDF page 109, row 1B1",
+    "item": "Provide HVDC power to propulsion system and batteries",
+    "function": "Provide HVDC power to propulsion system and batteries",
+    "failure_mode": "Engine gearbox assembly failure",
+    "causes": ["Internal gearbox assembly failure"],
+    "local_effect": "Failure prevents input torque from being transferred to AC generator",
+    "next_level_effect": "Loss of electrical power to drive motors. Batteries provide electric power for 2 minutes.",
+    "end_effect": "Loss of all propulsion after battery power is depleted. Loss of aircraft if pilot cannot find safe landing area and land within 2 minutes.",
+    "controls": [
+      {"kind": "detection", "description": "Visual & audible warning provided to pilot", "status": "unknown", "evidence_refs": [{"source_id": "NASA-CR-2019-220217", "locator": "B-1, row 1B1, Detection Method; conceptual design implementation unverified", "field": "controls"}]},
+      {"kind": "mitigation", "description": "Emergency procedures defined in flight manual", "status": "unknown", "evidence_refs": [{"source_id": "NASA-CR-2019-220217", "locator": "B-1, row 1B1, Compensating Provisions; implementation unverified", "field": "controls"}]}
+    ],
+    "severity": "I",
+    "failure_rate": "5.00E-07",
+    "failure_rate_units": "failures per flight hour",
+    "alpha": "1.00",
+    "beta": "1.200E-01",
+    "criticality": "6.00E-08",
+    "criticality_units": "probability over the source default one-hour mission",
+    "mission_time": "1",
+    "mission_time_units": "hour",
+    "risk_scheme": "Source section 8.1; severity code, alpha, beta and failure-mode criticality; no FMEA S/O/D equivalence",
+    "source_mission_phase": "All",
+    "beta_basis_locator": "B-1, row 1B1, Beta Mode Ratio Explanation; retained in original PDF",
+    "review_flags": ["candidate_not_reviewed_benchmark", "functional_item_label_uses_source_function", "control_implementation_unverified", "independent_source_page_review_required"]
+  }
+]

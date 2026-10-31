@@ -1,0 +1,9 @@
+{
+  "analysis_id": "nasa-2019-b1-candidate-conversion",
+  "system_id": "nasa-2019-tilt-wing-hvdc-function",
+  "scope": "Software mapping check of Table B-1 rows 1A1 and 1B1 only; not full aircraft analysis",
+  "hierarchy_level": "source functional analysis",
+  "operating_phase": "All, as stated in source rows",
+  "assumptions": ["Item label is the source function, not an inferred physical component", "Conceptual design controls are not confirmed implemented", "Candidate conversion only; independent engineering review pending"],
+  "items": [{"name": "Provide HVDC power to propulsion system and batteries", "function": "Provide HVDC power to propulsion system and batteries"}]
+}

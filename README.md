@@ -1,5 +1,10 @@
 # Sigma Airlines FMEA engineering support
 
+**Research deadline prototype:** real OpenAI/Anthropic adapters, baseline/improved
+conditions, a 24-generation runner, deterministic evaluation and descriptive analysis
+are now available locally. Start with [the research runbook](docs/research-prototype.md).
+Paid calls require explicit approval; offline mock and the converter remain available.
+
 Python-first offline milestone. Outputs are **FMEA drafts requiring engineering review**.
 The original R scripts and README.txt remain the historical baseline.
 
@@ -31,7 +36,7 @@ with setuptools/wheel, then run the suite on Python 3.12:
 
 ```powershell
 python -m pip wheel --no-index --no-deps --no-build-isolation --wheel-dir .venv/test-wheels .
-$env:SIGMA_TEST_WHEEL = (Resolve-Path .venv/test-wheels/sigma_fmea-0.2.0-py3-none-any.whl).Path
+$env:SIGMA_TEST_WHEEL = (Resolve-Path .venv/test-wheels/sigma_fmea-0.3.0-py3-none-any.whl).Path
 # Run using your Python 3.12 interpreter:
 python -m unittest discover -s tests -v
 ```
@@ -39,9 +44,10 @@ python -m unittest discover -s tests -v
 ## Scope and profiles
 
 Select `general`, `dfmea`, `pfmea`, or `aerospace` explicitly. All four are initial
-**unrated team-policy profiles**, sharing the core field contract. The specialized
-profiles identify analysis intent; licensed methodology-specific procedures, scoring,
-and action-priority tables are not implemented. No standards-compliance claim is made.
+**preliminary unrated team-policy profiles**, sharing the core field contract. Version
+0.3 adds distinct workflows, context-gap checks, review questions and mock hypotheses.
+Licensed methodology-specific procedures, scoring, and action-priority tables remain
+unimplemented. No standards-compliance claim is made.
 The methodology registry references IEC, AIAG–VDA, SAE, ASQ, and NASA and distinguishes
 bibliographic references from reviewed guidance. Additional sources require registry review.
 
@@ -86,13 +92,30 @@ identity, content version, mapping version, and file hashes. Validate the direct
 check JSON/CSV consistency, preserved-source hashes, report mappings, and file identities.
 Validating only `fmea.json` checks the draft, not the complete bundle.
 
-Schema/profile/mapping versions are now 0.2. Old 0.1 drafts require regeneration from
+Package/profile versions are now 0.3; schema/mapping remain 0.2. Profile 0.2 remains
+supported when validating existing bundles. Old 0.1 drafts require regeneration from
 retained original inputs; they are rejected rather than silently migrated. Hashes detect
 inconsistency, not malicious re-authoring or authenticated authorship. See
 [docs/integrity.md](docs/integrity.md) for transaction/review limits.
 
 Examples are **synthetic software fixtures**, not reviewed NASA benchmarks. Source
 documents, secrets, benchmarks, and experimental outputs are excluded from Git.
+
+The separate `tests/fixtures/nasa_2019_candidate.json` is a two-row public-source
+conversion candidate, not an approved benchmark. Its page locators, source definitions,
+review gaps and generation exclusion are documented in [docs/public-conversion-candidate.md](docs/public-conversion-candidate.md).
+
+Inspect profile-specific gaps without generation:
+
+```powershell
+python -m sigma_fmea scope --context examples/context.json --profile dfmea
+```
+
+Missing profile context produces persistent review flags; the tool does not infer
+requirements, interfaces, mission phases or process assumptions. General asks for an
+analysis hierarchy; DFMEA adds design requirement/interface traceability; PFMEA asks for
+phase, output requirements and process assumptions; Aerospace asks for hierarchy, phase,
+interfaces and assumptions. These checks test presence, not engineering adequacy.
 
 ## Verification and limitations
 
@@ -102,8 +125,11 @@ source mutation/checksums, review-version binding, nonfinite/non-JSON values, bu
 reuse/corruption, failed/interrupted publication, and installed console execution.
 They establish software behavior, not engineering validity.
 
-There is no retrieval, real model generation, PDF/DOCX importer, reviewed crosswalk,
-RPN calculator, human authentication, statistical runner, or frontend. Review-decision
+The research prototype adds allowlisted guidance retrieval, real-provider adapters,
+an experiment runner and descriptive reporting; see docs/research-prototype.md.
+Actual paid generation still requires configured credentials and explicit approval.
+There is no PDF/DOCX importer, reviewed crosswalk, RPN calculator, authenticated review,
+LLM judge, vector database, or frontend. Review-decision
 metadata validates zoned ISO timestamps and exact content-version binding, but reviewer
 identity is not authenticated. Unresolved flags remain attached to decisions and
 `approval_status` must stay `unauthenticated_draft`. Providers cannot create review

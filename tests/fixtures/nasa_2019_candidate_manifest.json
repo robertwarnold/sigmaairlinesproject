@@ -1,0 +1,16 @@
+{
+  "source_id": "NASA-CR-2019-220217",
+  "source_url": "https://ntrs.nasa.gov/api/citations/20190026443/downloads/20190026443.pdf",
+  "catalog_url": "https://ntrs.nasa.gov/citations/20190026443",
+  "source_pdf_sha256": "e2dd128ecc554f168d77fabc1706b854636d6c454ca0529fdc5ca694cbcd4a83",
+  "source_locator": "Table B-1, printed B-1, PDF page 109, rows 1A1 and 1B1; definitions section 8.1, printed 52-53",
+  "fixture_version": "candidate-1",
+  "fixture_canonical_sha256": "cd3fff5f3485687d5cd234b998bc9a2196d21b945f9eab0080ed63bd8d4cbac2",
+  "review_status": "independent_engineering_review_pending",
+  "source_page_check": "agent visual comparison against local PDF rendering; not independent human acceptance",
+  "normalization": "Joined wrapped words and line breaks; function reused as functional item label; controls typed by source column and section 8.1; implementation status unknown",
+  "scope": "Selected fields only; beta explanation retained by locator; not a complete worksheet transcription",
+  "rights_status": "NASA NTRS catalog states Public Use Permitted; limited attributed derivative fixture; full PDF excluded from Git",
+  "generation_use": "prohibited_for_this_evaluation_case",
+  "benchmark_status": "not_approved_ground_truth"
+}

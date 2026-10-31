@@ -2,7 +2,7 @@
 from typing import Protocol
 from .models import EngineeringContext, FMEARow
 from copy import deepcopy
-from .methodology import Profile
+from .methodology import Profile, scope_assessment
 
 
 class Provider(Protocol):
@@ -18,11 +18,11 @@ class MockProvider:
         return [FMEARow(
             record_id=f"mock-{i}", item_or_process_step=item["name"],
             function=item["function"],
-            failure_mode=f"Loss of function: {item['function']}",
+            failure_mode=f"{profile.mock_mode_prefix}: {item['function']}",
             unknown_fields={n: "not_in_context" for n in ("effect_local", "effect_next_level", "effect_end_effect", "failure_causes", "existing_prevention_controls", "existing_detection_controls", "existing_mitigation_controls", "recommended_actions")},
             field_provenance={"item_or_process_step": "source", "function": "source", "failure_mode": "hypothesis"},
             evidence_refs=[{"source_id": context.system_id, "locator": f"context.items[{i-1}]", "field": name} for name in ("item_or_process_step", "function")],
-            review_flags=["mock_hypothesis_not_engineering_evidence", "effects_causes_controls_and_ratings_require_review"],
+            review_flags=["mock_hypothesis_not_engineering_evidence", "effects_causes_controls_and_ratings_require_review", *scope_assessment(context, profile)["review_flags"]],
         ) for i, item in enumerate(context.items, 1)]
 
 

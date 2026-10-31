@@ -1,0 +1,14 @@
+{
+  "input_version": "scenario-1",
+  "classification": "author_created_research_scenario_not_validated_operational_system",
+  "context": {
+    "analysis_id": "research-cooling-1", "system_id": "equipment-cooling-loop",
+    "scope": "Closed liquid cooling loop for electronic equipment; functional FMEA",
+    "hierarchy_level": "component", "operating_phase": "startup and continuous heat removal",
+    "assumptions": ["Single coolant circuit", "Generic equipment, not a specific NASA vehicle", "No component reliability or thermal qualification data"],
+    "requirement_refs": ["C1: remove equipment heat during operation", "C2: maintain coolant circulation", "C3: report excessive outlet temperature"],
+    "interface_refs": ["cold-plate-to-equipment thermal interface", "pump-to-cold-plate fluid connection", "temperature-sensor-to-controller signal"],
+    "items": [{"name": "Circulation pump", "function": "Circulate coolant through the loop"}, {"name": "Cold plate", "function": "Transfer equipment heat to coolant"}, {"name": "Heat exchanger", "function": "Reject coolant heat to the environment"}, {"name": "Coolant hose", "function": "Contain and convey coolant"}, {"name": "Outlet temperature sensor", "function": "Report coolant outlet temperature"}]
+  },
+  "description": "A circulation pump moves coolant through a cold plate attached to electronic equipment, then through a heat exchanger and back to the pump. Flexible hoses connect the components. A single outlet-temperature sensor feeds a controller and display. The controller may increase pump speed when measured outlet temperature rises; no independent automatic equipment shutdown is specified. The surrounding air removes heat from the exchanger. Startup and steady equipment operation are in scope. Ambient conditions and heat load may vary, but numeric heat loads, temperature limits, minimum flow, coolant properties, maintenance history, sensor accuracy and failure-rate data are not supplied. Treat overheating, coolant containment, and misleading temperature information as engineering topics to analyze rather than supplied reference failure modes. Do not invent backup cooling paths."
+}

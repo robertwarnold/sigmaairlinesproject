@@ -1,0 +1,12 @@
+{
+  "provider": "auto", "model": "SET_MODEL_ID",
+  "repetitions": 3, "conditions": ["baseline", "improved"],
+  "max_output_tokens": 5000, "temperature": null, "order_seed": 5300,
+  "systems": [
+    {"path": "hydraulic_actuator.json", "profile": "general"},
+    {"path": "battery_power.json", "profile": "dfmea"},
+    {"path": "cooling_loop.json", "profile": "general"},
+    {"path": "assembly_process.json", "profile": "pfmea"}
+  ],
+  "references": {}
+}

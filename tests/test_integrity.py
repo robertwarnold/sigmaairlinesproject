@@ -365,6 +365,16 @@ class InstalledCLITest(unittest.TestCase):
                 checked = subprocess.run([str(cli), "validate", str(output)], cwd=temp, env=env, capture_output=True, text=True)
                 self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
             bad = temp / "duplicate.json"
+            smoke_output = temp / "research-smoke"
+            research_commands = [
+                ["doctor"],
+                ["draft", "--system", str(ROOT / "examples/research/hydraulic_actuator.json"), "--profile", "general", "--condition", "baseline", "--output", str(smoke_output)],
+                ["evaluate", str(smoke_output / "bundle"), "--output", str(temp / "evaluation.json")],
+                ["experiment", "--config", str(ROOT / "examples/research/experiment.json"), "--provider", "mock", "--mode", "plan", "--output", str(temp / "planned")],
+            ]
+            for arguments in research_commands:
+                result = subprocess.run([str(cli), *arguments], cwd=temp, env=env, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             bad.write_text('{"analysis_id":1,"analysis_id":2}')
             result = subprocess.run([str(cli), "generate", "--context", str(bad), "--profile", "general", "--output", str(temp / "bad-output")], cwd=temp, env=env, capture_output=True, text=True)
             self.assertEqual(result.returncode, 2)
