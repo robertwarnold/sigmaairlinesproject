@@ -1,0 +1,14 @@
+{
+  "input_version": "scenario-1",
+  "classification": "author_created_research_scenario_not_validated_operational_system",
+  "context": {
+    "analysis_id": "research-battery-1", "system_id": "battery-dc-power",
+    "scope": "Low-voltage battery supply and distribution to an equipment load; design FMEA",
+    "hierarchy_level": "subsystem and component", "operating_phase": "energize, steady discharge, commanded shutdown",
+    "assumptions": ["Generic research scenario", "No battery chemistry-specific scoring", "No cell failure-rate data or validated protection performance"],
+    "requirement_refs": ["B1: supply load within its permitted voltage range", "B2: isolate power on commanded shutdown", "B3: indicate abnormal pack temperature"],
+    "interface_refs": ["battery-to-contactor DC link", "converter-to-load bus", "temperature-sensor-to-monitor signal"],
+    "items": [{"name": "Battery pack", "function": "Store and supply electrical energy"}, {"name": "Main contactor", "function": "Connect or isolate pack power"}, {"name": "DC converter", "function": "Regulate the load supply voltage"}, {"name": "Temperature sensor", "function": "Report pack temperature"}, {"name": "Power cable", "function": "Carry current to the equipment load"}]
+  },
+  "description": "A rechargeable battery pack supplies a main contactor and DC converter through a fused cable. The converter feeds an equipment load. A monitor reads pack voltage and a single temperature sensor and displays alarms; the scenario does not specify automated thermal shutdown. An operator command opens the contactor to isolate the load. Startup, continuous discharge, and shutdown are in scope; charging is excluded. The cable is insulated and mechanically supported, but no qualification records are supplied. The fuse is a stated current-protection component, not proof of protection against every overheating or short-circuit condition. No quantitative voltage limits, battery chemistry, cell propagation tests, component failure rates, redundancy, or protection reliability data are provided. Analyze the described functions without assuming automotive or aerospace certification."
+}

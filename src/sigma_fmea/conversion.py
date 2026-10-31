@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .integrity import canonical_json, digest, load_json, normalize_header, strict_loads, validate_json
 from .models import FMEARow, FMEADraft, TEXT_FIELDS, LIST_FIELDS, require_text, evidence, text_list
+from .methodology import get_profile, scope_assessment
 
 MAPPING_VERSION = "0.2"
 MAPPING = {
@@ -53,7 +54,7 @@ def import_records(path):
     return records
 
 
-def _convert_record(source, index):
+def _convert_record(source, index, scope_flags=()):
     for key in ("source_id", "source_locator", "source_edition", "item"):
         require_text(source.get(key), key)
     snapshot = canonical_json(source)  # immutable string, independent of caller objects
@@ -64,6 +65,7 @@ def _convert_record(source, index):
     text_list(source.get("review_flags", []), "source.review_flags")
     flags = list(source.get("review_flags", []))
     flags.append("source_scope_hierarchy_phase_and_risk_definitions_require_review")
+    flags.extend(scope_flags)
 
     def ref(destination, locator=None):
         return {"source_id": source["source_id"], "locator": locator or source["source_locator"],
@@ -150,7 +152,7 @@ def convert(records, context, profile):
         raise ValueError("Source records must be a nonempty list of objects")
     rows, reports = [], []
     for index, source in enumerate(records, 1):
-        row, record = _convert_record(source, index)
+        row, record = _convert_record(source, index, scope_assessment(context, profile)["review_flags"])
         rows.append(row)
         reports.append(record)
     draft = FMEADraft(deepcopy(context), profile.profile_id, profile.version, rows,
@@ -177,7 +179,8 @@ def verify_report(draft, report):
         source = strict_loads(snapshot)
         if snapshot != canonical_json(source) or digest(source) != record.get("source_sha256") or canonical_json(record.get("original_record")) != snapshot:
             raise ValueError("Preserved source checksum mismatch")
-        expected_row, expected_record = _convert_record(source, index)
+        profile = get_profile(draft.profile_id, draft.profile_version)
+        expected_row, expected_record = _convert_record(source, index, scope_assessment(draft.context, profile)["review_flags"])
         if record != expected_record:
             raise ValueError("Conversion report differs from verified mapping")
         actual = deepcopy(row.__dict__)

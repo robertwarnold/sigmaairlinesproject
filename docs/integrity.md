@@ -2,6 +2,9 @@
 
 Scope: local offline corrections only. Python 3.12 target. All owners Unassigned.
 
+This records the merged 0.2 integrity pass. Subsequent local profile 0.3 work is described
+in profile-policies.md; the candidate fixture is described in public-conversion-candidate.md.
+
 ## Corrected boundaries
 
 - Strict JSON parser rejects duplicate object keys at every depth, including decoded

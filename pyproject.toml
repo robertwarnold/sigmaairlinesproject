@@ -4,10 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sigma-fmea"
-version = "0.2.0"
+version = "0.3.0"
 description = "Offline, engineering-reviewable FMEA drafts and auditable FMECA conversion"
 requires-python = ">=3.12"
 dependencies = []
+
+[project.optional-dependencies]
+analysis = ["matplotlib>=3.8"]
 
 [project.scripts]
 sigma-fmea = "sigma_fmea.cli:main"

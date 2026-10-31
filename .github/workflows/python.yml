@@ -16,4 +16,4 @@ jobs:
       - run: python -m unittest discover -s tests -v
         env:
           PYTHONPATH: src
-          SIGMA_TEST_WHEEL: .venv/test-wheels/sigma_fmea-0.2.0-py3-none-any.whl
+          SIGMA_TEST_WHEEL: .venv/test-wheels/sigma_fmea-0.3.0-py3-none-any.whl

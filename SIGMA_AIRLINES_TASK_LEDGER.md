@@ -4,6 +4,54 @@
 **Status:** Architecture approved; first local offline milestone implemented for review. **No individuals assigned.**  
 **Workflow:** Proposed → Ready → In progress → In review → Accepted. Acceptance remains a team decision.
 
+## Deadline research prototype — preliminary results due 2026-11-01
+
+Priority changed by the team to rapid end-to-end research integration. All owners
+remain **Unassigned**. Working branch remains `feat/fmea-profiles-validation`.
+
+| Task | Current prototype work | Status / remaining gate |
+|---|---|---|
+| S-02 / S-09 | Lightweight allowlisted ASQ/NASA/team-policy summaries, exact guidance trace | In review; no full RAG or unverified standards-compliance claim |
+| S-05 / S-07 | OpenAI and Anthropic HTTP adapters, structured candidates, mock retained; baseline/improved prompts | In review offline; real smoke requires configured credential/model and explicit paid approval |
+| S-03 / S-04 / S-06 | Canonical schema, unrated policy and deterministic converter preserved | Historical integrity work retained; further production verification deferred |
+| S-08 / S-11 | Deterministic content-completeness, counts/errors/flags/time; reviewed-reference lexical coverage only | In review; no actual reviewed reference sets for research scenarios |
+| S-12 | Four scenario inputs, 3 repeats × 2 conditions, frozen plan, smoke gate, attempt claims and cumulative call cap | Offline rehearsal; paid campaign not authorized or executed |
+| S-13 | Consolidated CSV, descriptive comparisons, plots and preliminary report | Offline rehearsal artifacts only until real calls approved; no significance/Cpk claims |
+| S-14 | CLI demonstration and deadline runbook | In review; production auth/frontend/release hardening deferred |
+
+See docs/research-prototype.md for actual commands, sample limitations, approval gates,
+and the deadline run plan. Existing R baseline/reference exclusions remain unchanged.
+No commits, pushes, merges or paid calls are authorized by this deadline work order.
+
+Verification: **61 offline tests passed on Python 3.12.14**. Actual mock rehearsal:
+24 attempted / 24 successful / 0 failures, after a one-generation smoke. CSVs, descriptive
+statistics, PNG/SVG plots and findings report generated under ignored results/. These
+are rehearsal artifacts only, not real LLM research evidence. No provider credential is
+configured; no paid smoke or batch has run. See docs/research-verification.md.
+
+## Post-merge next slice — 2026-10-31
+
+Foundation PR #1 merged into main as `68841b9` after remote Python 3.12/3.13 CI passed.
+Current development branch: `feat/fmea-profiles-validation`. All owners **Unassigned**.
+
+| Task | Status | Current slice |
+|---|---|---|
+| S-01 | In review | Foundation merged; remote CI recorded; original R baseline preserved. |
+| S-02 | In progress | Public ASQ/NASA guidance revisited; licensed normative details remain unverified. |
+| S-03 / S-07 | In review (local slice) | Profile 0.3 gives four distinct scope/workflow/review policies, gap flags, and mock intent; legacy 0.2 verification retained. |
+| S-04 / S-06 | In review (local slice) | Two real-source NASA rows transcribed as a limited candidate with source-page locators; risks/units and ambiguous controls preserved. |
+| S-10 | In progress (candidate only) | Agent visual page comparison completed; independent engineering verification and benchmark approval remain pending. |
+| S-09 / S-11–S-14 | Proposed | Retrieval, evaluator, experiments, statistics, authenticated review and release remain deferred. |
+
+No full source document is added to Git. The candidate is isolated under tests/fixtures,
+is not generation context, and must not be described as approved ground truth. Real AI
+providers and paid calls remain deferred. New slice changes remain local for review;
+the foundation merge does not imply acceptance of all remaining work-package criteria.
+
+Local validation: 44 tests pass on Python 3.12.14, including the installed CLI,
+profile-specific scope checks, legacy profile verification and the two-row candidate.
+The new slice is not committed or pushed; its remote CI is pending.
+
 ## Engineering-data integrity correction pass — 2026-10-31
 
 Status: **In review**, pending team acceptance. All owners remain **Unassigned**.

@@ -1,0 +1,9 @@
+{
+  "system_id": "REPLACE_WITH_SYSTEM_ID",
+  "reference_version": "candidate-1",
+  "review_status": "unreviewed",
+  "reviewer": "",
+  "reviewed_on": "",
+  "scope": "Document eligible failure-mode scope and source evidence before review",
+  "modes": []
+}
