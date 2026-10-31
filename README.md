@@ -134,3 +134,7 @@ metadata validates zoned ISO timestamps and exact content-version binding, but r
 identity is not authenticated. Unresolved flags remain attached to decisions and
 `approval_status` must stay `unauthenticated_draft`. Providers cannot create review
 decisions. A future controlled workflow must establish approval authority.
+
+## RUN PROPERLY - FROM ROBERT
+
+python fmea_generator.py --system system_descriptions/system_2_nasa_fmeca.txt --case-id system_2 --model gemini-3.8-flash

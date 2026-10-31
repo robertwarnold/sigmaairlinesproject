@@ -1,11 +1,20 @@
-DEMONSTRATION ONLY — REPLACE WITH A REAL REFERENCE SYSTEM INPUT
-System: Simple hydraulic actuator circuit
-Purpose: Move a mechanical load on command.
+System: Aircraft Hydraulic System
+
+Purpose:
+Provide hydraulic pressure to operate aircraft actuators.
+
 Components:
-1. Pump: supplies hydraulic pressure.
-2. Reservoir: stores hydraulic fluid.
-3. Valve: directs fluid flow.
-4. Actuator: converts pressure into motion.
-5. Pressure sensor: monitors line pressure.
-Requirements: Deliver commanded motion; detect abnormal pressure; avoid unintended movement.
-Operating conditions: Variable load; normal ambient temperatures.
+1. Hydraulic pump - generates hydraulic pressure.
+2. Hydraulic reservoir - stores hydraulic fluid.
+3. Hydraulic lines - transfer fluid to actuators.
+4. Pressure sensor - monitors hydraulic pressure.
+5. Actuator - converts hydraulic pressure into movement.
+
+Operating conditions:
+The system operates under varying loads and temperatures.
+
+Requirements:
+- Maintain sufficient hydraulic pressure.
+- Detect abnormal pressure conditions.
+- Prevent uncontrolled actuator movement.
+- Minimize fluid leakage.

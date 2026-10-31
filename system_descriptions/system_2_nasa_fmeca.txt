@@ -1,0 +1,34 @@
+System: NASA Concept Tilt-Wing Propulsion System
+
+Purpose:
+Supply and control power to four rotors for vertical and forward flight.
+
+Components:
+1. Turboshaft engine - drives the electrical generator.
+2. AC generator and AC/DC converter - supply propulsion electricity and low-voltage flight-control power.
+3. Battery network - stores electrical energy for propulsion.
+4. Flight control computers - command individual electronic speed controllers.
+5. Electronic speed controllers - regulate electric motors and use internal DC/DC converters for their own power.
+6. Four electric motors - drive the rotor powertrains.
+7. Sprag clutches - provide overrunning connections in the motor drive paths.
+8. Accessory gearboxes - drive cooling fans and lubrication pumps.
+9. Rotor gearboxes - reduce motor speed and transmit torque to rotors.
+10. Interconnecting shafts - provide a secondary power path and rotor synchronization.
+11. Cooling fans, heat exchangers, and lubrication pumps - cool and lubricate motors and gearboxes.
+
+Operating conditions:
+Hover and cruise; batteries are charged before flight and recharged during the mission. Consider operation with one motor inoperative.
+
+Requirements (analysis objectives for this input):
+- Maintain commanded rotor power and synchronization.
+- Maintain electrical supply, cooling, and lubrication.
+- Assess failures across electrical, mechanical, and control interfaces.
+
+FMEA instructions:
+Produce an FMEA draft identifying component, function, failure mode, potential cause, local effect, system effect, and recommended action. Distinguish source-supported architecture from generated failure hypotheses. Treat recommended actions as proposals, not existing controls. Mark missing evidence and assumptions for engineering review.
+Exclude quantitative criticality analysis, failure-rate calculations, mode ratios, and criticality numbers. Do not translate source severity categories into 1-10 severity, occurrence, or detection scores. If the generator requires numeric ratings, label those ratings and the resulting RPN as unvalidated model estimates requiring review.
+
+Source and scope:
+NASA/CR-2019-220217, June 2019, sections 1.3 and 5.1 (printed pages 2 and 29-30); related FMECA: Appendix B, Table B-1.
+https://ntrs.nasa.gov/api/citations/20190026443/downloads/20190026443.pdf
+This is a system-description input adapted for FMEA generation, not a row-by-row conversion of the NASA worksheets. It covers only the tilt-wing concept; other aircraft configurations in the report are excluded. Generated output is not a NASA-approved FMEA.
