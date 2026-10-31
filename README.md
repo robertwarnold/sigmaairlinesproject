@@ -17,6 +17,51 @@ Open the completed run and download **fmea-results-...** under **Artifacts** for
 the CSV and raw model response. Results are retained for 14 days, including a raw
 response when generation succeeds but parsing fails. Outputs require engineering review.
 
+### Run from Terminal using GitHub CLI
+
+These commands start generation on GitHub using the shared secret, then download
+the results to your computer. No local `.env` is needed. Running
+`python fmea_generator.py` directly on your computer still requires a local key;
+it cannot retrieve the repository secret.
+
+On macOS, install GitHub CLI with Homebrew and sign in once:
+
+```bash
+brew install gh
+gh auth login
+```
+
+From your cloned project folder, start the workflow (it must already be pushed
+to the repository's default branch):
+
+```bash
+gh workflow run generate-fmea.yml \
+  -f system=system_2_nasa_fmeca \
+  -f model=gemini-3.8-flash
+```
+
+Use `-f system=system_1` for the original hydraulic system. Each workflow run
+uses the shared account's API quota.
+
+Find your run by its time and user in the list:
+
+```bash
+gh run list --workflow generate-fmea.yml --limit 5
+```
+
+Replace `RUN_ID` below with the numeric ID of your run. Watch it until it finishes,
+then download the artifact:
+
+```bash
+gh run watch RUN_ID
+gh run download RUN_ID --dir results/github/RUN_ID
+```
+
+The downloaded artifact contains the CSV and raw response when generation succeeds.
+For failures, inspect the run logs with `gh run view RUN_ID --log-failed`.
+If the key is missing, configure the `GEMINI_API_KEY` repository Actions secret.
+If Google returns 503, wait and start a new workflow run.
+
 
 **Research deadline prototype:** real OpenAI/Anthropic adapters, baseline/improved
 conditions, a 24-generation runner, deterministic evaluation and descriptive analysis
