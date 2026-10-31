@@ -6,6 +6,7 @@ import os
 import time
 import urllib.error
 import urllib.request
+import re
 
 from .guidance import retrieve
 from .integrity import canonical_json, digest, strict_loads
@@ -25,7 +26,7 @@ class ProviderError(ValueError):
 
 
 def credential_status():
-    return {"openai": bool(os.environ.get("OPENAI_API_KEY")), "anthropic": bool(os.environ.get("ANTHROPIC_API_KEY"))}
+    return {"openai": bool(os.environ.get("OPENAI_API_KEY")), "anthropic": bool(os.environ.get("ANTHROPIC_API_KEY")), "gemini": bool(os.environ.get("GEMINI_API_KEY"))}
 
 
 def resolve_provider(name):
@@ -34,7 +35,7 @@ def resolve_provider(name):
     for candidate, present in credential_status().items():
         if present:
             return candidate
-    raise ProviderError("No OpenAI or Anthropic key is configured; set an environment variable locally, never paste a key into chat")
+    raise ProviderError("No supported provider key is configured; set an environment variable locally, never paste a key into chat")
 
 
 def build_prompt(context, profile, description, condition):
@@ -71,8 +72,8 @@ class LLMProvider:
     def __init__(self, name, model, description="", condition="improved", allow_paid=False,
                  max_output_tokens=5000, temperature=None, timeout=120, transport=None):
         self.name = resolve_provider(name)
-        if self.name not in {"openai", "anthropic"}:
-            raise ProviderError("Real provider must be openai or anthropic")
+        if self.name not in {"openai", "anthropic", "gemini"}:
+            raise ProviderError("Real provider must be openai, anthropic or gemini")
         if not isinstance(model, str) or not model.strip():
             raise ProviderError("Set an explicit model ID for real generation")
         if type(max_output_tokens) is not int or max_output_tokens < 1 or max_output_tokens > 16000:
@@ -89,7 +90,7 @@ class LLMProvider:
     def generate(self, context, profile):
         if not self.allow_paid:
             raise ProviderError("Paid API calls are disabled. Explicit approval and --allow-paid are required")
-        key_name = "OPENAI_API_KEY" if self.name == "openai" else "ANTHROPIC_API_KEY"
+        key_name = {"openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY", "gemini": "GEMINI_API_KEY"}[self.name]
         key = os.environ.get(key_name)
         if not key:
             raise ProviderError(f"{key_name} is not set; no request made")
@@ -100,27 +101,48 @@ class LLMProvider:
             payload = {"model": self.model, "store": False, "instructions": prompt["instructions"],
                        "input": canonical_json(prompt["user"]), "max_output_tokens": self.max_output_tokens,
                        "text": {"format": {"type": "json_schema", "name": "fmea_candidates", "strict": True, "schema": OUTPUT_SCHEMA}}}
-        else:
+        elif self.name == "anthropic":
             url = "https://api.anthropic.com/v1/messages"
             headers = {"x-api-key": key, "anthropic-version": "2023-06-01"}
             payload = {"model": self.model, "system": prompt["instructions"], "messages": [{"role": "user", "content": canonical_json(prompt["user"])}],
                        "max_tokens": self.max_output_tokens, "output_config": {"format": {"type": "json_schema", "schema": OUTPUT_SCHEMA}}}
+        else:
+            if not re.fullmatch(r"[A-Za-z0-9._-]+", self.model):
+                raise ProviderError("Use a Gemini model ID without a models/ prefix")
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
+            headers = {"x-goog-api-key": key}
+            payload = {"systemInstruction": {"parts": [{"text": prompt["instructions"]}]},
+                       "contents": [{"role": "user", "parts": [{"text": canonical_json(prompt["user"])}]}],
+                       "generationConfig": {"responseMimeType": "application/json", "responseJsonSchema": OUTPUT_SCHEMA,
+                                            "maxOutputTokens": self.max_output_tokens, "candidateCount": 1}}
         if self.temperature is not None:
-            payload["temperature"] = self.temperature
+            (payload["generationConfig"] if self.name == "gemini" else payload)["temperature"] = self.temperature
         self.last_execution = {"provider": self.name, "requested_model": self.model, "prompt": prompt, "request": payload,
                                "started_at": datetime.now(timezone.utc).isoformat(), "usage": None, "response": None}
         started = time.perf_counter()
         try:
             response = self.transport(url, payload, headers, self.timeout)
             self.last_execution.update(response=response, actual_model=response.get("model"), usage=response.get("usage"), response_id=response.get("id"))
+            if self.name == "gemini":
+                usage = response.get("usageMetadata", {})
+                self.last_execution.update(actual_model=response.get("modelVersion"), response_id=response.get("responseId"),
+                    usage={"input_tokens": usage.get("promptTokenCount"), "output_tokens": usage.get("candidatesTokenCount"),
+                           "reasoning_tokens": usage.get("thoughtsTokenCount"), "total_tokens": usage.get("totalTokenCount"), "raw": usage})
             if self.name == "openai":
                 if response.get("status") != "completed":
                     raise ProviderError("OpenAI response incomplete or failed; raw response preserved")
                 text = "".join(c["text"] for block in response.get("output", []) if block.get("type") == "message" for c in block.get("content", []) if c.get("type") == "output_text")
-            else:
+            elif self.name == "anthropic":
                 if response.get("stop_reason") != "end_turn":
                     raise ProviderError("Anthropic response incomplete/refused; raw response preserved")
                 text = "".join(block["text"] for block in response.get("content", []) if block.get("type") == "text")
+            else:
+                candidates = response.get("candidates", [])
+                if len(candidates) != 1 or candidates[0].get("finishReason") != "STOP":
+                    raise ProviderError("Gemini response blocked, truncated or incomplete; raw response preserved")
+                if not self.last_execution["actual_model"]:
+                    raise ProviderError("Gemini did not report modelVersion; cannot verify same-model comparison")
+                text = "".join(part.get("text", "") for part in candidates[0].get("content", {}).get("parts", []) if not part.get("thought", False))
             data = strict_loads(text)
             self.last_execution["raw_row_count"] = len(data.get("rows", [])) if isinstance(data, dict) and isinstance(data.get("rows"), list) else None
             return candidates_to_rows(data, context, profile)

@@ -1,0 +1,14 @@
+{
+  "input_version": "nasa-2021-architecture-1",
+  "classification": "source_grounded_architecture_summary_not_reviewed_reference_modes",
+  "context": {
+    "analysis_id": "nasa2021-equad-power-architecture", "system_id": "nasa2021-equad-power",
+    "scope": "eQuad electrical architecture only; NASA/CR-20210017188 section 11.1–11.1.1, printed 93–94, PDF pages 108–109",
+    "hierarchy_level": "electrical supply and distribution subsystems", "operating_phase": "concept vehicle mission operation",
+    "assumptions": ["Architecture-only paraphrase; not a complete source-system specification", "Conceptual redundancy is not proof of verified performance", "Source FMECA and fault-tree answers are excluded"],
+    "requirement_refs": ["Team analysis objective: characterize propulsion and flight-control electrical supply functions"],
+    "interface_refs": ["battery-pair-to-motor-controller supply", "battery-to-DC/DC conversion", "low-voltage supply-to-flight-control channels"],
+    "items": [{"name": "Battery packs", "function": "Store and distribute high-voltage DC electrical energy"}, {"name": "Pack interconnections and contactors", "function": "Connect electrical energy sources to their distribution paths"}, {"name": "DC/DC converters", "function": "Supply low-voltage DC electrical power"}, {"name": "Flight-control supply channels", "function": "Deliver low-voltage power to flight-control equipment"}, {"name": "Electronic speed controller supplies", "function": "Provide electrical power for motor-control equipment"}]
+  },
+  "description": "Architecture-only paraphrase of NASA/CR-20210017188, sections 11.1 and 11.1.1, printed pages 93–94 (PDF pages 108–109). The eQuad concept has eight electrically isolated battery packs arranged as two packs near each of four motors. A pack represents cells/modules, connectors, contactors, wiring, battery management and thermal-management interfaces. Six pack connections provide stepped-down low-voltage power through DC/DC conversion for flight-control channels. The layout distributes forward and aft sources across three flight-control channels. This summary includes no source failure conditions, FMECA mode/cause/effect rows, probability estimates, criticality values or reference answers. Detailed pack sizing and component choices remain conceptual; this is not a validated vehicle design or complete requirements set. Source: https://ntrs.nasa.gov/citations/20210017188 ."
+}

@@ -4,6 +4,31 @@
 **Status:** Architecture approved; first local offline milestone implemented for review. **No individuals assigned.**  
 **Workflow:** Proposed → Ready → In progress → In review → Accepted. Acceptance remains a team decision.
 
+## Eight-generation reviewer pilot preparation — 2026-10-31
+
+All owners **Unassigned**. Prepared locally only; paid calls and publication await
+separate user approval. Inspected current GitHub main: `03570b6`.
+
+- Actual workflow: `generate-fmea.yml`, "Generate FMEA with shared Gemini key";
+  only repository Actions secret listed: `GEMINI_API_KEY` (name only inspected).
+- S-05/S-07/S-12: minimal Gemini adapter added to existing research interface; existing
+  single-shot generator retained. Pilot config uses two existing scenarios × two repeats
+  × baseline/improved = eight calls; one smoke plus seven separately authorized calls.
+- S-09/S-10: NASA 2019/2021 architecture-only follow-up inputs prepared separately;
+  no worksheet answers in prompts; candidate conversions remain unreviewed, not ground truth.
+- S-11/S-13/S-14: existing deterministic metrics/reporting reused. Complete artifact
+  bundle adds reviewer README, source roles, reproduction code and checksums. Cross-run
+  artifact restore preserves the smoke. No-call preview and explicit call-count gates added.
+- Source/profile/model/settings remain frozen between smoke and continuation. No
+  automatic reruns/retries or fallback models. Stable model alias caveat documented.
+
+Offline evidence: eight mock attempts completed successfully; full CSV/JSON/plot/report
+bundle prepared under ignored results/eight-pilot-rehearsal. These are not real-model
+results. See docs/pilot-reviewer.md for exact workflow inputs and artifact locations.
+Full verification: 71 tests passed on Python 3.12.14, including Gemini simulated
+protocols, restored-smoke reuse, separate call-count authorization, rerun blocking,
+source-commit continuity, package checksums and the prior integrity/research tests.
+
 ## Deadline research prototype — preliminary results due 2026-11-01
 
 Priority changed by the team to rapid end-to-end research integration. All owners

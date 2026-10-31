@@ -27,7 +27,7 @@ def write_record(path, data):
     """Replace a run-state record atomically. Never includes authorization headers."""
     path = Path(path)
     raw = json_bytes(data).decode("utf-8")
-    for variable in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
+    for variable in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"):
         secret = os.environ.get(variable)
         if secret and len(secret) >= 8:
             raw = raw.replace(secret, "[REDACTED]")
@@ -130,15 +130,15 @@ def build_plan(config_path, provider=None, model=None):
         name = resolve_provider(provider_name)
     except ProviderError:
         name = "auto"
-        blockers.append("No OpenAI or Anthropic credential configured")
-    if name not in {"mock", "openai", "anthropic", "auto"}:
+        blockers.append("No supported provider credential configured")
+    if name not in {"mock", "openai", "anthropic", "gemini", "auto"}:
         raise ValueError("Unknown provider")
     model_id = model or config.get("model")
     if name == "mock":
         model_id = "offline-mock"
     if name != "mock" and (not isinstance(model_id, str) or not model_id.strip() or model_id.startswith("SET_")):
         blockers.append("An explicit accessible model ID is required")
-    if name in {"openai", "anthropic"} and not credential_status()[name]:
+    if name in {"openai", "anthropic", "gemini"} and not credential_status()[name]:
         blockers.append(f"{name} credential not configured")
     repetitions = config.get("repetitions", 3)
     if type(repetitions) is not int or not 1 <= repetitions <= 25:
