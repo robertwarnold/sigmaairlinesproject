@@ -1,0 +1,9 @@
+{
+  "analysis_id": "demo-001",
+  "system_id": "synthetic-pump",
+  "scope": "Synthetic pump example for software demonstration only",
+  "hierarchy_level": "component",
+  "operating_phase": "normal operation",
+  "assumptions": ["Not a validated engineering analysis"],
+  "items": [{"name": "Pump", "function": "Supply fluid pressure"}]
+}

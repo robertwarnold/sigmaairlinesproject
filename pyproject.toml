@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sigma-fmea"
+version = "0.2.0"
+description = "Offline, engineering-reviewable FMEA drafts and auditable FMECA conversion"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+sigma-fmea = "sigma_fmea.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
