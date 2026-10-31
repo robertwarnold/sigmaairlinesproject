@@ -13,6 +13,7 @@ on:
           - pilot_plan
           - pilot_smoke
           - pilot_remaining
+          - pilot_four_remaining
       approved_calls:
         description: Pilot authorization only (0 for plan; 1 for smoke; 7 after smoke review)
         default: '0'
@@ -56,13 +57,13 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install -e '.[analysis]'
       - name: Validate pilot continuation input
-        if: ${{ inputs.mode == 'pilot_remaining' }}
+        if: ${{ inputs.mode == 'pilot_remaining' || inputs.mode == 'pilot_four_remaining' }}
         env:
           SMOKE_RUN_ID: ${{ inputs.smoke_run_id }}
         run: |
           [[ "$SMOKE_RUN_ID" =~ ^[0-9]+$ ]] || { echo '::error::Provide the successful smoke workflow run ID'; exit 1; }
       - name: Restore smoke evidence without regenerating it
-        if: ${{ inputs.mode == 'pilot_remaining' }}
+        if: ${{ inputs.mode == 'pilot_remaining' || inputs.mode == 'pilot_four_remaining' }}
         uses: actions/download-artifact@v4
         with:
           name: fmea-pilot-${{ inputs.smoke_run_id }}
@@ -90,7 +91,7 @@ jobs:
             --case-id "$SELECTED_SYSTEM" \
             --model "$SELECTED_MODEL"
       - name: Run reduced research pilot
-        if: ${{ startsWith(inputs.mode, 'pilot_') }}
+        if: ${{ inputs.mode == 'pilot_plan' || inputs.mode == 'pilot_smoke' || inputs.mode == 'pilot_remaining' }}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SELECTED_MODEL: ${{ inputs.model }}
@@ -99,15 +100,31 @@ jobs:
         run: |
           python scripts/pilot_workflow.py --mode "${PILOT_MODE#pilot_}" \
             --model "$SELECTED_MODEL" --approved-calls "$APPROVED_CALLS" --output results/pilot
+      - name: Run amended four-dataset continuation
+        if: ${{ inputs.mode == 'pilot_four_remaining' }}
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SELECTED_MODEL: ${{ inputs.model }}
+          APPROVED_CALLS: ${{ inputs.approved_calls }}
+        run: |
+          python scripts/pilot_four_datasets.py --smoke results/pilot --output results/pilot-four \
+            --model "$SELECTED_MODEL" --approved-calls "$APPROVED_CALLS"
       - name: Package pilot evidence and reviewer summary
         if: ${{ always() && startsWith(inputs.mode, 'pilot_') }}
-        run: python scripts/pilot_workflow.py --mode package --output results/pilot
+        env:
+          PILOT_MODE: ${{ inputs.mode }}
+        run: |
+          if [ "$PILOT_MODE" = pilot_four_remaining ]; then
+            python scripts/pilot_four_datasets.py --package --output results/pilot-four
+          else
+            python scripts/pilot_workflow.py --mode package --output results/pilot
+          fi
       - name: Upload complete pilot bundle
         if: ${{ always() && startsWith(inputs.mode, 'pilot_') }}
         uses: actions/upload-artifact@v4
         with:
           name: fmea-pilot-${{ github.run_id }}
-          path: results/pilot/
+          path: ${{ inputs.mode == 'pilot_four_remaining' && 'results/pilot-four/' || 'results/pilot/' }}
           if-no-files-found: warn
           retention-days: 14
       - name: Upload generated results

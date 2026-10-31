@@ -96,7 +96,7 @@ class GeminiPilotTests(unittest.TestCase):
 
     def test_workflow_declares_complete_pilot_upload_and_restore_inputs(self):
         workflow = (ROOT / ".github/workflows/generate-fmea.yml").read_text()
-        for value in ("pilot_plan", "pilot_smoke", "pilot_remaining", "approved_calls", "smoke_run_id", "actions/download-artifact@v4", "path: results/pilot/", "mode package"):
+        for value in ("pilot_plan", "pilot_smoke", "pilot_remaining", "approved_calls", "smoke_run_id", "actions/download-artifact@v4", "results/pilot/", "mode package"):
             self.assertIn(value, workflow)
         self.assertNotIn("workflow_run:", workflow)
         self.assertNotIn("pull_request:", workflow)

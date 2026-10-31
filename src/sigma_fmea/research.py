@@ -188,7 +188,7 @@ def build_plan(config_path, provider=None, model=None):
             "conditions": conditions, "order_seed": config.get("order_seed", 5300),
             "prompt_version": PROMPT_VERSION, "guidance_version": GUIDANCE_VERSION, "guidance_corpus_sha256": digest(GUIDANCE),
             "schema_version": "0.2", "blockers": blockers,
-            "sample_note": "four author-created research scenarios" if len(systems) == 4 else f"reduced/changed sample: {len(systems)} systems"}
+            "sample_note": f"{len(systems)} inputs; classifications: " + ", ".join(sorted({s["classification"] for s in systems}))}
     plan["implementation_sha256"] = digest({name: (Path(__file__).parent / name).read_text(encoding="utf-8") for name in ("research.py", "providers.py", "llm.py", "models.py", "methodology.py", "guidance.py", "evaluation.py", "integrity.py", "export.py")})
     plan["plan_sha256"] = digest(plan)
     return plan
