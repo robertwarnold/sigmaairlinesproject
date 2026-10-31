@@ -1,0 +1,5 @@
+system_id,condition,successful_generations,structural_completeness_pct,missed_failure_modes_pct,generated_failure_modes,generation_seconds
+hydraulic-actuator,baseline,1,100.0,,9,99.15225794699998
+battery-dc-power,baseline,0,,,,
+hydraulic-actuator,improved,0,,,,
+battery-dc-power,improved,0,,,,

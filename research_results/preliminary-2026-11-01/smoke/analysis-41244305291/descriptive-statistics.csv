@@ -1,0 +1,9 @@
+condition,metric,n,mean,sd,median,min,max
+baseline,structural_completeness_pct,1,100.0,,100.0,100.0,100.0
+baseline,missed_failure_modes_pct,0,,,,,
+baseline,generated_failure_modes,1,9,,9,9,9
+baseline,generation_seconds,1,99.15225794699998,,99.15225794699998,99.15225794699998,99.15225794699998
+improved,structural_completeness_pct,0,,,,,
+improved,missed_failure_modes_pct,0,,,,,
+improved,generated_failure_modes,0,,,,,
+improved,generation_seconds,0,,,,,

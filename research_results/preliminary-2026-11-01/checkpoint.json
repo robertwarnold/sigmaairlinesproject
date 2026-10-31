@@ -1,0 +1,10 @@
+{
+  "status": "continuation_running_results_pending",
+  "smoke_run_id": 41244305291,
+  "continuation_run_id": 41245374928,
+  "continuation_source_sha": "4052aa40548c5fa17c2388d5e474e4eda216f857",
+  "real_sheets_verified": 1,
+  "additional_attempts_authorized": 7,
+  "dataset_count": 4,
+  "owners": "Unassigned"
+}

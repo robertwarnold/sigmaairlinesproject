@@ -1,0 +1,93 @@
+{
+  "plan_version": "research-plan-1",
+  "provider": "gemini",
+  "model": "gemini-3.8-flash",
+  "temperature": 0,
+  "max_output_tokens": 8192,
+  "systems": [
+    {
+      "system_id": "hydraulic-actuator",
+      "path": "/home/runner/work/sigmaairlinesproject/sigmaairlinesproject/examples/research/hydraulic_actuator.json",
+      "profile": "general",
+      "profile_version": "0.3",
+      "input_sha256": "8a0e824df650291d63882c6b062c2060d7af4c63658e3cecdb35d20222fbb73b",
+      "input_version": "scenario-1",
+      "classification": "author_created_research_scenario_not_validated_operational_system"
+    },
+    {
+      "system_id": "battery-dc-power",
+      "path": "/home/runner/work/sigmaairlinesproject/sigmaairlinesproject/examples/research/battery_power.json",
+      "profile": "dfmea",
+      "profile_version": "0.3",
+      "input_sha256": "a8e532a1aa0b34b762bfe053868b34696c78e36051c6a7a11c87e175ceeae6cf",
+      "input_version": "scenario-1",
+      "classification": "author_created_research_scenario_not_validated_operational_system"
+    }
+  ],
+  "references": {},
+  "jobs": [
+    {
+      "job_id": "s01-r01-baseline",
+      "system_index": 0,
+      "repetition": 1,
+      "condition": "baseline"
+    },
+    {
+      "job_id": "s01-r01-improved",
+      "system_index": 0,
+      "repetition": 1,
+      "condition": "improved"
+    },
+    {
+      "job_id": "s02-r01-baseline",
+      "system_index": 1,
+      "repetition": 1,
+      "condition": "baseline"
+    },
+    {
+      "job_id": "s02-r01-improved",
+      "system_index": 1,
+      "repetition": 1,
+      "condition": "improved"
+    },
+    {
+      "job_id": "s01-r02-improved",
+      "system_index": 0,
+      "repetition": 2,
+      "condition": "improved"
+    },
+    {
+      "job_id": "s01-r02-baseline",
+      "system_index": 0,
+      "repetition": 2,
+      "condition": "baseline"
+    },
+    {
+      "job_id": "s02-r02-baseline",
+      "system_index": 1,
+      "repetition": 2,
+      "condition": "baseline"
+    },
+    {
+      "job_id": "s02-r02-improved",
+      "system_index": 1,
+      "repetition": 2,
+      "condition": "improved"
+    }
+  ],
+  "total_generations": 8,
+  "repetitions": 2,
+  "conditions": [
+    "baseline",
+    "improved"
+  ],
+  "order_seed": 1,
+  "prompt_version": "research-prompts-1",
+  "guidance_version": "public-guidance-1",
+  "guidance_corpus_sha256": "92187d1ec6e484b337a73322d64f80d98033fe5f92b582d40278a3a0fe3ab469",
+  "schema_version": "0.2",
+  "blockers": [],
+  "sample_note": "reduced/changed sample: 2 systems",
+  "implementation_sha256": "b3c0baf95f3aa4147629f243c58f28f967eb163fbf3a74b1e865bfc22fccf83a",
+  "plan_sha256": "a51b1295d774253feefe4cccee01ff7881135e5d673b981daf95ab090399fc65"
+}

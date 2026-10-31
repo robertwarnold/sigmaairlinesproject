@@ -1,0 +1,10 @@
+{
+  "planned_generations": 8,
+  "attempted": 1,
+  "successful": 1,
+  "failed": 0,
+  "uncertain": 0,
+  "data_kind": "real_llm_generation",
+  "plan_sha256": "a51b1295d774253feefe4cccee01ff7881135e5d673b981daf95ab090399fc65",
+  "remaining": 7
+}
