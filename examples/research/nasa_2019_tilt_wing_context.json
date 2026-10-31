@@ -1,0 +1,14 @@
+{
+  "input_version": "nasa-2019-architecture-1",
+  "classification": "source_grounded_architecture_summary_not_reviewed_reference_modes",
+  "context": {
+    "analysis_id": "nasa2019-tilt-wing-architecture", "system_id": "nasa2019-tilt-wing",
+    "scope": "Concept tilt-wing propulsion architecture only; source NASA/CR-2019-220217 sections 1.3 and 5.1, printed 2 and 29–30",
+    "hierarchy_level": "propulsion subsystems and functional interfaces", "operating_phase": "hover and cruise",
+    "assumptions": ["Architecture-only adaptation; no reference failure-mode rows supplied", "Conceptual hardware is not verified installed equipment", "No source failure rates or criticality numbers are supplied"],
+    "requirement_refs": ["Team analysis objective: describe provision of rotor power and synchronization"],
+    "interface_refs": ["turboshaft-to-generator drive", "generator/converter-to-electric propulsion", "motor-to-rotor mechanical drive", "cooling and lubrication connections"],
+    "items": [{"name": "Turboshaft and generator", "function": "Convert fuel energy to propulsion electrical supply"}, {"name": "Battery network", "function": "Store electrical energy"}, {"name": "Motor controllers and electric motors", "function": "Control and supply rotor drive torque"}, {"name": "Rotor gearboxes and interconnecting shafts", "function": "Transmit drive power and support rotor synchronization"}, {"name": "Cooling and lubrication equipment", "function": "Support propulsion thermal management and lubrication"}]
+  },
+  "description": "Architecture-only paraphrase of NASA/CR-2019-220217 (June 2019), sections 1.3 and 5.1, printed pages 2 and 29–30. The concept combines a turboshaft-driven electrical generator, AC/DC conversion, a battery network, motor controllers, electric motors and mechanical rotor drive paths. Four rotor powertrains include clutches, gearboxes and interconnecting shafts. Flight control computers command motor controllers. Cooling fans, heat exchangers and lubrication pumps support the propulsion equipment. Batteries are charged before flight and may be recharged during the mission. Hover and cruise are in scope. This summary describes architecture and intended functions only; it includes no FMECA mode/cause/effect rows, reference ratings, benchmark matches, failure rates or criticality numbers. Engineering detail omitted by the summary must remain unknown. Source: https://ntrs.nasa.gov/citations/20190026443 ."
+}

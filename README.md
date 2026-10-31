@@ -1,5 +1,10 @@
 # Sigma Airlines FMEA engineering support
 
+**Prepared eight-generation pilot:** see [the reviewer guide](docs/pilot-reviewer.md)
+for the inspected current workflow, shared-secret name, exact smoke/continuation inputs,
+artifact contents and approval gates. Added pilot modes require publication first;
+no paid pilot was run during preparation.
+
 ## Team generation with the shared Gemini secret
 
 Store the team's key as a repository Actions secret named `GEMINI_API_KEY`

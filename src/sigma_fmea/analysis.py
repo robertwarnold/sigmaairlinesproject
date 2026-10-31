@@ -36,6 +36,7 @@ def collect(output):
                      "prompt_version": state.get("prompt_version"), "input_sha256": state.get("input_sha256"), "prompt_sha256": state.get("prompt_sha256"),
                      "guidance_sha256": state.get("guidance_sha256"), "generation_seconds": state.get("generation_seconds"),
                      "input_tokens": usage.get("input_tokens"), "output_tokens": usage.get("output_tokens"),
+                     "reasoning_tokens": usage.get("reasoning_tokens"), "total_tokens": usage.get("total_tokens"),
                      "structural_completeness_pct": metrics.get("structural_completeness_pct") if usable else None,
                      "missed_failure_modes_pct": metrics.get("missed_failure_modes_pct") if usable else None,
                      "reference_mode_count": metrics.get("reference_mode_count") if usable else None,
