@@ -17,7 +17,7 @@ from sigma_fmea.research import build_plan, run_experiment, write_record
 CONFIG = ROOT / "examples/research/pilot-eight.json"
 
 
-def package(output, plots=True):
+def package(output, plots=True, config_path=CONFIG):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     receipt_path = output / "smoke-origin.json"
@@ -30,9 +30,11 @@ def package(output, plots=True):
         if not analysis.exists():
             summarize(output, analysis, plots=plots)
     reproduction = output / "reproduction"
-    for source in [*sorted((ROOT / "src/sigma_fmea").glob("*.py")), ROOT / "scripts/pilot_workflow.py",
-                   ROOT / "pyproject.toml", CONFIG,
-                   ROOT / "examples/research/hydraulic_actuator.json", ROOT / "examples/research/battery_power.json"]:
+    config_path = Path(config_path)
+    sources = [*sorted((ROOT / "src/sigma_fmea").glob("*.py")), *sorted((ROOT / "scripts").glob("*.py")),
+               ROOT / "pyproject.toml", config_path,
+               *[(config_path.parent / s["path"]).resolve() for s in load_json(config_path)["systems"]]]
+    for source in sources:
         target = reproduction / source.relative_to(ROOT)
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, target)
@@ -67,13 +69,16 @@ def package(output, plots=True):
             "To recompute CSVs/reports without an AI call: python -m sigma_fmea analyze . --output independent-analysis --no-plots.",
             "For plots, install matplotlib locally and omit --no-plots. Do not rerun generation merely to inspect this evidence.", "",
             "## Reproduce a new experiment", "",
-            "Use the archived reproduction/ source and pilot-eight.json on Python 3.12. The generation commands require explicit paid approval and a locally configured GEMINI_API_KEY.",
+            f"Use the archived reproduction/ source and {config_path.name} on Python 3.12. The generation commands require explicit paid approval and a locally configured GEMINI_API_KEY.",
             "Run experiment plan, then one smoke (max-calls 1), inspect it, then batch (max-calls 8) only after approval for seven additional calls. Use a new output directory.",
-            "The requested model is fixed to gemini-3.8-flash; actual modelVersion must remain identical. The provider may update a stable alias: this is not an immutable snapshot guarantee.",
+            "Use the archived experiment config; actual modelVersion must remain identical. The provider may update a stable alias: this is not an immutable snapshot guarantee.",
             "Repeating a live model request need not yield identical text. Recomputing the stored deterministic metrics does not require the service.", "",
-            "No reviewed references currently support missed-mode percentages for the two scenario inputs. Unavailable coverage is not zero. Structural completeness is not correctness.",
+            "No reviewed references currently support missed-mode percentages for these inputs. Unavailable coverage is not zero. Structural completeness is not correctness.",
             "No credentials, full NASA PDFs, reference FMECA answers or validated ground truth are included. All owners remain Unassigned.", ""]
     (output / "README.md").write_text("\n".join(rows), encoding="utf-8")
+    if (output / "amendment.json").exists():
+        with (output / "README.md").open("a", encoding="utf-8") as stream:
+            stream.write("\n**Amended design:** read AMENDMENT.md and amendment.json before interpreting results. The original smoke and its old plan are preserved under original-smoke/.\n")
     sums = []
     for path in sorted(output.rglob("*")):
         if path.is_file() and path.name != "checksums.sha256":
@@ -85,7 +90,7 @@ def package(output, plots=True):
             stream.write("## Sigma Airlines pilot\n\n| Planned | Attempted | Successful | Failed | Remaining |\n|---:|---:|---:|---:|---:|\n")
             stream.write("| " + " | ".join(str(progress.get(key, "not run")) for key in ("planned_generations", "attempted", "successful", "failed", "remaining")) + " |\n\n")
             stream.write(f"Download **fmea-pilot-{os.environ.get('GITHUB_RUN_ID')}** under this run's Artifacts. Start with README.md.\n\n")
-            stream.write("Design: hydraulic + battery/DC; baseline/improved; two repetitions; eight planned calls. Unreviewed NASA conversions are not ground truth.\n")
+            stream.write(f"Design config: {config_path.name}. Baseline/improved. Inspect plan.json and AMENDMENT.md if present. Unreviewed NASA conversions are not ground truth.\n")
     return progress
 
 

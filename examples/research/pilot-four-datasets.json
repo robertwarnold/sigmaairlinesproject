@@ -1,0 +1,12 @@
+{
+  "provider": "gemini", "model": "gemini-3.8-flash",
+  "repetitions": 1, "conditions": ["baseline", "improved"],
+  "max_output_tokens": 8192, "temperature": 0, "order_seed": 1,
+  "systems": [
+    {"path": "hydraulic_actuator.json", "profile": "general"},
+    {"path": "battery_power.json", "profile": "dfmea"},
+    {"path": "nasa_2019_tilt_wing_context.json", "profile": "aerospace"},
+    {"path": "nasa_2021_equad_power_context.json", "profile": "aerospace"}
+  ],
+  "references": {}
+}
