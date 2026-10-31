@@ -1,0 +1,35 @@
+{
+  "rubric_version": "content-completeness-1",
+  "artifact_id": "fmea:a1d345518d8cb4fb3aa7fecf325612471a71bd36aeb88a763cb2c441f0fb3add",
+  "structural_completeness_pct": 100.0,
+  "completed_content_cells": 72,
+  "eligible_content_cells": 72,
+  "completeness_fields": [
+    "item_or_process_step",
+    "function",
+    "failure_mode",
+    "failure_causes",
+    "effect_local",
+    "effect_next_level",
+    "effect_end_effect",
+    "recommended_actions"
+  ],
+  "schema_valid": true,
+  "generated_failure_modes": 9,
+  "generated_rows": 9,
+  "validation_errors": [],
+  "validation_error_count": 0,
+  "unresolved_review_flag_count": 18,
+  "unique_review_flags": [
+    "existing_controls_not_verified",
+    "model_hypotheses_require_engineering_review"
+  ],
+  "unknown_field_count": 27,
+  "rating_evaluation": "not_applicable; selected profiles are unrated",
+  "missed_failure_modes_pct": null,
+  "reference_mode_count": null,
+  "matched_reference_modes": null,
+  "coverage_status": "no_reviewed_reference",
+  "reference_sha256": null,
+  "matching_rule": "exact_normalized_item_and_mode_or_reviewed_alias; one_to_one"
+}

@@ -1,0 +1,8 @@
+{
+  "attempted": 1,
+  "successful": 1,
+  "failed_or_uncertain": 0,
+  "data_kind": "real_llm_generation",
+  "warnings": [],
+  "output": "results/pilot/analysis-41244305291"
+}

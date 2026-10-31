@@ -1,0 +1,53 @@
+{
+  "state": "success",
+  "system_id": "hydraulic-actuator",
+  "condition": "baseline",
+  "profile_id": "general",
+  "profile_version": "0.3",
+  "input_sha256": "8a0e824df650291d63882c6b062c2060d7af4c63658e3cecdb35d20222fbb73b",
+  "input_version": "scenario-1",
+  "classification": "author_created_research_scenario_not_validated_operational_system",
+  "settings": {
+    "provider": "gemini",
+    "model": "gemini-3.8-flash",
+    "temperature": 0,
+    "max_output_tokens": 8192
+  },
+  "prompt_version": "research-prompts-1",
+  "prompt_sha256": "c660a2c2c81c0816524914d2349b534fdbc512d0d895bd94f261fd687cf67577",
+  "guidance_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "started_at": "2026-10-31T21:35:50.678191+00:00",
+  "data_kind": "real_llm_generation",
+  "actual_model": "gemini-3.8-flash",
+  "usage": {
+    "input_tokens": 676,
+    "output_tokens": 1007,
+    "reasoning_tokens": 1519,
+    "total_tokens": 3202,
+    "raw": {
+      "promptTokenCount": 676,
+      "candidatesTokenCount": 1007,
+      "totalTokenCount": 3202,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 676
+        }
+      ],
+      "thoughtsTokenCount": 1519,
+      "serviceTier": "standard"
+    }
+  },
+  "generation_seconds": 99.15225794699998,
+  "runtime": {
+    "python": "3.12.15",
+    "implementation": "CPython",
+    "os": "Linux"
+  },
+  "artifact_id": "fmea:a1d345518d8cb4fb3aa7fecf325612471a71bd36aeb88a763cb2c441f0fb3add",
+  "execution_sha256": "4b68634630c90733179db1edb4ae9196be5616aa790d8707f738c56897f30453",
+  "finished_at": "2026-10-31T21:37:29.850543+00:00",
+  "job_id": "s01-r01-baseline",
+  "repetition": 1,
+  "plan_sha256": "a51b1295d774253feefe4cccee01ff7881135e5d673b981daf95ab090399fc65"
+}

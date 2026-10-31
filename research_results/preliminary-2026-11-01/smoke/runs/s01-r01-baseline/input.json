@@ -1,0 +1,54 @@
+{
+  "sha256": "8a0e824df650291d63882c6b062c2060d7af4c63658e3cecdb35d20222fbb73b",
+  "input_version": "scenario-1",
+  "classification": "author_created_research_scenario_not_validated_operational_system",
+  "document": {
+    "input_version": "scenario-1",
+    "classification": "author_created_research_scenario_not_validated_operational_system",
+    "context": {
+      "analysis_id": "research-hydraulic-1",
+      "system_id": "hydraulic-actuator",
+      "scope": "Commanded load motion in a single hydraulic actuator circuit; component functional FMEA",
+      "hierarchy_level": "component",
+      "operating_phase": "normal actuation and commanded stop",
+      "assumptions": [
+        "Single failures considered",
+        "Generic scenario, not an aircraft-specific design",
+        "No quantitative reliability data available"
+      ],
+      "requirement_refs": [
+        "H1: achieve commanded motion",
+        "H2: stop motion on demand",
+        "H3: indicate abnormal pressure"
+      ],
+      "interface_refs": [
+        "pump-to-valve pressure line",
+        "valve-to-actuator hydraulic line",
+        "sensor-to-controller pressure signal"
+      ],
+      "items": [
+        {
+          "name": "Pump",
+          "function": "Supply hydraulic pressure"
+        },
+        {
+          "name": "Reservoir",
+          "function": "Store and supply fluid"
+        },
+        {
+          "name": "Directional valve",
+          "function": "Route flow according to command"
+        },
+        {
+          "name": "Actuator",
+          "function": "Move the mechanical load"
+        },
+        {
+          "name": "Pressure sensor",
+          "function": "Report line pressure"
+        }
+      ]
+    },
+    "description": "An electric motor drives a pump drawing fluid from a reservoir. The pump feeds a directional valve connected to a double-acting actuator moving a mechanical load. Return fluid passes to the reservoir. A pressure sensor sends a line-pressure signal to a controller and operator display. A pressure-relief valve is specified in this scenario to limit supply pressure, but no pressure setting or verification evidence is provided. The controller commands extend, retract, or stop. At stop, the directional valve is intended to isolate the actuator ports. Consider start, load motion, reversal, and stop. Variable mechanical load is permitted; ambient temperature is normal. The design must deliver commanded motion, stop on demand, and indicate abnormal pressure. No detailed leakage limits, duty-cycle data, failure rates, inspection schedules, validated safety logic, or detection-performance data are supplied. Do not assume additional redundant sensors or emergency stopping hardware."
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "bundle_version": "0.2",
+  "artifact_id": "fmea:a1d345518d8cb4fb3aa7fecf325612471a71bd36aeb88a763cb2c441f0fb3add",
+  "artifact_version": "sha256:a1d345518d8cb4fb3aa7fecf325612471a71bd36aeb88a763cb2c441f0fb3add",
+  "mapping_version": null,
+  "files": {
+    "fmea.json": "9d1b89d53565d87f375ab0986ce67c172d4b7b04f237faba3f3b75be01a86c21",
+    "fmea.csv": "12b8ff81ccdef5da0624d6bdb62f496670185af4528b02825fa876723b12488e"
+  }
+}

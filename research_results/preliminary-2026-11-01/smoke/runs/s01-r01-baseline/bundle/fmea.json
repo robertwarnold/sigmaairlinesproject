@@ -1,0 +1,581 @@
+{
+  "context": {
+    "analysis_id": "research-hydraulic-1",
+    "system_id": "hydraulic-actuator",
+    "scope": "Commanded load motion in a single hydraulic actuator circuit; component functional FMEA",
+    "items": [
+      {
+        "name": "Pump",
+        "function": "Supply hydraulic pressure"
+      },
+      {
+        "name": "Reservoir",
+        "function": "Store and supply fluid"
+      },
+      {
+        "name": "Directional valve",
+        "function": "Route flow according to command"
+      },
+      {
+        "name": "Actuator",
+        "function": "Move the mechanical load"
+      },
+      {
+        "name": "Pressure sensor",
+        "function": "Report line pressure"
+      }
+    ],
+    "hierarchy_level": "component",
+    "operating_phase": "normal actuation and commanded stop",
+    "assumptions": [
+      "Single failures considered",
+      "Generic scenario, not an aircraft-specific design",
+      "No quantitative reliability data available"
+    ],
+    "requirement_refs": [
+      "H1: achieve commanded motion",
+      "H2: stop motion on demand",
+      "H3: indicate abnormal pressure"
+    ],
+    "interface_refs": [
+      "pump-to-valve pressure line",
+      "valve-to-actuator hydraulic line",
+      "sensor-to-controller pressure signal"
+    ]
+  },
+  "profile_id": "general",
+  "profile_version": "0.3",
+  "rows": [
+    {
+      "record_id": "llm-1",
+      "item_or_process_step": "Pump",
+      "function": "Supply hydraulic pressure",
+      "failure_mode": "Loss of pressure generation / no fluid delivery",
+      "failure_causes": [
+        "Drive coupling mechanical failure",
+        "Internal pump seizure or mechanical wear"
+      ],
+      "effect_local": "Zero hydraulic flow and pressure delivered to the supply line",
+      "effect_next_level": "Insufficient hydraulic power supplied to directional valve",
+      "effect_end_effect": "Failure to achieve commanded motion and inability to move the mechanical load",
+      "existing_prevention_controls": [],
+      "existing_detection_controls": [],
+      "existing_mitigation_controls": [],
+      "controls": [],
+      "recommended_actions": [
+        "Evaluate condition monitoring requirements and define periodic inspection criteria"
+      ],
+      "severity": null,
+      "occurrence": null,
+      "detection": null,
+      "rpn": null,
+      "action_priority": null,
+      "rating_profile_id": null,
+      "rating_basis": null,
+      "rating_unknown_reason": "needs_engineer_rating",
+      "unknown_fields": {
+        "existing_prevention_controls": "not_supported_or_not_provided",
+        "existing_detection_controls": "not_supported_or_not_provided",
+        "existing_mitigation_controls": "not_supported_or_not_provided"
+      },
+      "evidence_refs": [
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[0]",
+          "field": "item_or_process_step"
+        },
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[0]",
+          "field": "function"
+        }
+      ],
+      "provenance_kind": "hypothesis",
+      "field_provenance": {
+        "item_or_process_step": "source",
+        "function": "source"
+      },
+      "review_status": "needs_review",
+      "review_decision": null,
+      "review_flags": [
+        "model_hypotheses_require_engineering_review",
+        "existing_controls_not_verified"
+      ],
+      "source_risk_data": {},
+      "conversion_trace_id": null
+    },
+    {
+      "record_id": "llm-2",
+      "item_or_process_step": "Pump",
+      "function": "Supply hydraulic pressure",
+      "failure_mode": "Degraded or insufficient pressure delivery",
+      "failure_causes": [
+        "Internal pump bypass leakage",
+        "Fluid aeration or cavitation at suction port"
+      ],
+      "effect_local": "Fluid supply pressure delivered below nominal design range",
+      "effect_next_level": "Reduced pressure differential across the actuator chambers",
+      "effect_end_effect": "Degraded, slow, or incomplete load motion under variable load conditions",
+      "existing_prevention_controls": [],
+      "existing_detection_controls": [],
+      "existing_mitigation_controls": [],
+      "controls": [],
+      "recommended_actions": [
+        "Define minimum operating pressure limits and evaluate suction line design"
+      ],
+      "severity": null,
+      "occurrence": null,
+      "detection": null,
+      "rpn": null,
+      "action_priority": null,
+      "rating_profile_id": null,
+      "rating_basis": null,
+      "rating_unknown_reason": "needs_engineer_rating",
+      "unknown_fields": {
+        "existing_prevention_controls": "not_supported_or_not_provided",
+        "existing_detection_controls": "not_supported_or_not_provided",
+        "existing_mitigation_controls": "not_supported_or_not_provided"
+      },
+      "evidence_refs": [
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[0]",
+          "field": "item_or_process_step"
+        },
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[0]",
+          "field": "function"
+        }
+      ],
+      "provenance_kind": "hypothesis",
+      "field_provenance": {
+        "item_or_process_step": "source",
+        "function": "source"
+      },
+      "review_status": "needs_review",
+      "review_decision": null,
+      "review_flags": [
+        "model_hypotheses_require_engineering_review",
+        "existing_controls_not_verified"
+      ],
+      "source_risk_data": {},
+      "conversion_trace_id": null
+    },
+    {
+      "record_id": "llm-3",
+      "item_or_process_step": "Reservoir",
+      "function": "Store and supply fluid",
+      "failure_mode": "Loss of fluid containment (external leakage)",
+      "failure_causes": [
+        "Reservoir shell structural breach",
+        "Fitting or seal rupture at reservoir connection"
+      ],
+      "effect_local": "Depletion of hydraulic fluid volume in reservoir",
+      "effect_next_level": "Pump fluid starvation and aeration of pressure lines",
+      "effect_end_effect": "Loss of actuation capability and potential pump damage from dry running",
+      "existing_prevention_controls": [],
+      "existing_detection_controls": [],
+      "existing_mitigation_controls": [],
+      "controls": [],
+      "recommended_actions": [
+        "Investigate fluid level detection provisions and containment inspection protocols"
+      ],
+      "severity": null,
+      "occurrence": null,
+      "detection": null,
+      "rpn": null,
+      "action_priority": null,
+      "rating_profile_id": null,
+      "rating_basis": null,
+      "rating_unknown_reason": "needs_engineer_rating",
+      "unknown_fields": {
+        "existing_prevention_controls": "not_supported_or_not_provided",
+        "existing_detection_controls": "not_supported_or_not_provided",
+        "existing_mitigation_controls": "not_supported_or_not_provided"
+      },
+      "evidence_refs": [
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[1]",
+          "field": "item_or_process_step"
+        },
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[1]",
+          "field": "function"
+        }
+      ],
+      "provenance_kind": "hypothesis",
+      "field_provenance": {
+        "item_or_process_step": "source",
+        "function": "source"
+      },
+      "review_status": "needs_review",
+      "review_decision": null,
+      "review_flags": [
+        "model_hypotheses_require_engineering_review",
+        "existing_controls_not_verified"
+      ],
+      "source_risk_data": {},
+      "conversion_trace_id": null
+    },
+    {
+      "record_id": "llm-4",
+      "item_or_process_step": "Directional valve",
+      "function": "Route flow according to command",
+      "failure_mode": "Spool fails to shift on command",
+      "failure_causes": [
+        "Spool contamination or particulate binding",
+        "Actuator/solenoid drive signal or electrical interface failure"
+      ],
+      "effect_local": "Valve spool does not transition to commanded position",
+      "effect_next_level": "Fluid flow is not directed to the appropriate actuator port",
+      "effect_end_effect": "Actuator fails to move or fails to reverse direction on command",
+      "existing_prevention_controls": [],
+      "existing_detection_controls": [],
+      "existing_mitigation_controls": [],
+      "controls": [],
+      "recommended_actions": [
+        "Define fluid filtration standards and spool shift validation procedures"
+      ],
+      "severity": null,
+      "occurrence": null,
+      "detection": null,
+      "rpn": null,
+      "action_priority": null,
+      "rating_profile_id": null,
+      "rating_basis": null,
+      "rating_unknown_reason": "needs_engineer_rating",
+      "unknown_fields": {
+        "existing_prevention_controls": "not_supported_or_not_provided",
+        "existing_detection_controls": "not_supported_or_not_provided",
+        "existing_mitigation_controls": "not_supported_or_not_provided"
+      },
+      "evidence_refs": [
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[2]",
+          "field": "item_or_process_step"
+        },
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[2]",
+          "field": "function"
+        }
+      ],
+      "provenance_kind": "hypothesis",
+      "field_provenance": {
+        "item_or_process_step": "source",
+        "function": "source"
+      },
+      "review_status": "needs_review",
+      "review_decision": null,
+      "review_flags": [
+        "model_hypotheses_require_engineering_review",
+        "existing_controls_not_verified"
+      ],
+      "source_risk_data": {},
+      "conversion_trace_id": null
+    },
+    {
+      "record_id": "llm-5",
+      "item_or_process_step": "Directional valve",
+      "function": "Route flow according to command",
+      "failure_mode": "Inability to isolate actuator ports at commanded stop",
+      "failure_causes": [
+        "Valve spool land erosion or internal seal wear",
+        "Spool fails to center fully upon stop command"
+      ],
+      "effect_local": "Hydraulic fluid bypasses valve spool lands",
+      "effect_next_level": "Actuator chambers cannot maintain locked fluid volume at stop",
+      "effect_end_effect": "Uncommanded actuator motion or drift during commanded stop",
+      "existing_prevention_controls": [],
+      "existing_detection_controls": [],
+      "existing_mitigation_controls": [],
+      "controls": [],
+      "recommended_actions": [
+        "Determine allowable internal leakage limits and assess load-holding requirements"
+      ],
+      "severity": null,
+      "occurrence": null,
+      "detection": null,
+      "rpn": null,
+      "action_priority": null,
+      "rating_profile_id": null,
+      "rating_basis": null,
+      "rating_unknown_reason": "needs_engineer_rating",
+      "unknown_fields": {
+        "existing_prevention_controls": "not_supported_or_not_provided",
+        "existing_detection_controls": "not_supported_or_not_provided",
+        "existing_mitigation_controls": "not_supported_or_not_provided"
+      },
+      "evidence_refs": [
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[2]",
+          "field": "item_or_process_step"
+        },
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[2]",
+          "field": "function"
+        }
+      ],
+      "provenance_kind": "hypothesis",
+      "field_provenance": {
+        "item_or_process_step": "source",
+        "function": "source"
+      },
+      "review_status": "needs_review",
+      "review_decision": null,
+      "review_flags": [
+        "model_hypotheses_require_engineering_review",
+        "existing_controls_not_verified"
+      ],
+      "source_risk_data": {},
+      "conversion_trace_id": null
+    },
+    {
+      "record_id": "llm-6",
+      "item_or_process_step": "Actuator",
+      "function": "Move the mechanical load",
+      "failure_mode": "Internal piston seal bypass leakage",
+      "failure_causes": [
+        "Piston dynamic seal wear or degradation",
+        "Piston cylinder bore scoring"
+      ],
+      "effect_local": "Fluid bypasses directly between extend and retract chambers",
+      "effect_next_level": "Loss of differential hydraulic pressure across the actuator piston",
+      "effect_end_effect": "Inability to move load at rated speed or maintain position under load",
+      "existing_prevention_controls": [],
+      "existing_detection_controls": [],
+      "existing_mitigation_controls": [],
+      "controls": [],
+      "recommended_actions": [
+        "Specify cylinder seal inspection criteria and assess seal material compatibility"
+      ],
+      "severity": null,
+      "occurrence": null,
+      "detection": null,
+      "rpn": null,
+      "action_priority": null,
+      "rating_profile_id": null,
+      "rating_basis": null,
+      "rating_unknown_reason": "needs_engineer_rating",
+      "unknown_fields": {
+        "existing_prevention_controls": "not_supported_or_not_provided",
+        "existing_detection_controls": "not_supported_or_not_provided",
+        "existing_mitigation_controls": "not_supported_or_not_provided"
+      },
+      "evidence_refs": [
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[3]",
+          "field": "item_or_process_step"
+        },
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[3]",
+          "field": "function"
+        }
+      ],
+      "provenance_kind": "hypothesis",
+      "field_provenance": {
+        "item_or_process_step": "source",
+        "function": "source"
+      },
+      "review_status": "needs_review",
+      "review_decision": null,
+      "review_flags": [
+        "model_hypotheses_require_engineering_review",
+        "existing_controls_not_verified"
+      ],
+      "source_risk_data": {},
+      "conversion_trace_id": null
+    },
+    {
+      "record_id": "llm-7",
+      "item_or_process_step": "Actuator",
+      "function": "Move the mechanical load",
+      "failure_mode": "Mechanical jamming or physical seizure",
+      "failure_causes": [
+        "Mechanical misalignment or excessive side loading",
+        "Foreign object or debris wedged in cylinder assembly"
+      ],
+      "effect_local": "Piston rod mechanically constrained from translation",
+      "effect_next_level": "Circuit pressure rises to relief valve limit",
+      "effect_end_effect": "Actuator seized; complete inability to achieve commanded motion",
+      "existing_prevention_controls": [],
+      "existing_detection_controls": [],
+      "existing_mitigation_controls": [],
+      "controls": [],
+      "recommended_actions": [
+        "Analyze side-load tolerances and evaluate mechanical alignment under variable load"
+      ],
+      "severity": null,
+      "occurrence": null,
+      "detection": null,
+      "rpn": null,
+      "action_priority": null,
+      "rating_profile_id": null,
+      "rating_basis": null,
+      "rating_unknown_reason": "needs_engineer_rating",
+      "unknown_fields": {
+        "existing_prevention_controls": "not_supported_or_not_provided",
+        "existing_detection_controls": "not_supported_or_not_provided",
+        "existing_mitigation_controls": "not_supported_or_not_provided"
+      },
+      "evidence_refs": [
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[3]",
+          "field": "item_or_process_step"
+        },
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[3]",
+          "field": "function"
+        }
+      ],
+      "provenance_kind": "hypothesis",
+      "field_provenance": {
+        "item_or_process_step": "source",
+        "function": "source"
+      },
+      "review_status": "needs_review",
+      "review_decision": null,
+      "review_flags": [
+        "model_hypotheses_require_engineering_review",
+        "existing_controls_not_verified"
+      ],
+      "source_risk_data": {},
+      "conversion_trace_id": null
+    },
+    {
+      "record_id": "llm-8",
+      "item_or_process_step": "Pressure sensor",
+      "function": "Report line pressure",
+      "failure_mode": "Signal frozen or unresponsive to actual pressure changes",
+      "failure_causes": [
+        "Sensing port clogging or contamination",
+        "Internal sensor transducer element lockup"
+      ],
+      "effect_local": "Sensor output signal remains constant or nominal despite actual pressure variance",
+      "effect_next_level": "Controller receives incorrect line-pressure data",
+      "effect_end_effect": "Failure to alert operator or controller to true line pressure anomalies",
+      "existing_prevention_controls": [],
+      "existing_detection_controls": [],
+      "existing_mitigation_controls": [],
+      "controls": [],
+      "recommended_actions": [
+        "Investigate diagnostic plausibility checks or signal health monitoring"
+      ],
+      "severity": null,
+      "occurrence": null,
+      "detection": null,
+      "rpn": null,
+      "action_priority": null,
+      "rating_profile_id": null,
+      "rating_basis": null,
+      "rating_unknown_reason": "needs_engineer_rating",
+      "unknown_fields": {
+        "existing_prevention_controls": "not_supported_or_not_provided",
+        "existing_detection_controls": "not_supported_or_not_provided",
+        "existing_mitigation_controls": "not_supported_or_not_provided"
+      },
+      "evidence_refs": [
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[4]",
+          "field": "item_or_process_step"
+        },
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[4]",
+          "field": "function"
+        }
+      ],
+      "provenance_kind": "hypothesis",
+      "field_provenance": {
+        "item_or_process_step": "source",
+        "function": "source"
+      },
+      "review_status": "needs_review",
+      "review_decision": null,
+      "review_flags": [
+        "model_hypotheses_require_engineering_review",
+        "existing_controls_not_verified"
+      ],
+      "source_risk_data": {},
+      "conversion_trace_id": null
+    },
+    {
+      "record_id": "llm-9",
+      "item_or_process_step": "Pressure sensor",
+      "function": "Report line pressure",
+      "failure_mode": "Erroneous zero or low pressure reading",
+      "failure_causes": [
+        "Signal wiring open circuit or loose terminal",
+        "Internal sensing element circuit failure"
+      ],
+      "effect_local": "Zero or out-of-range low voltage/current signal produced",
+      "effect_next_level": "Controller registers an erroneous loss of hydraulic pressure",
+      "effect_end_effect": "False abnormal pressure alert or unnecessary system interruption",
+      "existing_prevention_controls": [],
+      "existing_detection_controls": [],
+      "existing_mitigation_controls": [],
+      "controls": [],
+      "recommended_actions": [
+        "Establish circuit continuity diagnostics and signal threshold validation logic"
+      ],
+      "severity": null,
+      "occurrence": null,
+      "detection": null,
+      "rpn": null,
+      "action_priority": null,
+      "rating_profile_id": null,
+      "rating_basis": null,
+      "rating_unknown_reason": "needs_engineer_rating",
+      "unknown_fields": {
+        "existing_prevention_controls": "not_supported_or_not_provided",
+        "existing_detection_controls": "not_supported_or_not_provided",
+        "existing_mitigation_controls": "not_supported_or_not_provided"
+      },
+      "evidence_refs": [
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[4]",
+          "field": "item_or_process_step"
+        },
+        {
+          "source_id": "hydraulic-actuator",
+          "locator": "context.items[4]",
+          "field": "function"
+        }
+      ],
+      "provenance_kind": "hypothesis",
+      "field_provenance": {
+        "item_or_process_step": "source",
+        "function": "source"
+      },
+      "review_status": "needs_review",
+      "review_decision": null,
+      "review_flags": [
+        "model_hypotheses_require_engineering_review",
+        "existing_controls_not_verified"
+      ],
+      "source_risk_data": {},
+      "conversion_trace_id": null
+    }
+  ],
+  "schema_version": "0.2",
+  "label": "FMEA draft — engineering review required",
+  "metadata": {
+    "provider": "gemini:gemini-3.8-flash",
+    "research_execution_sha256": "4b68634630c90733179db1edb4ae9196be5616aa790d8707f738c56897f30453"
+  },
+  "approval_status": "unauthenticated_draft",
+  "artifact_id": "fmea:a1d345518d8cb4fb3aa7fecf325612471a71bd36aeb88a763cb2c441f0fb3add",
+  "artifact_version": "sha256:a1d345518d8cb4fb3aa7fecf325612471a71bd36aeb88a763cb2c441f0fb3add"
+}
