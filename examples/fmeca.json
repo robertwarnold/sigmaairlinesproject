@@ -1,0 +1,29 @@
+[
+  {
+    "source_id": "synthetic-fixture-v1",
+    "source_locator": "record 1",
+    "source_edition": "1",
+    "item": "Pump",
+    "function": "Supply fluid pressure",
+    "failure_mode": "No output pressure",
+    "causes": ["Drive unavailable"],
+    "local_effect": "No flow",
+    "end_effect": "Commanded movement unavailable",
+    "proposed_mitigations": ["Evaluate pressure monitoring"],
+    "detection_controls": "Pressure indication",
+    "controls_status": "unknown",
+    "controls": [
+      {"kind": "prevention", "description": "Drive-command interlock", "status": "implemented", "evidence_refs": [{"source_id": "synthetic-fixture-v1", "locator": "synthetic design record 1", "field": "controls"}]},
+      {"kind": "detection", "description": "Additional pressure sensor", "status": "proposed", "evidence_refs": [{"source_id": "synthetic-fixture-v1", "locator": "synthetic proposal 2", "field": "controls"}]},
+      {"kind": "mitigation", "description": "Emergency load isolation", "status": "implemented", "evidence_refs": [{"source_id": "synthetic-fixture-v1", "locator": "synthetic design record 3", "field": "controls"}]}
+    ],
+    "criticality": "source category B",
+    "criticality_units": "synthetic ordinal category; dimensionless",
+    "severity": "II",
+    "likelihood": 3,
+    "detection_prevention": 2,
+    "rpn": 12,
+    "risk_scheme": "synthetic source scale; no target equivalence",
+    "legacy_note": "Synthetic test data, not a NASA benchmark"
+  }
+]

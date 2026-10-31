@@ -1,0 +1,19 @@
+name: Offline Python foundation
+on: [push, pull_request]
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install setuptools wheel
+      - run: python -m pip wheel --no-index --no-deps --no-build-isolation --wheel-dir .venv/test-wheels .
+      - run: python -m unittest discover -s tests -v
+        env:
+          PYTHONPATH: src
+          SIGMA_TEST_WHEEL: .venv/test-wheels/sigma_fmea-0.2.0-py3-none-any.whl

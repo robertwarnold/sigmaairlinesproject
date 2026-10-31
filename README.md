@@ -1,0 +1,110 @@
+# Sigma Airlines FMEA engineering support
+
+Python-first offline milestone. Outputs are **FMEA drafts requiring engineering review**.
+The original R scripts and README.txt remain the historical baseline.
+
+## Run without credentials or third-party runtime packages
+
+Python 3.12 is the target runtime (3.13 is also tested). From the repository root in PowerShell:
+
+```powershell
+$env:PYTHONPATH = Join-Path (Get-Location) 'src'
+python -m sigma_fmea profiles
+python -m sigma_fmea generate --context examples/context.json --profile general --output results/mock
+python -m sigma_fmea convert --context examples/context.json --profile aerospace --input examples/fmeca.json --output results/conversion
+python -m sigma_fmea validate results/mock
+python -m sigma_fmea validate results/conversion
+python -m unittest discover -s tests -v
+```
+
+For a console command, install with `python -m pip install -e .` and use `sigma-fmea`.
+Installation may require a locally available setuptools build backend; source execution
+and model/conversion tests need only Python's standard library. The installed-CLI test
+also requires pip, venv/ensurepip, and either local setuptools/wheel build tools or a
+prebuilt wheel supplied in `SIGMA_TEST_WHEEL`. Its install uses `--no-index --no-deps`
+in a temporary isolated environment, clears provider keys and PYTHONPATH, and runs the
+actual console executable outside the repository. All tests and build/install steps
+run offline with those tools available. There are no API calls or credentials.
+
+For a target runtime without local build tools, build once using an available Python
+with setuptools/wheel, then run the suite on Python 3.12:
+
+```powershell
+python -m pip wheel --no-index --no-deps --no-build-isolation --wheel-dir .venv/test-wheels .
+$env:SIGMA_TEST_WHEEL = (Resolve-Path .venv/test-wheels/sigma_fmea-0.2.0-py3-none-any.whl).Path
+# Run using your Python 3.12 interpreter:
+python -m unittest discover -s tests -v
+```
+
+## Scope and profiles
+
+Select `general`, `dfmea`, `pfmea`, or `aerospace` explicitly. All four are initial
+**unrated team-policy profiles**, sharing the core field contract. The specialized
+profiles identify analysis intent; licensed methodology-specific procedures, scoring,
+and action-priority tables are not implemented. No standards-compliance claim is made.
+The methodology registry references IEC, AIAG–VDA, SAE, ASQ, and NASA and distinguishes
+bibliographic references from reviewed guidance. Additional sources require registry review.
+
+The deterministic mock creates one loss-of-function hypothesis per context item. It
+does not assess failure coverage, establish causes/effects, or supply ratings. Context
+evidence supports the item/function, not the generated hypothesis. Missing content is
+identified explicitly. Provider adapters for OpenAI, Anthropic, and Ollama are future work.
+
+## Conversion and artifacts
+
+CSV or JSON source records must use the documented field map in
+[docs/architecture.md](docs/architecture.md). JSON input is an array; CSV cells are
+literal strings (including numeric source ratings), not automatically interpreted JSON.
+CSV headers are normalized with Unicode NFKC, trimming, case folding, and space-to-
+underscore replacement. Blank/duplicate normalized headers, malformed quoting, and
+row-width mismatches are rejected. Original header spellings are retained. JSON duplicate
+keys at every depth and nonfinite numbers are rejected at every CLI JSON boundary.
+CSV `controls` cells may contain strict JSON arrays; other CSV fields remain strings.
+The converter requires a source ID, locator, edition, and item. Keep source scope,
+hierarchy, phase, and definitions in source metadata; reconcile them with target context
+through engineering review. Unknown source fields remain in the report.
+
+Each conversion produces `fmea.json`, `fmea.csv`, `conversion_report.json`, and `manifest.json`.
+The report preserves original records, hashes, field mappings, unmapped content, and
+review flags. Keep it with the FMEA; the FMEA alone is not the complete conversion record.
+Source criticality, severity, likelihood, detection, D/P, probability, RPN, and declared
+units remain source metadata. Target ratings stay null. No risk-scale crosswalk exists.
+
+Controls are individual objects with `kind` (`prevention`, `detection`, `mitigation`),
+`description`, `status` (`implemented`, `proposed`, `unknown`), and `evidence_refs`.
+Only individually evidenced implemented controls populate existing-control lists.
+Proposed and unknown controls retain their statuses and flags; they are never promoted.
+Legacy text control columns become unknown-status controls. A shared `controls_status`
+is preserved as unmapped data and never determines implementation.
+
+JSON is canonical. Nested CSV cells contain JSON; null scalar cells are empty. CSV
+formula-like text is escaped for spreadsheet viewing. The JSON carries full analysis
+context. Export requires a **new output directory**. Reuse is rejected, preserving the
+previous bundle. Files are flushed in a hidden sibling staging directory, verified,
+then published with one same-filesystem directory rename. A manifest binds the artifact
+identity, content version, mapping version, and file hashes. Validate the directory to
+check JSON/CSV consistency, preserved-source hashes, report mappings, and file identities.
+Validating only `fmea.json` checks the draft, not the complete bundle.
+
+Schema/profile/mapping versions are now 0.2. Old 0.1 drafts require regeneration from
+retained original inputs; they are rejected rather than silently migrated. Hashes detect
+inconsistency, not malicious re-authoring or authenticated authorship. See
+[docs/integrity.md](docs/integrity.md) for transaction/review limits.
+
+Examples are **synthetic software fixtures**, not reviewed NASA benchmarks. Source
+documents, secrets, benchmarks, and experimental outputs are excluded from Git.
+
+## Verification and limitations
+
+Tests cover the original offline behavior and the engineering-review regressions:
+duplicate keys/headers, malformed CSV, mixed controls, provenance contradictions,
+source mutation/checksums, review-version binding, nonfinite/non-JSON values, bundle
+reuse/corruption, failed/interrupted publication, and installed console execution.
+They establish software behavior, not engineering validity.
+
+There is no retrieval, real model generation, PDF/DOCX importer, reviewed crosswalk,
+RPN calculator, human authentication, statistical runner, or frontend. Review-decision
+metadata validates zoned ISO timestamps and exact content-version binding, but reviewer
+identity is not authenticated. Unresolved flags remain attached to decisions and
+`approval_status` must stay `unauthenticated_draft`. Providers cannot create review
+decisions. A future controlled workflow must establish approval authority.

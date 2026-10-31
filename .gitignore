@@ -2,3 +2,27 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# Local environments, caches, credentials, and generated artifacts
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+.env
+.env.*
+!.env.example
+.Renviron
+.aws/
+*.pem
+*.key
+reference_materials/
+results/
+outputs/
+data/raw/
+data/benchmarks/
