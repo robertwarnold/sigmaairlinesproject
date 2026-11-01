@@ -1,10 +1,11 @@
 name: Generate FMEA with shared Gemini key
+run-name: ${{ inputs.mode }} ${{ inputs.batch_id }} (${{ inputs.model }})
 
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: single = existing generator; pilot_plan = no AI call; smoke = one call; remaining = seven calls
+        description: Select single generation, historical pilot, or fixed System A preflight/five-replicate pilot
         required: true
         default: single
         type: choice
@@ -14,12 +15,22 @@ on:
           - pilot_smoke
           - pilot_remaining
           - pilot_four_remaining
+          - system_a_preflight
+          - system_a_replicates
       approved_calls:
-        description: Pilot authorization only (0 for plan; 1 for smoke; 7 after smoke review)
+        description: Authorization (0 for preflight; 5 for fixed System A pilot; 1/7 for historical pilot)
         default: '0'
         required: true
         type: choice
-        options: ['0', '1', '7']
+        options: ['0', '1', '5', '7']
+      batch_id:
+        description: System A pilot batch ID (YYYYMMDDTHHMMSSZ-unique-suffix)
+        required: false
+        type: string
+      preflight_run_id:
+        description: Successful System A preflight workflow run ID from the same commit
+        required: false
+        type: string
       smoke_run_id:
         description: Required for pilot_remaining; successful pilot_smoke run ID from the same source commit
         required: false
@@ -46,6 +57,10 @@ permissions:
   contents: read
   actions: read
 
+concurrency:
+  group: fmea-${{ inputs.mode }}-${{ inputs.batch_id || github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   generate:
     runs-on: ubuntu-latest
@@ -61,6 +76,80 @@ jobs:
         run: |
           python -m pip install -r requirements.txt
           python -m pip install -e '.[analysis]'
+      - name: Validate System A replicate authorization
+        if: ${{ startsWith(inputs.mode, 'system_a_') }}
+        env:
+          MODE: ${{ inputs.mode }}
+          APPROVED_CALLS: ${{ inputs.approved_calls }}
+          ATTEMPT: ${{ github.run_attempt }}
+          PREFLIGHT_RUN_ID: ${{ inputs.preflight_run_id }}
+          SYSTEM: ${{ inputs.system }}
+        run: |
+          test "$SYSTEM" = system_A || { echo '::error::This pilot only accepts system_A'; exit 1; }
+          test "$ATTEMPT" = 1 || { echo '::error::Workflow reruns are prohibited'; exit 1; }
+          if [ "$MODE" = system_a_replicates ]; then
+            test "$APPROVED_CALLS" = 5 || { echo '::error::Authorize exactly five attempts'; exit 1; }
+            [[ "$PREFLIGHT_RUN_ID" =~ ^[0-9]+$ ]] || exit 1
+          else
+            test "$APPROVED_CALLS" = 0 || exit 1
+          fi
+      - name: Restore frozen System A preflight
+        if: ${{ inputs.mode == 'system_a_replicates' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: system-a-preflight-${{ inputs.preflight_run_id }}
+          path: results/preflight
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.preflight_run_id }}
+      - name: Verify restored preflight succeeded on this source commit
+        if: ${{ inputs.mode == 'system_a_replicates' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREFLIGHT_RUN_ID: ${{ inputs.preflight_run_id }}
+          CURRENT_SHA: ${{ github.sha }}
+          BATCH_ID: ${{ inputs.batch_id }}
+          SELECTED_MODEL: ${{ inputs.model }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PREFLIGHT_RUN_ID" > results/preflight/workflow.json
+          python -c 'import json,os; r=json.load(open("results/preflight/workflow.json")); assert r["conclusion"] == "success" and r["head_sha"] == os.environ["CURRENT_SHA"] and r["path"] == ".github/workflows/generate-fmea.yml"'
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/workflows/generate-fmea.yml/runs?event=workflow_dispatch&per_page=100" > results/preflight/prior-runs.json
+          python -c 'import json,os; title="system_a_replicates " + os.environ["BATCH_ID"] + " (" + os.environ["SELECTED_MODEL"] + ")"; runs=[r for page in json.load(open("results/preflight/prior-runs.json")) for r in page["workflow_runs"]]; assert not any(r["display_title"] == title and str(r["id"]) != os.environ["GITHUB_RUN_ID"] for r in runs), "Batch ID was already dispatched; do not retry"'
+      - name: Preflight System A without generation
+        if: ${{ inputs.mode == 'system_a_preflight' }}
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SELECTED_MODEL: ${{ inputs.model }}
+          BATCH_ID: ${{ inputs.batch_id }}
+        run: |
+          mkdir -p results/preflight
+          python scripts/single_system_replicates.py --mode preflight --model "$SELECTED_MODEL" \
+            --batch-id "$BATCH_ID" --plan-file results/preflight/plan.json
+      - name: Execute only the five authorized System A requests
+        if: ${{ inputs.mode == 'system_a_replicates' }}
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SELECTED_MODEL: ${{ inputs.model }}
+          BATCH_ID: ${{ inputs.batch_id }}
+          APPROVED_CALLS: ${{ inputs.approved_calls }}
+        run: |
+          python scripts/single_system_replicates.py --mode run --model "$SELECTED_MODEL" \
+            --batch-id "$BATCH_ID" --approved-calls "$APPROVED_CALLS" --plan-file results/preflight/plan.json
+      - name: Upload System A preflight
+        if: ${{ always() && inputs.mode == 'system_a_preflight' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: system-a-preflight-${{ github.run_id }}
+          path: results/preflight/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload System A review package including failures
+        if: ${{ always() && inputs.mode == 'system_a_replicates' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: system-a-replicates-${{ github.run_id }}
+          path: results/single-system-replicates/system_A/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Validate pilot continuation input
         if: ${{ inputs.mode == 'pilot_remaining' || inputs.mode == 'pilot_four_remaining' }}
         env:
