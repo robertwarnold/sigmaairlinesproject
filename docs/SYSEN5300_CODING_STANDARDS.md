@@ -77,26 +77,26 @@ that implementation or compliance has already been completed.
 - [x] Distinguish explicit course requirements from example style and project policy.
 - [x] Resolve the implementation gate: user supplied the annotation requirement and
   explicitly authorized continuation. Annotate calculation and control-flow blocks.
-- [ ] Confirm how the course prose policy applies to the requested report deliverable.
+- [x] Confirm how the course prose policy applies to the requested report deliverable.
   Do not present generated Discussion prose as a submission-ready student draft.
-- [ ] Use descriptive section headers and purposeful comments.
-- [ ] Document reusable functions with purpose, inputs, assumptions and outputs.
-- [ ] Define financial/statistical variables, units and configurable constants.
-- [ ] Explain statistical calculations and method limitations in plain English.
-- [ ] Print interpretable numerical results, including units and evidence status.
-- [ ] Label every figure with title, axes, units, sample size, source/assumption
+- [x] Use descriptive section headers and purposeful comments.
+- [x] Document reusable functions with purpose, inputs, assumptions and outputs.
+- [x] Define financial/statistical variables, units and configurable constants.
+- [x] Explain statistical calculations and method limitations in plain English.
+- [x] Print interpretable numerical results, including units and evidence status.
+- [x] Label every figure with title, axes, units, sample size, source/assumption
   status and an interpretation/caption.
-- [ ] Reuse course functions only when the method and experimental unit fit.
-- [ ] Keep the implementation readable without sacrificing modular tests or accuracy.
-- [ ] Separate measured, estimated and assumed costs and missing values from zero.
-- [ ] Use paired or clustered resampling when the observed design supports it;
+- [x] Reuse course functions only when the method and experimental unit fit.
+- [x] Keep the implementation readable without sacrificing modular tests or accuracy.
+- [x] Separate measured, estimated and assumed costs and missing values from zero.
+- [x] Use paired or clustered resampling when the observed design supports it;
   report insufficient data instead of inventing an empirical confidence interval.
-- [ ] Record random seed, iteration count, inputs, assumptions and source versions.
-- [ ] Preserve original pilot evidence and FMEA engineering behavior.
-- [ ] Review complete commented code for a possible report appendix, consistent
+- [x] Record random seed, iteration count, inputs, assumptions and source versions.
+- [x] Preserve original pilot evidence and FMEA engineering behavior.
+- [x] Review complete commented code for a possible report appendix, consistent
   with the course project requirements and the clarified annotation rubric.
-- [ ] Run offline tests, compilation, hygiene and whitespace checks after implementation.
-- [ ] Record checklist review findings and unresolved items in the implementation PR.
+- [x] Run offline tests, compilation, hygiene and whitespace checks after implementation.
+- [x] Record checklist review findings and unresolved items in the implementation PR.
 
 ## Implementation review record
 

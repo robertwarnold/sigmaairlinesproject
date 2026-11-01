@@ -1,7 +1,7 @@
 # Financial analysis validation and annotation review
 
 Local verification: Python 3.12.14, existing `.venv/gemini` environment.
-All **109 offline tests passed** with no skipped tests. This includes the original
+All **110 offline tests passed** with no skipped tests. This includes the original
 suite and synthetic financial/timing regressions. Compilation of analysis, src,
 scripts and fmea_generator.py and `git diff --check` passed.
 
@@ -19,6 +19,8 @@ scripts and fmea_generator.py and `git diff --check` passed.
 - Explicit scenario Monte Carlo is reproducible and labeled as simulation uncertainty.
 - Immutable report IDs reject reuse; fixed inputs reproduce the same numerical metrics.
 - Report manifests record required provenance and bind generated files by SHA-256.
+- Financial report paths disable Git newline conversion so byte hashes remain valid
+  after checkout on another operating system; a regression verifies published hashes.
 - Standardized timing covers SDK success/disconnection and precise monotonic elapsed
   arithmetic, without live requests. Historical values are not rewritten.
 - Existing repository hygiene and installed console-command tests remain enabled.

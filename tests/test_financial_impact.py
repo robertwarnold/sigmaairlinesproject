@@ -259,6 +259,13 @@ class FinancialTests(unittest.TestCase):
             self.assertTrue("#" in text or path.name == "__init__.py", path)
         self.assertIn("user clarification", Path("docs/SYSEN5300_CODING_STANDARDS.md").read_text(encoding="utf-8"))
 
+    def test_published_financial_report_artifact_hashes(self):
+        # Git checkouts must preserve exact report bytes as well as local numerical results.
+        for path in Path("reports/financial_impacts").glob("*/manifest.json"):
+            manifest = schema.read_json(path)
+            for name, expected in manifest["artifacts"].items():
+                self.assertEqual(hashlib.sha256((path.parent / name).read_bytes()).hexdigest(), expected, name)
+
 
 class TimingTests(unittest.TestCase):
     """SDK doubles record success and no-response failures without network access."""
