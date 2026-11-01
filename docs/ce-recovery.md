@@ -73,3 +73,38 @@ Original B/D are always selected unchanged. Partial C-only or E-only recovery is
 Implementation files: `scripts/recover_fmea.py`, the two manual workflows,
 `analysis/financial_impact/{ingest,metrics}.py`, and `tests/test_recover_fmea.py`.
 Offline tests use synthetic fixtures only; neither tests nor reports call Gemini.
+
+## Authorized bounded HTTP 503 recovery (2026-11-01 work order)
+
+The user explicitly authorized local orchestration and up to six new C/E requests,
+with at most three per system and retries only after a verified SDK HTTP 503.
+This campaign-specific authorization overrides the original one-request/no-retry
+operational rule; the engineering generator and v2.0 skill remain unchanged.
+
+`scripts/provider_recovery.py` provides a reusable verified-503 classifier/delay policy,
+offline local preflight, a durable sequential controller and a single-request remote adapter.
+The local environment has no Gemini credential, so the existing `generate-fmea.yml`
+workflow supports `ce_recovery_single` on the recovery branch, using its existing secret.
+This path requires no self-hosted runner: originals are validated/reconciled locally;
+remote jobs restore a no-generation preflight from the same commit and verify frozen
+Git inputs/schema/model/SDK before each unchanged generator call. SDK retries stay disabled.
+
+Prepare once: `python scripts/provider_recovery.py preflight --folder results/<unique-folder>`.
+Execute once: `python scripts/provider_recovery.py worker --folder results/<unique-folder>
+--wrapper .venv/github-cli/gh_authenticated.py --branch fmea-ce-recovery-20261101` on one line.
+Explicit human authorization for the configured request budget is required before execution.
+A persistent worker lock forbids restarting; dispatch reservation is saved before each POST.
+Uncertain dispatch/evidence stops execution, never repeats a request. Each attempt has a
+unique workflow batch ID and artifact; duplicate dispatch/reruns are rejected remotely.
+
+Delays are 60 then 120 seconds; a valid Retry-After can extend a wait to at most 600 seconds.
+Longer/invalid instructions leave the system unresolved rather than violating limits.
+Actual waits, typed HTTP status, sanitized diagnostics, timestamps, durations, usage and
+unknown provider billing are retained per attempt. STATUS.md/status.json and live logs live
+in the campaign directory; runner logs emit 30-second request heartbeats. A failed 503 is
+operational evidence only. Reconciliation includes all retry receipts, selects one valid
+success per system and rejects multiple successes. Financial metrics count availability
+failures and waiting separately from schema validity and engineering acceptance.
+
+New code/tests: `scripts/provider_recovery.py`, `tests/test_provider_recovery.py`;
+existing recovery reconciliation and financial ingestion/metrics are extended accordingly.

@@ -70,7 +70,9 @@ class RecoveryTests(unittest.TestCase):
         plan = {"original_campaign_id": recovery.ORIGINAL, "recovery_campaign_id": "recovery-2", "systems": ["system_C"]}
         planfile = self.root / "plan.json"; planfile.write_text(json.dumps(plan))
         folder = self.root / "batch/recovery-2/system_C"; folder.mkdir(parents=True)
-        (folder / "recovery_metadata.json").write_text(json.dumps({"attempt_id": "retry", "system_id": "system_C", "model": recovery.MODEL, "prompt_version": "v2.0", "started_at": "2026-11-01T20:00:00Z", "status": "failed", "elapsed_seconds": 1, "csv_path": None}))
+        (folder / "recovery_metadata.json").write_text(json.dumps({"attempt_id": "retry", "original_campaign_id": recovery.ORIGINAL, "recovery_campaign_id": "recovery-2",
+            "supersedes_attempt_id": "system_C_v2.0_run01", "skill_sha256": recovery.SKILL_HASH,
+            "system_sha256": recovery.INPUTS["system_C"], "temperature": 0, "system_id": "system_C", "model": recovery.MODEL, "prompt_version": "v2.0", "started_at": "2026-11-01T20:00:00Z", "status": "failed", "elapsed_seconds": 1, "csv_path": None}))
         recovery.reconcile(planfile, self.root / "batch", self.root / "reports")
         manifest = json.loads((self.root / "reports" / recovery.ORIGINAL / "recovery-2/reconciliation_manifest.json").read_text())
         self.assertEqual(manifest["effective_results"]["system_C"]["status"], "unresolved")
