@@ -54,7 +54,7 @@ def initialize(original, systems, label, output):
         raise ValueError("Only unique system_C/system_E recovery selections are allowed")
     if engine.PROMPT_VERSION != "v2.0":
         raise ValueError("Active prompt version differs from original campaign")
-    skill = digest(ROOT / "skill/fmea_instructions.md")
+    skill = hashlib.sha256((ROOT / "skill/fmea_instructions.md").read_bytes().replace(b"\r\n", b"\n")).hexdigest()
     if skill != SKILL_HASH:
         raise ValueError("Skill instructions changed")
     original_plan = read(BASE / "campaign_manifest.json")["plan"]
@@ -92,12 +92,18 @@ def heartbeat(stop, system, start):
         print(f"[RECOVERY] {system} | API request pending | {time.perf_counter()-start:.0f}s elapsed", flush=True)
 
 
-def generate(plan_path, system, output_root):
+def generate(plan_path, system, output_root, attempt_number=None):
     """Make a single request through existing generator; persist either outcome immutably."""
     plan = read(plan_path)
     if system not in plan["systems"] or os.getenv("GITHUB_RUN_ATTEMPT", "1") != "1":
         raise ValueError("System is not authorized or workflow rerun detected")
     root = Path(output_root) / plan["recovery_campaign_id"] / system
+    if attempt_number is not None:
+        if attempt_number not in range(1, 7):
+            raise ValueError("Attempt outside authorized bound")
+        if attempt_number > 3 and system != "system_C":
+            raise ValueError("Extended attempt limit is authorized for C only")
+        root = root / f"attempt-{attempt_number}"
     root.mkdir(parents=True, exist_ok=False)
     source = ROOT / "system_descriptions" / f"{system}.txt"
     if digest(source) != plan["inputs"][system]:
@@ -108,7 +114,10 @@ def generate(plan_path, system, output_root):
         "supersedes_attempt_id": f"{system}_v2.0_run01", "attempt_id": f"{system}_recovery_{plan['recovery_campaign_id']}",
         "system_id": system, "model": MODEL, "prompt_version": "v2.0", "skill_sha256": plan["skill_sha256"],
         "system_sha256": plan["inputs"][system], "temperature": 0, "started_at": datetime.now(timezone.utc).isoformat(),
-        "status": "failed", "usage_metadata": None, "failure_reason": None}
+        "status": "failed", "usage_metadata": None, "failure_reason": None,
+        "retry_number": (attempt_number or 1) - 1, "http_status": None, "provider_billing_usd": None}
+    if attempt_number is not None:
+        receipt["attempt_id"] += f"-attempt-{attempt_number}"
     start = time.perf_counter()
     stop = __import__("threading").Event()
     thread = __import__("threading").Thread(target=heartbeat, args=(stop, system, start), daemon=True)
@@ -117,9 +126,12 @@ def generate(plan_path, system, output_root):
         # The established engine owns output collision checks, schema validation and raw evidence.
         engine.generate_fmea(source, system, run=1, output_dir=root, model=MODEL,
             execution={"experiment_id": plan["recovery_campaign_id"], "expected_max_output_tokens": 65536})
+        validate_csv(root / f"{system}_v2.0_run01.csv")
         receipt["status"] = "success"
     except Exception as exc:
-        receipt["failure_reason"] = f"{type(exc).__name__}: {exc}"
+        from scripts.provider_recovery import diagnostic
+        receipt.update(diagnostic(exc))
+        receipt["failure_reason"] = type(exc).__name__
     finally:
         stop.set()
         thread.join(timeout=2)
@@ -140,6 +152,7 @@ def generate(plan_path, system, output_root):
         plan["status"][system] = receipt["status"]
         atomic(plan_path, plan)
         print(f"[RECOVERY] {system} | {receipt['status']} | {receipt['elapsed_seconds']:.2f}s", flush=True)
+    return receipt
 
 
 def validate_csv(path):
@@ -188,39 +201,47 @@ def reconcile(plan_path, recovery_root, output_root, histories=()):
         attempts.append({"system_id": system, "attempt_id": f"{system}_v2.0_run01", "status": old["status"],
             "duration_seconds": old["total_elapsed_seconds"], "cost_usd": old.get("estimated_api_expense_usd"), "origin": "original"})
         chosen_path = BASE / system / f"{system}_v2.0_run01.csv" if old["status"] == "success" else None
-        recovery = Path(recovery_root) / plan["recovery_campaign_id"] / system / "recovery_metadata.json"
-        recovery_record = read(recovery) if recovery.exists() else None
-        if recovery_record and system not in plan["systems"]:
-            raise ValueError("Unexpected recovery result")
-        if system in plan["systems"] and recovery_record:
-            financial_sources.append({**recovery_record, "metadata_schema": "fmea-execution-1",
-                "experiment_id": plan["recovery_campaign_id"],
-                "total_elapsed_seconds": recovery_record["elapsed_seconds"]})
-            attempts.append({"system_id": system, "attempt_id": recovery_record["attempt_id"], "status": recovery_record["status"],
-                "duration_seconds": recovery_record["elapsed_seconds"], "cost_usd": None, "origin": "recovery"})
-            if recovery_record["status"] == "success" and recovery_record.get("csv_path"):
-                # Validate linkage and every condition before allowing a recovery to replace a failure.
-                expected = {"original_campaign_id": ORIGINAL, "recovery_campaign_id": plan["recovery_campaign_id"],
-                    "supersedes_attempt_id": f"{system}_v2.0_run01", "system_id": system,
-                    "model": MODEL, "prompt_version": "v2.0", "skill_sha256": SKILL_HASH,
-                    "system_sha256": INPUTS[system], "temperature": 0}
-                if any(recovery_record.get(key) != value for key, value in expected.items()):
-                    raise ValueError(f"Recovery linkage or configuration mismatch: {system}")
-                if Path(recovery_record["csv_path"]).name != recovery_record["csv_path"]:
-                    raise ValueError("Unsafe recovery CSV path")
-                if original_plan["model"] != recovery_record["model"] or original_plan["temperature"] != recovery_record["temperature"] or original_plan["skill_sha256"] != recovery_record["skill_sha256"] or original_plan["systems"][system]["sha256"] != recovery_record["system_sha256"]:
-                    raise ValueError("Original/recovery condition mismatch")
-                chosen_path = recovery.parent / recovery_record["csv_path"]
-                if not chosen_path.is_file() or recovery_record.get("artifacts", {}).get(chosen_path.name) != digest(chosen_path):
-                    raise ValueError(f"Missing or hash-mismatched recovery CSV: {system}")
-                # Reuse the original parser; a present but invalid worksheet stays unresolved.
-                try:
-                    validate_csv(chosen_path)
-                except Exception:
-                    chosen_path = None
+        system_root = Path(recovery_root) / plan["recovery_campaign_id"] / system
+        candidates = sorted(system_root.glob("attempt-*/recovery_metadata.json"))
+        legacy = system_root / "recovery_metadata.json"
+        if legacy.exists(): candidates.append(legacy)
+        recovery_record, recovery = None, None
+        selected = []
+        for recovery in candidates:
+            record = read(recovery)
+            if system not in plan["systems"]:
+                raise ValueError("Unexpected recovery result")
+            expected = {"original_campaign_id": ORIGINAL, "recovery_campaign_id": plan["recovery_campaign_id"],
+                "supersedes_attempt_id": f"{system}_v2.0_run01", "system_id": system,
+                "model": MODEL, "prompt_version": "v2.0", "skill_sha256": SKILL_HASH,
+                "system_sha256": INPUTS[system], "temperature": 0}
+            if any(record.get(key) != value for key, value in expected.items()):
+                raise ValueError(f"Recovery linkage or configuration mismatch: {system}")
+            financial_sources.append({**record, "metadata_schema": "fmea-execution-1",
+                "experiment_id": plan["recovery_campaign_id"], "total_elapsed_seconds": record["elapsed_seconds"]})
+            if record["status"] != "success" or not record.get("csv_path"):
+                continue
+            if Path(record["csv_path"]).name != record["csv_path"]:
+                raise ValueError("Unsafe recovery CSV path")
+            if original_plan["systems"][system]["sha256"] != record["system_sha256"]:
+                raise ValueError("Original/recovery condition mismatch")
+            path = recovery.parent / record["csv_path"]
+            if not path.is_file() or record.get("artifacts", {}).get(path.name) != digest(path):
+                raise ValueError(f"Missing or hash-mismatched recovery CSV: {system}")
+            try:
+                validate_csv(path)
+            except (ValueError, csv.Error):
+                continue
+            selected.append((path, record))
+        if len(selected) > 1:
+            raise ValueError("Ambiguous successful replacements")
+        if selected:
+            chosen_path, recovery_record = selected[0]
+        elif candidates:
+            recovery_record = read(candidates[-1])
         if chosen_path and chosen_path.exists():
             validate_csv(chosen_path)
-            effective[system] = {"effective_attempt_id": recovery_record["attempt_id"] if recovery_record and chosen_path.parent == recovery.parent else f"{system}_v2.0_run01",
+            effective[system] = {"effective_attempt_id": recovery_record["attempt_id"] if recovery_record and system in INPUTS and recovery_record["status"] == "success" else f"{system}_v2.0_run01",
                 "path": str(chosen_path), "status": "success"}
         else:
             effective[system] = {"effective_attempt_id": None, "path": None, "status": "unresolved"}
@@ -280,9 +301,10 @@ def reconcile(plan_path, recovery_root, output_root, histories=()):
     atomic(destination / "reconciliation_manifest.json", manifest)
     from analysis.financial_impact.report import create_report
     create_report([destination / "reconciliation_manifest.json"], destination / "financial_impacts",
-                  analysis_id=plan["recovery_campaign_id"] + "-financial-v1")
+                  analysis_id="financial-v1")
     (destination / "README.md").write_text("# Reconciled B-E campaign\n\nEffective view only; original attempt records remain in the source campaign. A recovery is effective only after validation.\n", encoding="utf-8")
     print(f"[RECOVERY] Reconciliation ready: {destination}; requests={len(attempts)}", flush=True)
+    return destination
 
 
 def global_base(path):

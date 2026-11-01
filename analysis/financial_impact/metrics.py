@@ -123,6 +123,11 @@ def observed_summary(attempts):
             "n_failed_or_uncertain_attempts": len(attempts) - len(successful),
             "generation_success_fraction": len(successful) / len(attempts) if attempts else None,
             "engineering_acceptance_rate": None,
+            "provider_unavailable_503_count": sum(r.get("http_status") == 503 for r in attempts),
+            "provider_unavailable_503_fraction": sum(r.get("http_status") == 503 for r in attempts) / len(attempts) if attempts else None,
+            "retry_wait_seconds": sum(r.get("retry_wait_seconds", 0) for r in attempts),
+            "attempts_per_successful_generation": len(attempts) / len(successful) if successful else None,
+            "operational_reliability_caution": "HTTP 503 is provider availability, not an engineering quality failure; schema validity and engineering acceptance are separate.",
             "effective_dataset_size": sum(r.get("effective_result", False) for r in attempts),
             "cost_per_successful_generation_usd": (sum(r["cost_usd"] for r in attempts) / len(successful)
                 if successful and all(r["cost_usd"] is not None for r in attempts) else None),
