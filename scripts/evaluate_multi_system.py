@@ -145,6 +145,8 @@ def make_figures(attempts, structures, output):
             ax.barh([textwrap.shorten(k, width=35) for k, _ in pairs][::-1], [v for _, v in pairs][::-1])
             ax.set_title(f"{system}: top 15 literal labels; {data['row_count']} rows total")
         else:
+            # Identify failed systems explicitly even when there are no component rows.
+            ax.set_title(f"{system}: one failed attempt; no worksheet")
             ax.text(.5, .5, "No successful FMEA", ha="center", transform=ax.transAxes)
         ax.set(xlabel="Generated rows per component label", ylabel="Literal component label")
         ax.tick_params(labelsize=8)
