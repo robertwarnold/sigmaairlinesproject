@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_MODEL = "gemini-2.5-flash"
-PROMPT_VERSION = "v1.0"
+PROMPT_VERSION = "v2.0"
 FIELDS = ["component", "function", "failure_mode", "cause", "local_effect",
           "system_effect", "recommended_action", "severity", "occurrence",
           "detection", "rating_rationale", "evidence", "review_flag"]
@@ -67,6 +67,8 @@ def parse_fmea(raw):
                     raise ValueError(f"Row {index}: {field} must be an integer 1–10")
             elif not isinstance(value, str):
                 raise ValueError(f"Row {index}: {field} must be text")
+            elif not value.strip():
+                raise ValueError(f"Row {index}: {field} is empty; the skill requires text such as \"Not provided\"")
             row[field] = value
         row["RPN"] = row["severity"] * row["occurrence"] * row["detection"]
         output.append(row)
@@ -74,6 +76,7 @@ def parse_fmea(raw):
 
 
 def call_gemini(system_text, model=None):
+    """Return the raw text, finish reason and output cap; the caller saves raw text before judging it."""
     load_local_env()
     key = os.getenv("GEMINI_API_KEY")
     if not key:
@@ -88,6 +91,10 @@ def call_gemini(system_text, model=None):
     instructions = (ROOT / "skill" / "fmea_instructions.md").read_text(encoding="utf-8")
     client = genai.Client(api_key=key)
     try:
+        # Use the selected model's own maximum; long one-row-per-unit sheets exceed fixed caps.
+        max_output_tokens = client.models.get(model=model).output_token_limit
+        if not max_output_tokens:
+            raise RuntimeError(f"Could not read the output token limit for {model}; no generation request made")
         response = client.models.generate_content(
             model=model,
             contents="SYSTEM DESCRIPTION:\n" + system_text,
@@ -96,12 +103,13 @@ def call_gemini(system_text, model=None):
                 temperature=0,
                 response_mime_type="application/json",
                 response_schema=RESPONSE_SCHEMA,
-                max_output_tokens=8192,
+                max_output_tokens=max_output_tokens,
             ),
         )
-        if not response.text:
-            raise ValueError("Gemini returned no text (possibly blocked or truncated)")
-        return response.text
+        candidates = response.candidates or []
+        finish = candidates[0].finish_reason if candidates else None
+        return {"text": response.text or "", "finish_reason": str(getattr(finish, "value", finish)),
+                "max_output_tokens": max_output_tokens}
     finally:
         client.close()
 
@@ -118,13 +126,22 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
     output_dir.mkdir(parents=True, exist_ok=True)
     model = model or os.getenv("GEMINI_MODEL", DEFAULT_MODEL)
     start = time.monotonic()
-    raw = call_gemini(system_text, model=model)
+    result = call_gemini(system_text, model=model)
     minutes = round((time.monotonic() - start) / 60, 5)
     safe_case = re.sub(r"[^a-zA-Z0-9_-]", "_", case_id)
     safe_version = re.sub(r"[^a-zA-Z0-9._-]", "_", version)
     prefix = f"{safe_case}_{safe_version}_run{run:02d}"
-    (output_dir / f"{prefix}_raw.txt").write_text(raw, encoding="utf-8")
-    rows = parse_fmea(raw)
+    raw_path = output_dir / f"{prefix}_raw.txt"
+    raw_path.write_text(result["text"], encoding="utf-8")
+    if result["finish_reason"] == "MAX_TOKENS":
+        raise ValueError(f"Gemini response truncated at the {result['max_output_tokens']}-token limit; "
+                         f"partial output saved to {raw_path.name}, no CSV written")
+    if result["finish_reason"] != "STOP":
+        raise ValueError(f"Gemini stopped with finish reason {result['finish_reason']}; "
+                         f"output saved to {raw_path.name}, no CSV written")
+    if not result["text"].strip():
+        raise ValueError("Gemini returned no text (possibly blocked)")
+    rows = parse_fmea(result["text"])
     csv_path = output_dir / f"{prefix}.csv"
     with csv_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)

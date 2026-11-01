@@ -206,3 +206,19 @@ decisions. A future controlled workflow must establish approval authority.
 ## RUN PROPERLY - FROM ROBERT
 
 python fmea_generator.py --system system_descriptions/system_2_nasa_fmeca.txt --case-id system_2 --model gemini-3.8-flash
+
+### Skill v2.0 (`skill/fmea_instructions.md`)
+
+CSV rows and file names carry `version` v2.0; do not pool them with v1.0 sheets as one condition.
+Intentional differences from v1.0 that change what a comparison measures:
+
+- v1.0 analysed "ONLY the supplied system description"; v2.0 allows general engineering
+  knowledge for modes, causes, effects and actions, but forbids recalled details of a known design.
+- One row per individual unit ("Motor 1", "Motor 2"), never grouped. Grouped reference
+  sheets ("Motor #1-#4") must be expanded to one row per unit before matching.
+- Banded severity/detection scales; occurrence from apportioned package failure rates or
+  calibration anchors; detection only from provisions the package states.
+
+The generator uses the selected model's own maximum output length, fails with a clear error
+when the response is truncated or stops for any other reason (raw output is still saved),
+and rejects the whole sheet if any text cell is empty.
