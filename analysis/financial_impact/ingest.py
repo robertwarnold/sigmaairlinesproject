@@ -41,6 +41,23 @@ def import_attempts(path, assumptions, tier="standard_paid", arrangement="pay_as
     source = Path(path)
     document = read_json(source)
     invoices = invoices or {}
+    if document.get("financial_schema") == "reconciled-campaign-1":
+        # Embedded immutable receipts retain separate original and recovery identities.
+        import tempfile
+        records = []
+        with tempfile.TemporaryDirectory() as temporary:
+            for index, receipt in enumerate(document["attempts"]):
+                sidecar = Path(temporary) / f"{index}.json"
+                sidecar.write_text(json.dumps(receipt), encoding="utf-8")
+                records.extend(import_attempts(sidecar, assumptions, tier, arrangement, invoices))
+        identities = [(r["experiment_id"], r["attempt_id"]) for r in records]
+        if len(identities) != len(set(identities)):
+            raise ValueError("Duplicate reconciled attempt")
+        for record in records:
+            record["metadata_sha256"] = sha256(source)
+            effective = document["effective_results"].get(record["system_id"], {})
+            record["effective_result"] = effective.get("effective_attempt_id") == record["attempt_id"]
+        return records
     # Normalize supported metadata formats without reading raw outputs or reference files.
     if "plan" in document and isinstance(document.get("runs"), list):
         plan = document["plan"]

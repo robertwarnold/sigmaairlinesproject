@@ -273,3 +273,5 @@ Intentional differences from v1.0 that change what a comparison measures:
 The generator uses the selected model's own maximum output length, fails with a clear error
 when the response is truncated or stops for any other reason (raw output is still saved),
 and rejects the whole sheet if any text cell is empty.
+
+C/E recovery: see [manual workflow, artifact restoration and offline financial reporting](docs/ce-recovery.md).
