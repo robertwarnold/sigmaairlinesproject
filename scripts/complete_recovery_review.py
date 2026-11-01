@@ -53,8 +53,24 @@ def figures(summary, structures, output):
     fig.tight_layout(rect=(0,.04,1,1)); fig.savefig(output / "provisional_ratings.png",dpi=300); plt.close(fig)
 
 
-def complete(folder):
+def validate_pilot_csv(path):
+    """Allow the known historical timing column while validating unchanged FMEA content."""
+    with Path(path).open(encoding="utf-8-sig", newline="") as stream:
+        headers = next(csv.reader(stream), None)
+    expected = recovery.engine.CSV_FIELDS
+    historical = expected[:4] + ["generation_minutes"] + expected[4:]
+    if headers not in (expected, historical):
+        raise ValueError("Unsupported System A pilot CSV headers")
+    data = evaluation.structure(path, "system_A")
+    if not data["row_count"]:
+        raise ValueError("Empty System A pilot CSV")
+    return data
+
+
+def complete(folder, version="v1"):
     """Revalidate every selected artifact and publish a fresh versioned local review package."""
+    if not re.fullmatch(r"v[1-9][0-9]*", version):
+        raise ValueError("Invalid review version")
     folder = Path(folder).resolve()
     plan = recovery.read(folder / "plan.json")
     campaign = plan["recovery_campaign_id"]
@@ -80,7 +96,7 @@ def complete(folder):
         else:
             canonical.parent.mkdir(parents=True, exist_ok=True)
             shutil.copytree(downloaded, canonical)
-    output = ROOT / "results/ce-review" / campaign
+    output = ROOT / "results/ce-review" / (campaign + "-" + version)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.mkdir(exist_ok=False)
     shutil.copytree(reconciliation_path.parent, output / "reconciled-B-E")
@@ -93,6 +109,20 @@ def complete(folder):
     evidence_path = folder / "original_provider_evidence.json"
     evidence = recovery.read(evidence_path) if evidence_path.exists() else {}
     for record in receipts:
+        if record.get("experiment_id") == campaign:
+            source = next((r for r in records if r["attempt_id"] == record["attempt_id"]), {})
+            if source.get("metadata_path"):
+                execution_path = Path(source["metadata_path"]).parent / f"{record['system_id']}_v2.0_run01_execution.json"
+                if record["artifacts"].get(execution_path.name) != recovery.digest(execution_path):
+                    raise ValueError("Recovery execution receipt hash mismatch")
+                engine_record = recovery.read(execution_path)
+                if any(engine_record[k] != record[k] for k in ("system_id", "model", "prompt_version", "skill_sha256", "system_sha256")):
+                    raise ValueError("Recovery engine identity mismatch")
+                config = engine_record["configuration"]
+                if config["temperature"] != 0 or config["max_output_tokens"] != 65536 or config["retry_attempts"] != 1 or config["response_schema"] != recovery.engine.RESPONSE_SCHEMA:
+                    raise ValueError("Recovery engine configuration mismatch")
+                for key in ("configuration", "api_request_seconds", "parsing_validation_seconds"):
+                    record[key] = engine_record.get(key)
         historical = evidence.get(record["system_id"], {})
         if record.get("experiment_id") == recovery.ORIGINAL and record["status"] == "failed" and historical.get("http_status") == 503:
             record["original_failure_classification"] = record.get("failure_classification")
@@ -104,7 +134,7 @@ def complete(folder):
         if run["status"] != "success": continue
         for name, item in run["outputs"].items():
             if Path(name).name != name or recovery.digest(baseline / name) != item["sha256"]: raise ValueError("System A integrity failure")
-        recovery.validate_csv(baseline / run["csv_file"])
+        validate_pilot_csv(baseline / run["csv_file"])
         a_index.append({"attempt_id": normalized["attempt_id"], "run_number": run["run_number"], "path": str(baseline / run["csv_file"]),
             "row_count": run["row_count"], "representative": run is a_selected, "duration_seconds": run["duration_seconds"]})
     effective = dict(reconciled["effective_results"])
@@ -126,8 +156,11 @@ def complete(folder):
         path = Path(result["path"]) if result["path"] else None
         data = None
         if path:
-            recovery.validate_csv(path)
-            data = evaluation.structure(path, system)
+            if system == "system_A":
+                data = validate_pilot_csv(path)
+            else:
+                recovery.validate_csv(path)
+                data = evaluation.structure(path, system)
             structures[system] = data
             # Copy only generated CSVs and non-secret operational metadata into the local review package.
             dataset = output / "dataset" / system; dataset.mkdir(parents=True)
@@ -207,14 +240,15 @@ def complete(folder):
         if candidate.is_file() and candidate.suffix in (".json", ".csv", ".md", ".txt"):
             if re.search(r"AIza[0-9A-Za-z_-]{30,}|gh[pousr]_[A-Za-z0-9]{30,}|-----BEGIN .*PRIVATE KEY", candidate.read_text(encoding="utf-8-sig")):
                 raise ValueError("Possible credential in review package; archive not created")
-    archive=folder / (campaign + "-A-E-review.zip")
+    archive=folder / (campaign + "-A-E-review-" + version + ".zip")
     with zipfile.ZipFile(archive,"x",compression=zipfile.ZIP_DEFLATED) as stream:
         for path in output.rglob("*"):
-            if path.is_file(): stream.write(path,"review-v1/"+str(path.relative_to(output)).replace("\\","/"))
+            if path.is_file(): stream.write(path,"review-"+version+"/"+str(path.relative_to(output)).replace("\\","/"))
     print(json.dumps({"output":str(output),"zip":str(archive),"summary":campaign_summary},indent=2))
     return output,archive
 
 
 if __name__ == "__main__":
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("folder",type=Path)
-    complete(parser.parse_args().folder)
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("folder",type=Path);parser.add_argument("--version",default="v1")
+    args=parser.parse_args()
+    complete(args.folder,args.version)

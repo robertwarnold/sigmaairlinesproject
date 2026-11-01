@@ -113,7 +113,7 @@ existing recovery reconciliation and financial ingestion/metrics are extended ac
 
 After the bounded controller finishes, run `python scripts/complete_recovery_review.py
 results/<campaign-folder>` on one line. The offline finalizer verifies unchanged source
-and original-campaign checksums, copies the reconciled B-E reports into a new `results/ce-review/<recovery-id>/`,
+and original-campaign checksums, copies the reconciled B-E reports into a new `results/ce-review/<recovery-id>-v1/`,
 indexes every successful A pilot draft separately and selects run 3 chronologically for
 representative A-E comparisons. It produces aggregate CSV/JSON tables, provisional S/O/D
 and RPN figures, lexical component review candidates (no invented coverage fraction),
@@ -137,3 +137,9 @@ Financial package IDs are short (`financial-v1`, `A-E-financial-v1`) because the
 campaign directory already supplies unique identity. This prevents Windows MAX_PATH
 failures without overwriting any earlier failed staging or successful report directory.
 Downloaded Actions artifacts are also retained under `results/github/<run-id>/`.
+
+The offline reviewer explicitly accepts System A's historical `generation_minutes`
+metadata column, preserving the original CSV and enforcing the same FMEA content,
+rating and RPN validation. Recovery CSV headers remain strict. Use `--version v2`
+(or a later integer) for a fresh immutable review rebuild; failed earlier directories
+are preserved rather than overwritten.

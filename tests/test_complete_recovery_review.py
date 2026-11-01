@@ -1,4 +1,5 @@
 """Synthetic offline validation of the complete A-E index and immutable review ZIP."""
+import csv
 import json
 from pathlib import Path
 import unittest
@@ -36,6 +37,10 @@ class ReviewTests(unittest.TestCase):
         runs=[]
         for number in (3,4):
             path=baseline / f"system_A_v2.0_run{number:02d}.csv";self.csv(path)
+            with path.open() as stream: rows=list(csv.DictReader(stream))
+            headers=recovery.engine.CSV_FIELDS[:4]+["generation_minutes"]+recovery.engine.CSV_FIELDS[4:]
+            with path.open("w",newline="") as stream:
+                writer=csv.DictWriter(stream,fieldnames=headers);writer.writeheader();writer.writerows({**r,"generation_minutes":"0.083333"} for r in rows)
             runs.append({"run_number":number,"status":"success","system_id":"system_A","model":recovery.MODEL,"prompt_version":"v2.0","started_at":"2026-11-01T16:00:00Z","duration_seconds":5,"row_count":1,"csv_file":path.name,"outputs":{path.name:{"sha256":recovery.digest(path)}}})
         recovery.atomic(baseline / "manifest.json", {"plan":{"batch_id":"synthetic-A","system_id":"system_A","model":recovery.MODEL,"prompt_version":"v2.0"},"runs":runs})
         with patch.object(review,"ROOT",self.root), patch.object(review,"figures"), patch("analysis.financial_impact.report.figures",return_value={}):
@@ -56,3 +61,12 @@ class ReviewTests(unittest.TestCase):
         for name,digest in recovery.read(output / "review-checksums.json").items():
             self.assertEqual(recovery.digest(output / name),digest)
         self.assertEqual(protected.read_text(),"synthetic original")
+
+    def test_legacy_pilot_invalid_rpn_still_rejected(self):
+        path=self.root / "legacy.csv";self.csv(path)
+        with path.open() as stream:rows=list(csv.DictReader(stream))
+        headers=recovery.engine.CSV_FIELDS[:4]+["generation_minutes"]+recovery.engine.CSV_FIELDS[4:]
+        rows[0]["RPN"]="999"
+        with path.open("w",newline="") as stream:
+            writer=csv.DictWriter(stream,fieldnames=headers);writer.writeheader();writer.writerows({**r,"generation_minutes":"1"} for r in rows)
+        with self.assertRaises(ValueError):review.validate_pilot_csv(path)
