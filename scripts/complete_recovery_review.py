@@ -119,7 +119,9 @@ def complete(folder, version="v1"):
                 if any(engine_record[k] != record[k] for k in ("system_id", "model", "prompt_version", "skill_sha256", "system_sha256")):
                     raise ValueError("Recovery engine identity mismatch")
                 config = engine_record["configuration"]
-                if config["temperature"] != 0 or config["max_output_tokens"] != 65536 or config["retry_attempts"] != 1 or config["response_schema"] != recovery.engine.RESPONSE_SCHEMA:
+                # The SDK serializes schema aliases/order in-place; compare with the original runtime receipt.
+                original_config = recovery.read(recovery.BASE / "system_B/system_B_v2.0_run01_execution.json")["configuration"]
+                if config != original_config:
                     raise ValueError("Recovery engine configuration mismatch")
                 for key in ("configuration", "api_request_seconds", "parsing_validation_seconds"):
                     record[key] = engine_record.get(key)

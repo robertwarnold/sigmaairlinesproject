@@ -20,11 +20,22 @@ class ReviewTests(unittest.TestCase):
         folder = self.root / "campaign"; folder.mkdir()
         batch = "synthetic-review"
         records = []
+        schema=json.loads(json.dumps(recovery.engine.RESPONSE_SCHEMA))
+        schema["min_items"]=schema.pop("min_items",schema.pop("minItems",1))
+        schema["items"]["property_ordering"]=recovery.engine.FIELDS
+        config={"temperature":0,"max_output_tokens":65536,"retry_attempts":1,"response_mime_type":"application/json","response_schema":schema}
+        original=recovery.BASE / "system_B/system_B_v2.0_run01_execution.json"
+        original_record=recovery.read(original);original_record["configuration"]=config;recovery.atomic(original,original_record)
         for system in ("system_C", "system_E"):
             target = folder / "attempts" / batch / system / "attempt-1"; target.mkdir(parents=True)
             self.csv(target / "new.csv")
             record = self.receipt(system, target, batch)
             record["retry_number"] = 0
+            record["row_count"] = 1
+            record["metadata_path"] = str(target / "recovery_metadata.json")
+            engine_path=target / f"{system}_v2.0_run01_execution.json"
+            recovery.atomic(engine_path,{**record,"configuration":config,"api_request_seconds":2,"parsing_validation_seconds":1})
+            record["artifacts"][engine_path.name]=recovery.digest(engine_path)
             recovery.atomic(target / "recovery_metadata.json", record)
             records.append(record)
         recovery.atomic(folder / "plan.json", {"original_campaign_id":recovery.ORIGINAL,"recovery_campaign_id":batch,"systems":["system_C","system_E"]})

@@ -143,3 +143,8 @@ metadata column, preserving the original CSV and enforcing the same FMEA content
 rating and RPN validation. Recovery CSV headers remain strict. Use `--version v2`
 (or a later integer) for a fresh immutable review rebuild; failed earlier directories
 are preserved rather than overwritten.
+
+Runtime configurations are compared exactly against the original B engine receipt.
+The unchanged SDK serializes source schema aliases/order in place; source prompt/schema
+hashes are separately checked during preflight. Comparing a serialized SDK receipt
+against the pre-SDK Python dictionary would falsely flag that representation change.
