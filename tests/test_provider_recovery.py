@@ -125,3 +125,63 @@ class RetryReconciliationTests(unittest.TestCase):
         record = recovery.read(failed); record.update(status="success", csv_path="new.csv")
         recovery.atomic(failed, record)
         with self.assertRaises(ValueError): recovery.reconcile(plan, self.root / "batch", self.root / "ambiguous")
+
+
+class COnlyTests(unittest.TestCase):
+    """The separately authorized C-only budget permits six calls, never E calls."""
+    def test_c_retry_policy_and_typed_transport(self):
+        import httpx
+        record=retry.diagnostic(httpx.RemoteProtocolError("synthetic disconnect"))
+        self.assertEqual(retry.c_retry_delay(record,1),60)
+        self.assertEqual(retry.c_retry_delay(record,5),300)
+        self.assertIsNone(retry.c_retry_delay(record,6))
+        self.assertIsNone(retry.c_retry_delay(retry.diagnostic(RuntimeError("503 or disconnect")),1))
+        self.assertIsNone(retry.c_retry_delay({"http_status":403},1))
+        self.assertEqual(retry.c_retry_delay({"http_status":503,"failure_classification":"provider_unavailable_503","retry_after":"200"},2),200)
+
+    def test_remote_sixth_attempt_and_seventh_rejection(self):
+        plan={"campaign_id":"synthetic-c-six","sdk_version":"synthetic-sdk"}
+        with patch.object(recovery,"read",return_value=plan), patch.object(retry.pilot,"specification",return_value=plan), \
+                patch.object(retry.importlib.metadata,"version",return_value="synthetic-sdk"), patch.object(recovery,"atomic"), patch.object(recovery,"generate") as generate:
+            retry.remote("plan","system_C","synthetic-c-six-C-attempt-6","out")
+            self.assertEqual(generate.call_args.args[-1],6)
+            with self.assertRaises(ValueError):retry.remote("plan","system_C","synthetic-c-six-C-attempt-7","out")
+            with self.assertRaises(ValueError):retry.remote("plan","system_E","synthetic-c-six-E-attempt-6","out")
+            self.assertEqual(generate.call_count,1)
+
+    def run_c_worker(self,success_at):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            recovery.atomic(root/"plan.json",{"systems":["system_C"],"policy":retry.C_ONLY_POLICY,"authorization":"up_to_six_additional_C_requests","recovery_campaign_id":"synthetic-c-six"})
+            recovery.atomic(root/"history.json",{"effective_results":{"system_C":{"status":"unresolved"},"system_E":{"status":"success"}}})
+            retry.update(root,reserved_requests=0,attempts=[],retry_wait_seconds=0)
+            calls=[]
+            def dispatch(folder,wrapper,branch,mode,batch,system,preflight_id=None):
+                self.assertEqual(system,"system_C")
+                if mode=="multi_system_preflight":return "preflight","success"
+                calls.append(batch);state=recovery.read(root/"status.json")
+                retry.update(root,reserved_requests=state["reserved_requests"]+1)
+                return str(len(calls)),"success"
+            def download(wrapper,*args):
+                target=Path(args[args.index("--dir")+1]);target.mkdir(parents=True)
+                if args[2]=="preflight":return ""
+                number=int(args[2]);success=number==success_at
+                record={"original_campaign_id":recovery.ORIGINAL,"recovery_campaign_id":"synthetic-c-six","system_id":"system_C","retry_number":number-1,
+                    "model":recovery.MODEL,"temperature":0,"prompt_version":"v2.0","skill_sha256":recovery.SKILL_HASH,"system_sha256":recovery.INPUTS["system_C"],
+                    "attempt_id":f"synthetic-{number}","execution":{"request_invocations":1},"artifacts":{},"status":"success" if success else "failed",
+                    "http_status":None if success else 503,"csv_path":"synthetic.csv" if success else None}
+                recovery.atomic(target/"recovery_metadata.json",record)
+                return ""
+            with patch.object(retry,"run_workflow",side_effect=dispatch),patch.object(retry,"github",side_effect=download), \
+                    patch.object(recovery,"validate_csv"),patch.object(recovery,"reconcile",return_value=root/"reconciled"), \
+                    patch.object(retry,"c_retry_delay",side_effect=lambda r,n:0 if n<6 else None):
+                retry.c_worker(root,"branch","wrapper",root/"history.json")
+            self.assertEqual(len(calls),success_at or 6)
+            state=recovery.read(root/"status.json")
+            self.assertEqual(state["reserved_requests"],len(calls))
+            self.assertEqual(state["systems"]["system_C"],"success" if success_at else "unresolved")
+            with self.assertRaises(FileExistsError):retry.c_worker(root,"branch","wrapper",root/"history.json")
+
+    def test_c_stops_at_first_success(self):self.run_c_worker(2)
+
+    def test_c_stops_at_six_failures(self):self.run_c_worker(None)

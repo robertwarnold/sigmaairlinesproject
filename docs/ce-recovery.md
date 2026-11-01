@@ -148,3 +148,17 @@ Runtime configurations are compared exactly against the original B engine receip
 The unchanged SDK serializes source schema aliases/order in place; source prompt/schema
 hashes are separately checked during preflight. Comparing a serialized SDK receipt
 against the pre-SDK Python dictionary would falsely flag that representation change.
+
+## Separately authorized C-only six-request follow-up
+
+A subsequent user instruction authorized up to **six additional C requests**, stopping
+at the first valid FMEA. This does not authorize any E/A/B/D generation. Prepare with
+`provider_recovery.py c-preflight --folder results/<unique-folder>` and execute once with
+`c-worker --folder ... --wrapper ... --history <latest-reconciliation-manifest> --branch ...`.
+The plan records the distinct C-only authorization and a six-request cap. This extension
+retries verified HTTP503 and typed `httpx.RemoteProtocolError`/`ReadTimeout` failures;
+other errors and invalid output stop the campaign. Delays are 60/120/180/240/300 seconds,
+extended for a feasible provider Retry-After. SDK retries remain disabled. Request
+reservations, one-shot locking, identity/integrity checks and previous-history preservation
+remain intact. Report validation allows six C attempts only for this explicit C-only plan;
+the original C/E policy stays at three per system and six total.

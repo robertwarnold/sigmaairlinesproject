@@ -99,8 +99,10 @@ def generate(plan_path, system, output_root, attempt_number=None):
         raise ValueError("System is not authorized or workflow rerun detected")
     root = Path(output_root) / plan["recovery_campaign_id"] / system
     if attempt_number is not None:
-        if attempt_number not in (1, 2, 3):
+        if attempt_number not in range(1, 7):
             raise ValueError("Attempt outside authorized bound")
+        if attempt_number > 3 and system != "system_C":
+            raise ValueError("Extended attempt limit is authorized for C only")
         root = root / f"attempt-{attempt_number}"
     root.mkdir(parents=True, exist_ok=False)
     source = ROOT / "system_descriptions" / f"{system}.txt"

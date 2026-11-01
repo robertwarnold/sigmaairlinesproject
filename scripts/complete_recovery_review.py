@@ -78,7 +78,8 @@ def complete(folder, version="v1"):
     if state["phase"] != "generation_and_reconciliation_complete":
         raise ValueError("Campaign not ready for offline finalization")
     records = state["attempts"]
-    if len(records) > 6 or state["reserved_requests"] > 6 or any(sum(r["system_id"]==s for r in records)>3 for s in plan["systems"]):
+    per_system_limit = 6 if plan.get("authorization") == "up_to_six_additional_C_requests" and plan["systems"] == ["system_C"] else 3
+    if len(records) > 6 or state["reserved_requests"] > 6 or any(sum(r["system_id"]==s for r in records)>per_system_limit for s in plan["systems"]):
         raise ValueError("Request limit violation")
     snapshots = recovery.read(folder / "original_checksums.json")
     for path, digest in snapshots.items():
