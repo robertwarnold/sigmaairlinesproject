@@ -120,8 +120,14 @@ class LLMProvider:
         self.last_execution = {"provider": self.name, "requested_model": self.model, "prompt": prompt, "request": payload,
                                "started_at": datetime.now(timezone.utc).isoformat(), "usage": None, "response": None}
         started = time.perf_counter()
+        parsing_started = None
         try:
-            response = self.transport(url, payload, headers, self.timeout)
+            try:
+                # Measure transport separately, including exceptions with no response.
+                response = self.transport(url, payload, headers, self.timeout)
+            finally:
+                self.last_execution["api_request_seconds"] = max(0, time.perf_counter() - started)
+            parsing_started = time.perf_counter()
             self.last_execution.update(response=response, actual_model=response.get("model"), usage=response.get("usage"), response_id=response.get("id"))
             if self.name == "gemini":
                 usage = response.get("usageMetadata", {})
@@ -148,6 +154,10 @@ class LLMProvider:
             return candidates_to_rows(data, context, profile)
         finally:
             self.last_execution["elapsed_seconds"] = time.perf_counter() - started
+            # No response means local response parsing was unavailable, not zero seconds.
+            self.last_execution["parsing_validation_seconds"] = (
+                max(0, time.perf_counter() - parsing_started) if parsing_started is not None else None)
+            self.last_execution["finished_at"] = datetime.now(timezone.utc).isoformat()
 
 
 def candidates_to_rows(data, context, profile):

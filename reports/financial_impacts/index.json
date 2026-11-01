@@ -1,0 +1,16 @@
+{
+  "analyses": [
+    {
+      "analysis_id": "20261101-system-A-v2-preliminary-01",
+      "created_at": "2026-11-01T18:07:53.788813+00:00",
+      "report_status": "preliminary",
+      "system_ids": [
+        "system_A"
+      ],
+      "skill_versions": [
+        "v2.0"
+      ],
+      "git_commit": "04ef3c35f3370c2d59ed7a9d83d79857445373d4"
+    }
+  ]
+}

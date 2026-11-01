@@ -177,7 +177,8 @@ class FMEATests(unittest.TestCase):
     def test_truncated_response_fails_and_keeps_raw(self):
         out, error = self._generate("MAX_TOKENS", '[{"component": "x"')
         self.assertRegex(str(error), "truncated at the 100-token limit")
-        self.assertEqual([p.name for p in out.iterdir()], ["case_v2.0_run01_raw.txt"])
+        self.assertEqual({p.name for p in out.iterdir()},
+                         {"case_v2.0_run01_raw.txt", "case_v2.0_run01_execution.json"})
 
     def test_other_finish_reason_fails(self):
         out, error = self._generate("SAFETY", "")

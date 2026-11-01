@@ -229,5 +229,6 @@ jobs:
           path: |
             results/*.csv
             results/*_raw.txt
+            results/*_execution.json
           if-no-files-found: ignore
           retention-days: 14

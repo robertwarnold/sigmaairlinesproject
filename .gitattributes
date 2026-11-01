@@ -1,0 +1,2 @@
+# Immutable report hashes bind exact bytes; prevent Git newline conversion on checkout.
+reports/financial_impacts/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

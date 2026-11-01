@@ -1,0 +1,9 @@
+{
+  "version": "financial-sources-2026-11-01-v1",
+  "sources": [
+    {"id": "bls_wage_2025", "author": "U.S. Bureau of Labor Statistics", "title": "Aerospace Engineers, Occupational Outlook Handbook", "period": "May 2025", "url": "https://www.bls.gov/ooh/architecture-and-engineering/aerospace-engineers.htm", "accessed": "2026-11-01", "verified_values": {"median_usd_per_hour": 64.89}},
+    {"id": "bls_ecec_2026", "author": "U.S. Bureau of Labor Statistics", "title": "Employer Costs for Employee Compensation", "period": "June 2026", "url": "https://www.bls.gov/news.release/ecec.nr0.htm", "accessed": "2026-11-01", "verified_values": {"private_wages_usd_per_hour": 32.82, "private_benefits_usd_per_hour": 14.07, "private_total_usd_per_hour": 46.89}},
+    {"id": "google_pricing_2026", "author": "Google", "title": "Gemini Developer API pricing: Gemini 3.8 Flash Standard", "period": "November 2026; listed promotion through December 31, 2026", "url": "https://ai.google.dev/gemini-api/docs/pricing", "accessed": "2026-11-01", "verified_values": {"input_usd_per_million": 0.75, "output_including_thinking_usd_per_million": 3.75}},
+    {"id": "fraser_financial", "author": "Fraser, T.", "title": "Financial impact analysis of a process improvement", "period": "accessed 2026", "url": "https://github.com/timothyfraser/sysen/blob/main/code/ZZ_financial_analysis.R", "accessed": "2026-11-01", "python_url": "https://github.com/timothyfraser/sysen/blob/main/code/ZZ_financial_analysis.py", "application": "Explain quantities of interest, resample appropriate units and report intervals; do not reuse temperature/refund assumptions for FMEAs."}
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "version": "financial-assumptions-2026-11-01-v1",
+  "currency": "USD",
+  "seed": 5300,
+  "iterations": 10000,
+  "labor": {
+    "wage_usd_per_hour": 64.89,
+    "benefit_wage_usd_per_hour": 32.82,
+    "benefit_total_usd_per_hour": 46.89,
+    "fully_burdened_override_usd_per_hour": null,
+    "status": "illustrative national-average assumption, not a company rate",
+    "source_ids": ["bls_wage_2025", "bls_ecec_2026"]
+  },
+  "pricing": [
+    {
+      "model": "gemini-3.8-flash",
+      "tier": "standard_paid",
+      "billing_arrangement": "pay_as_you_go",
+      "effective_from": "2026-11-01",
+      "effective_through": "2026-12-31",
+      "input_usd_per_million": 0.75,
+      "output_including_thinking_usd_per_million": 3.75,
+      "source_id": "google_pricing_2026",
+      "status": "token estimate only; pilot account tier and invoices unverified"
+    }
+  ],
+  "scenario": null,
+  "minimum_independent_clusters": 3,
+  "missing_cost_policy": "Unknown failed billing or required labor makes total cost unavailable; retain known subtotal."
+}
