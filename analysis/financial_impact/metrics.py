@@ -123,6 +123,10 @@ def observed_summary(attempts):
             "n_failed_or_uncertain_attempts": len(attempts) - len(successful),
             "generation_success_fraction": len(successful) / len(attempts) if attempts else None,
             "engineering_acceptance_rate": None,
+            "effective_dataset_size": sum(r.get("effective_result", False) for r in attempts),
+            "cost_per_successful_generation_usd": (sum(r["cost_usd"] for r in attempts) / len(successful)
+                if successful and all(r["cost_usd"] is not None for r in attempts) else None),
+            "generation_cost_basis": "invoice" if attempts and all(r["cost_basis"] == "invoice" for r in attempts) else "estimate_or_unavailable",
             "attempt_elapsed_seconds": describe(durations), "successful_attempt_elapsed_seconds": describe(success_durations),
             "api_request_seconds": describe(api_durations),
             "known_tokens": {k: sum(r["usage"].get(k, 0) or 0 for r in attempts if r["usage"])

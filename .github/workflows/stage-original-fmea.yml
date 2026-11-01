@@ -1,0 +1,20 @@
+name: Stage Original FMEA Campaign
+on:
+  workflow_dispatch:
+    inputs:
+      original_directory:
+        description: Absolute original campaign directory on the configured self-hosted runner
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  stage:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/upload-artifact@v4
+        with:
+          name: original-fmea-20261101T184141Z-B-E-v2
+          path: ${{ inputs.original_directory }}/
+          retention-days: 14
+          if-no-files-found: error

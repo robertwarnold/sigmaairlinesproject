@@ -1,0 +1,822 @@
+{
+  "observed": {
+    "n_attempts": 9,
+    "n_successful_generations": 5,
+    "n_failed_or_uncertain_attempts": 4,
+    "generation_success_fraction": 0.5555555555555556,
+    "engineering_acceptance_rate": null,
+    "attempt_elapsed_seconds": {
+      "n": 9,
+      "mean": 161.11241609,
+      "median": 188.91,
+      "sample_sd": 107.21892325140578,
+      "min": 2.400644624999998,
+      "max": 295.41773
+    },
+    "successful_attempt_elapsed_seconds": {
+      "n": 5,
+      "mean": 172.0204902084,
+      "median": 188.91,
+      "sample_sd": 42.776725087712855,
+      "min": 113.45013296899998,
+      "max": 221.85031807299998
+    },
+    "api_request_seconds": {
+      "n": 7,
+      "mean": 123.22299212357143,
+      "median": 144.48535,
+      "sample_sd": 89.61993724660937,
+      "min": 1.775572265000001,
+      "max": 220.81898357400001
+    },
+    "known_tokens": {
+      "prompt_token_count": 19091,
+      "candidates_token_count": 41179,
+      "thoughts_token_count": 12915
+    },
+    "attempts_without_usage": 4,
+    "total_attempt_elapsed_seconds": 1450.01174481,
+    "known_token_estimate_or_invoice_subtotal_usd": 0.21717075,
+    "unknown_billing_attempts": 4,
+    "actual_invoice_total_usd": null,
+    "cost_per_engineering_accepted_fmea_usd": null,
+    "caution": "Known subtotal is not total billed expense or cost per accepted FMEA. Waiting is not measured active labor."
+  },
+  "attempts": [
+    {
+      "experiment_id": "20261101T163923Z-system-a-five",
+      "attempt_id": "1",
+      "system_id": "system_A",
+      "input_hash": "4e4c975182eb57e1dcbb2172dd57b628585ade20111dbfc05a49c59441dc8bc2",
+      "skill_version": "v2.0",
+      "skill_hash": "082d9e51a01611a2daa7cecab7600359f8920ac64327b643e2fd4fe97942f7a3",
+      "workflow": "standalone_gemini",
+      "model": "gemini-3.8-flash",
+      "configuration": {
+        "temperature": 0,
+        "max_output_tokens": 65536,
+        "response_mime_type": "application/json",
+        "response_schema_sha256": "51a9355a78daeac7f19bb4a01331798c47abd9cc9e73117e05764ee392f2e970",
+        "retry_attempts": 1
+      },
+      "configuration_id": "a1d6c75c121c0fff74cbb3b537d6137e3eb1c34fdf6fabfc56427c48d831f9a4",
+      "actual_model": null,
+      "started_at": "2026-11-01T16:43:39.687788+00:00",
+      "finished_at": "2026-11-01T16:48:27.810037+00:00",
+      "status": "provider_failure",
+      "failure_type": "RemoteProtocolError",
+      "duration_seconds": 288.122,
+      "api_request_seconds": null,
+      "parsing_validation_seconds": null,
+      "usage": null,
+      "row_count": null,
+      "acceptance": "not_evaluated",
+      "cost_usd": null,
+      "cost_basis": "unavailable_usage",
+      "billing_uncertain": true,
+      "pricing_source": "google_pricing_2026",
+      "tier": "standard_paid",
+      "billing_arrangement": "pay_as_you_go",
+      "metadata_sha256": "785a74c962542642824272d1ab829474c8bbc963071368d091244b84549f3be0"
+    },
+    {
+      "experiment_id": "20261101T163923Z-system-a-five",
+      "attempt_id": "2",
+      "system_id": "system_A",
+      "input_hash": "4e4c975182eb57e1dcbb2172dd57b628585ade20111dbfc05a49c59441dc8bc2",
+      "skill_version": "v2.0",
+      "skill_hash": "082d9e51a01611a2daa7cecab7600359f8920ac64327b643e2fd4fe97942f7a3",
+      "workflow": "standalone_gemini",
+      "model": "gemini-3.8-flash",
+      "configuration": {
+        "temperature": 0,
+        "max_output_tokens": 65536,
+        "response_mime_type": "application/json",
+        "response_schema_sha256": "51a9355a78daeac7f19bb4a01331798c47abd9cc9e73117e05764ee392f2e970",
+        "retry_attempts": 1
+      },
+      "configuration_id": "a1d6c75c121c0fff74cbb3b537d6137e3eb1c34fdf6fabfc56427c48d831f9a4",
+      "actual_model": null,
+      "started_at": "2026-11-01T16:48:27.812236+00:00",
+      "finished_at": "2026-11-01T16:53:23.230441+00:00",
+      "status": "provider_failure",
+      "failure_type": "RemoteProtocolError",
+      "duration_seconds": 295.41773,
+      "api_request_seconds": null,
+      "parsing_validation_seconds": null,
+      "usage": null,
+      "row_count": null,
+      "acceptance": "not_evaluated",
+      "cost_usd": null,
+      "cost_basis": "unavailable_usage",
+      "billing_uncertain": true,
+      "pricing_source": "google_pricing_2026",
+      "tier": "standard_paid",
+      "billing_arrangement": "pay_as_you_go",
+      "metadata_sha256": "785a74c962542642824272d1ab829474c8bbc963071368d091244b84549f3be0"
+    },
+    {
+      "experiment_id": "20261101T163923Z-system-a-five",
+      "attempt_id": "3",
+      "system_id": "system_A",
+      "input_hash": "4e4c975182eb57e1dcbb2172dd57b628585ade20111dbfc05a49c59441dc8bc2",
+      "skill_version": "v2.0",
+      "skill_hash": "082d9e51a01611a2daa7cecab7600359f8920ac64327b643e2fd4fe97942f7a3",
+      "workflow": "standalone_gemini",
+      "model": "gemini-3.8-flash",
+      "configuration": {
+        "temperature": 0,
+        "max_output_tokens": 65536,
+        "response_mime_type": "application/json",
+        "response_schema_sha256": "51a9355a78daeac7f19bb4a01331798c47abd9cc9e73117e05764ee392f2e970",
+        "retry_attempts": 1
+      },
+      "configuration_id": "a1d6c75c121c0fff74cbb3b537d6137e3eb1c34fdf6fabfc56427c48d831f9a4",
+      "actual_model": "gemini-3.8-flash",
+      "started_at": "2026-11-01T16:53:23.234818+00:00",
+      "finished_at": "2026-11-01T16:56:32.145395+00:00",
+      "status": "success",
+      "failure_type": null,
+      "duration_seconds": 188.91,
+      "api_request_seconds": 188.66796,
+      "parsing_validation_seconds": null,
+      "usage": {
+        "candidates_token_count": 10861,
+        "prompt_token_count": 3888,
+        "prompt_tokens_details": [
+          {
+            "modality": "TEXT",
+            "token_count": 3888
+          }
+        ],
+        "thoughts_token_count": 8409,
+        "total_token_count": 23158
+      },
+      "row_count": 40,
+      "acceptance": "not_evaluated",
+      "cost_usd": 0.0751785,
+      "cost_basis": "estimated_standard_paid_tokens",
+      "billing_uncertain": true,
+      "pricing_source": "google_pricing_2026",
+      "tier": "standard_paid",
+      "billing_arrangement": "pay_as_you_go",
+      "metadata_sha256": "785a74c962542642824272d1ab829474c8bbc963071368d091244b84549f3be0"
+    },
+    {
+      "experiment_id": "20261101T163923Z-system-a-five",
+      "attempt_id": "4",
+      "system_id": "system_A",
+      "input_hash": "4e4c975182eb57e1dcbb2172dd57b628585ade20111dbfc05a49c59441dc8bc2",
+      "skill_version": "v2.0",
+      "skill_hash": "082d9e51a01611a2daa7cecab7600359f8920ac64327b643e2fd4fe97942f7a3",
+      "workflow": "standalone_gemini",
+      "model": "gemini-3.8-flash",
+      "configuration": {
+        "temperature": 0,
+        "max_output_tokens": 65536,
+        "response_mime_type": "application/json",
+        "response_schema_sha256": "51a9355a78daeac7f19bb4a01331798c47abd9cc9e73117e05764ee392f2e970",
+        "retry_attempts": 1
+      },
+      "configuration_id": "a1d6c75c121c0fff74cbb3b537d6137e3eb1c34fdf6fabfc56427c48d831f9a4",
+      "actual_model": "gemini-3.8-flash",
+      "started_at": "2026-11-01T16:56:32.146310+00:00",
+      "finished_at": "2026-11-01T16:58:56.775098+00:00",
+      "status": "success",
+      "failure_type": null,
+      "duration_seconds": 144.62824,
+      "api_request_seconds": 144.48535,
+      "parsing_validation_seconds": null,
+      "usage": {
+        "candidates_token_count": 10240,
+        "prompt_token_count": 3888,
+        "prompt_tokens_details": [
+          {
+            "modality": "TEXT",
+            "token_count": 3888
+          }
+        ],
+        "thoughts_token_count": 1189,
+        "total_token_count": 15317
+      },
+      "row_count": 40,
+      "acceptance": "not_evaluated",
+      "cost_usd": 0.04577475,
+      "cost_basis": "estimated_standard_paid_tokens",
+      "billing_uncertain": true,
+      "pricing_source": "google_pricing_2026",
+      "tier": "standard_paid",
+      "billing_arrangement": "pay_as_you_go",
+      "metadata_sha256": "785a74c962542642824272d1ab829474c8bbc963071368d091244b84549f3be0"
+    },
+    {
+      "experiment_id": "20261101T163923Z-system-a-five",
+      "attempt_id": "5",
+      "system_id": "system_A",
+      "input_hash": "4e4c975182eb57e1dcbb2172dd57b628585ade20111dbfc05a49c59441dc8bc2",
+      "skill_version": "v2.0",
+      "skill_hash": "082d9e51a01611a2daa7cecab7600359f8920ac64327b643e2fd4fe97942f7a3",
+      "workflow": "standalone_gemini",
+      "model": "gemini-3.8-flash",
+      "configuration": {
+        "temperature": 0,
+        "max_output_tokens": 65536,
+        "response_mime_type": "application/json",
+        "response_schema_sha256": "51a9355a78daeac7f19bb4a01331798c47abd9cc9e73117e05764ee392f2e970",
+        "retry_attempts": 1
+      },
+      "configuration_id": "a1d6c75c121c0fff74cbb3b537d6137e3eb1c34fdf6fabfc56427c48d831f9a4",
+      "actual_model": "gemini-3.8-flash",
+      "started_at": "2026-11-01T16:58:56.776052+00:00",
+      "finished_at": "2026-11-01T17:02:08.040500+00:00",
+      "status": "success",
+      "failure_type": null,
+      "duration_seconds": 191.26376,
+      "api_request_seconds": 191.08508,
+      "parsing_validation_seconds": null,
+      "usage": {
+        "candidates_token_count": 9461,
+        "prompt_token_count": 3888,
+        "prompt_tokens_details": [
+          {
+            "modality": "TEXT",
+            "token_count": 3888
+          }
+        ],
+        "thoughts_token_count": 664,
+        "total_token_count": 14013
+      },
+      "row_count": 37,
+      "acceptance": "not_evaluated",
+      "cost_usd": 0.04088475,
+      "cost_basis": "estimated_standard_paid_tokens",
+      "billing_uncertain": true,
+      "pricing_source": "google_pricing_2026",
+      "tier": "standard_paid",
+      "billing_arrangement": "pay_as_you_go",
+      "metadata_sha256": "785a74c962542642824272d1ab829474c8bbc963071368d091244b84549f3be0"
+    },
+    {
+      "experiment_id": "20261101T184141Z-B-E-v2",
+      "attempt_id": "system_B_v2.0_run01",
+      "system_id": "system_B",
+      "input_hash": "d4fc978d3f71574d2643384b99f59cf74934b396d5748a30bd46fb8d7e549153",
+      "skill_version": "v2.0",
+      "skill_hash": "082d9e51a01611a2daa7cecab7600359f8920ac64327b643e2fd4fe97942f7a3",
+      "workflow": "standalone_gemini",
+      "model": "gemini-3.8-flash",
+      "configuration": {
+        "temperature": 0,
+        "response_mime_type": "application/json",
+        "response_schema": {
+          "type": "ARRAY",
+          "min_items": 1,
+          "items": {
+            "type": "OBJECT",
+            "required": [
+              "component",
+              "function",
+              "failure_mode",
+              "cause",
+              "local_effect",
+              "system_effect",
+              "recommended_action",
+              "severity",
+              "occurrence",
+              "detection",
+              "rating_rationale",
+              "evidence",
+              "review_flag"
+            ],
+            "properties": {
+              "component": {
+                "type": "STRING"
+              },
+              "function": {
+                "type": "STRING"
+              },
+              "failure_mode": {
+                "type": "STRING"
+              },
+              "cause": {
+                "type": "STRING"
+              },
+              "local_effect": {
+                "type": "STRING"
+              },
+              "system_effect": {
+                "type": "STRING"
+              },
+              "recommended_action": {
+                "type": "STRING"
+              },
+              "severity": {
+                "type": "INTEGER",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "occurrence": {
+                "type": "INTEGER",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "detection": {
+                "type": "INTEGER",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "rating_rationale": {
+                "type": "STRING"
+              },
+              "evidence": {
+                "type": "STRING"
+              },
+              "review_flag": {
+                "type": "STRING"
+              }
+            },
+            "property_ordering": [
+              "component",
+              "function",
+              "failure_mode",
+              "cause",
+              "local_effect",
+              "system_effect",
+              "recommended_action",
+              "severity",
+              "occurrence",
+              "detection",
+              "rating_rationale",
+              "evidence",
+              "review_flag"
+            ]
+          }
+        },
+        "retry_attempts": 1,
+        "max_output_tokens": 65536
+      },
+      "configuration_id": "f22fd0e49699193517ce03cc091cab131d0faa96c5a37e19bb56238050280d70",
+      "actual_model": "gemini-3.8-flash",
+      "started_at": "2026-11-01T18:49:43.296028+00:00",
+      "finished_at": "2026-11-01T18:51:36.746155+00:00",
+      "status": "success",
+      "failure_type": null,
+      "duration_seconds": 113.45013296899998,
+      "api_request_seconds": 112.781915948,
+      "parsing_validation_seconds": 0.0003518400000075417,
+      "usage": {
+        "candidates_token_count": 4807,
+        "prompt_token_count": 3555,
+        "prompt_tokens_details": [
+          {
+            "modality": "TEXT",
+            "token_count": 3555
+          }
+        ],
+        "thoughts_token_count": 1454,
+        "total_token_count": 9816
+      },
+      "row_count": 14,
+      "acceptance": "not_evaluated",
+      "cost_usd": 0.026145,
+      "cost_basis": "estimated_standard_paid_tokens",
+      "billing_uncertain": true,
+      "pricing_source": "google_pricing_2026",
+      "tier": "standard_paid",
+      "billing_arrangement": "pay_as_you_go",
+      "metadata_sha256": "9e116dbc02c3dcd80bf42df79054b3d7790a6a839517b34b5420c68aa8fe1cae"
+    },
+    {
+      "experiment_id": "20261101T184141Z-B-E-v2",
+      "attempt_id": "system_C_v2.0_run01",
+      "system_id": "system_C",
+      "input_hash": "29bdc570466761181e219b46c7bc7c52df05641bae94295aafdf7809b41e0435",
+      "skill_version": "v2.0",
+      "skill_hash": "082d9e51a01611a2daa7cecab7600359f8920ac64327b643e2fd4fe97942f7a3",
+      "workflow": "standalone_gemini",
+      "model": "gemini-3.8-flash",
+      "configuration": {
+        "temperature": 0,
+        "response_mime_type": "application/json",
+        "response_schema": {
+          "type": "ARRAY",
+          "min_items": 1,
+          "items": {
+            "type": "OBJECT",
+            "required": [
+              "component",
+              "function",
+              "failure_mode",
+              "cause",
+              "local_effect",
+              "system_effect",
+              "recommended_action",
+              "severity",
+              "occurrence",
+              "detection",
+              "rating_rationale",
+              "evidence",
+              "review_flag"
+            ],
+            "properties": {
+              "component": {
+                "type": "STRING"
+              },
+              "function": {
+                "type": "STRING"
+              },
+              "failure_mode": {
+                "type": "STRING"
+              },
+              "cause": {
+                "type": "STRING"
+              },
+              "local_effect": {
+                "type": "STRING"
+              },
+              "system_effect": {
+                "type": "STRING"
+              },
+              "recommended_action": {
+                "type": "STRING"
+              },
+              "severity": {
+                "type": "INTEGER",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "occurrence": {
+                "type": "INTEGER",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "detection": {
+                "type": "INTEGER",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "rating_rationale": {
+                "type": "STRING"
+              },
+              "evidence": {
+                "type": "STRING"
+              },
+              "review_flag": {
+                "type": "STRING"
+              }
+            },
+            "property_ordering": [
+              "component",
+              "function",
+              "failure_mode",
+              "cause",
+              "local_effect",
+              "system_effect",
+              "recommended_action",
+              "severity",
+              "occurrence",
+              "detection",
+              "rating_rationale",
+              "evidence",
+              "review_flag"
+            ]
+          }
+        },
+        "retry_attempts": 1,
+        "max_output_tokens": 65536
+      },
+      "configuration_id": "f22fd0e49699193517ce03cc091cab131d0faa96c5a37e19bb56238050280d70",
+      "actual_model": null,
+      "started_at": "2026-11-01T18:52:21.286216+00:00",
+      "finished_at": "2026-11-01T18:52:25.255131+00:00",
+      "status": "failed",
+      "failure_type": "ServerError",
+      "duration_seconds": 3.9689191429999937,
+      "api_request_seconds": 2.946083078000015,
+      "parsing_validation_seconds": null,
+      "usage": null,
+      "row_count": null,
+      "acceptance": "not_evaluated",
+      "cost_usd": null,
+      "cost_basis": "unavailable_usage",
+      "billing_uncertain": true,
+      "pricing_source": "google_pricing_2026",
+      "tier": "standard_paid",
+      "billing_arrangement": "pay_as_you_go",
+      "metadata_sha256": "9dc9669408938c2e70b56b24b833fe5259e98cd20e3ee91479156190a477595f"
+    },
+    {
+      "experiment_id": "20261101T184141Z-B-E-v2",
+      "attempt_id": "system_D_v2.0_run01",
+      "system_id": "system_D",
+      "input_hash": "cba9c2d90f20cc84072657882e02ac15b9f1962cae1cab2b59b243c3fb7af83e",
+      "skill_version": "v2.0",
+      "skill_hash": "082d9e51a01611a2daa7cecab7600359f8920ac64327b643e2fd4fe97942f7a3",
+      "workflow": "standalone_gemini",
+      "model": "gemini-3.8-flash",
+      "configuration": {
+        "temperature": 0,
+        "response_mime_type": "application/json",
+        "response_schema": {
+          "type": "ARRAY",
+          "min_items": 1,
+          "items": {
+            "type": "OBJECT",
+            "required": [
+              "component",
+              "function",
+              "failure_mode",
+              "cause",
+              "local_effect",
+              "system_effect",
+              "recommended_action",
+              "severity",
+              "occurrence",
+              "detection",
+              "rating_rationale",
+              "evidence",
+              "review_flag"
+            ],
+            "properties": {
+              "component": {
+                "type": "STRING"
+              },
+              "function": {
+                "type": "STRING"
+              },
+              "failure_mode": {
+                "type": "STRING"
+              },
+              "cause": {
+                "type": "STRING"
+              },
+              "local_effect": {
+                "type": "STRING"
+              },
+              "system_effect": {
+                "type": "STRING"
+              },
+              "recommended_action": {
+                "type": "STRING"
+              },
+              "severity": {
+                "type": "INTEGER",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "occurrence": {
+                "type": "INTEGER",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "detection": {
+                "type": "INTEGER",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "rating_rationale": {
+                "type": "STRING"
+              },
+              "evidence": {
+                "type": "STRING"
+              },
+              "review_flag": {
+                "type": "STRING"
+              }
+            },
+            "property_ordering": [
+              "component",
+              "function",
+              "failure_mode",
+              "cause",
+              "local_effect",
+              "system_effect",
+              "recommended_action",
+              "severity",
+              "occurrence",
+              "detection",
+              "rating_rationale",
+              "evidence",
+              "review_flag"
+            ]
+          }
+        },
+        "retry_attempts": 1,
+        "max_output_tokens": 65536
+      },
+      "configuration_id": "f22fd0e49699193517ce03cc091cab131d0faa96c5a37e19bb56238050280d70",
+      "actual_model": "gemini-3.8-flash",
+      "started_at": "2026-11-01T18:53:16.829775+00:00",
+      "finished_at": "2026-11-01T18:56:58.680089+00:00",
+      "status": "success",
+      "failure_type": null,
+      "duration_seconds": 221.85031807299998,
+      "api_request_seconds": 220.81898357400001,
+      "parsing_validation_seconds": 0.0007296859999996741,
+      "usage": {
+        "candidates_token_count": 5810,
+        "prompt_token_count": 3872,
+        "prompt_tokens_details": [
+          {
+            "modality": "TEXT",
+            "token_count": 3872
+          }
+        ],
+        "thoughts_token_count": 1199,
+        "total_token_count": 10881
+      },
+      "row_count": 21,
+      "acceptance": "not_evaluated",
+      "cost_usd": 0.02918775,
+      "cost_basis": "estimated_standard_paid_tokens",
+      "billing_uncertain": true,
+      "pricing_source": "google_pricing_2026",
+      "tier": "standard_paid",
+      "billing_arrangement": "pay_as_you_go",
+      "metadata_sha256": "9c07f6cf62baa581235ccb24f70fcacc31871c8b2886ad77bdc83bc185e4b95d"
+    },
+    {
+      "experiment_id": "20261101T184141Z-B-E-v2",
+      "attempt_id": "system_E_v2.0_run01",
+      "system_id": "system_E",
+      "input_hash": "cf69a81f1e3a53614e066a2f1610a420a66137892c3e9ac35478fdc5f91df371",
+      "skill_version": "v2.0",
+      "skill_hash": "082d9e51a01611a2daa7cecab7600359f8920ac64327b643e2fd4fe97942f7a3",
+      "workflow": "standalone_gemini",
+      "model": "gemini-3.8-flash",
+      "configuration": {
+        "temperature": 0,
+        "response_mime_type": "application/json",
+        "response_schema": {
+          "type": "ARRAY",
+          "min_items": 1,
+          "items": {
+            "type": "OBJECT",
+            "required": [
+              "component",
+              "function",
+              "failure_mode",
+              "cause",
+              "local_effect",
+              "system_effect",
+              "recommended_action",
+              "severity",
+              "occurrence",
+              "detection",
+              "rating_rationale",
+              "evidence",
+              "review_flag"
+            ],
+            "properties": {
+              "component": {
+                "type": "STRING"
+              },
+              "function": {
+                "type": "STRING"
+              },
+              "failure_mode": {
+                "type": "STRING"
+              },
+              "cause": {
+                "type": "STRING"
+              },
+              "local_effect": {
+                "type": "STRING"
+              },
+              "system_effect": {
+                "type": "STRING"
+              },
+              "recommended_action": {
+                "type": "STRING"
+              },
+              "severity": {
+                "type": "INTEGER",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "occurrence": {
+                "type": "INTEGER",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "detection": {
+                "type": "INTEGER",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "rating_rationale": {
+                "type": "STRING"
+              },
+              "evidence": {
+                "type": "STRING"
+              },
+              "review_flag": {
+                "type": "STRING"
+              }
+            },
+            "property_ordering": [
+              "component",
+              "function",
+              "failure_mode",
+              "cause",
+              "local_effect",
+              "system_effect",
+              "recommended_action",
+              "severity",
+              "occurrence",
+              "detection",
+              "rating_rationale",
+              "evidence",
+              "review_flag"
+            ]
+          }
+        },
+        "retry_attempts": 1,
+        "max_output_tokens": 65536
+      },
+      "configuration_id": "f22fd0e49699193517ce03cc091cab131d0faa96c5a37e19bb56238050280d70",
+      "actual_model": null,
+      "started_at": "2026-11-01T18:57:34.561268+00:00",
+      "finished_at": "2026-11-01T18:57:36.961910+00:00",
+      "status": "failed",
+      "failure_type": "ServerError",
+      "duration_seconds": 2.400644624999998,
+      "api_request_seconds": 1.775572265000001,
+      "parsing_validation_seconds": null,
+      "usage": null,
+      "row_count": null,
+      "acceptance": "not_evaluated",
+      "cost_usd": null,
+      "cost_basis": "unavailable_usage",
+      "billing_uncertain": true,
+      "pricing_source": "google_pricing_2026",
+      "tier": "standard_paid",
+      "billing_arrangement": "pay_as_you_go",
+      "metadata_sha256": "62e74869cabb0af435b6cb34ae0ccb82f0106bf3fdcead12cc81a4599c1f9de9"
+    }
+  ],
+  "labor_assumption": {
+    "wage_usd_per_hour": 64.89,
+    "benefit_wage_usd_per_hour": 32.82,
+    "benefit_total_usd_per_hour": 46.89,
+    "fully_burdened_override_usd_per_hour": null,
+    "status": "illustrative national-average assumption, not a company rate",
+    "source_ids": [
+      "bls_wage_2025",
+      "bls_ecec_2026"
+    ]
+  },
+  "pricing_assumptions": [
+    {
+      "model": "gemini-3.8-flash",
+      "tier": "standard_paid",
+      "billing_arrangement": "pay_as_you_go",
+      "effective_from": "2026-11-01",
+      "effective_through": "2026-12-31",
+      "input_usd_per_million": 0.75,
+      "output_including_thinking_usd_per_million": 3.75,
+      "source_id": "google_pricing_2026",
+      "status": "token estimate only; pilot account tier and invoices unverified"
+    }
+  ],
+  "loaded_labor_rate_usd_per_hour": 92.70847349177332,
+  "accepted_costs": [],
+  "uncertainty": {
+    "status": "not_estimable",
+    "mean_savings_usd": null,
+    "ci95_usd": null,
+    "iterations": 10000,
+    "seed": 5300,
+    "interval_method": "cluster percentile bootstrap",
+    "n_matched_cases": 0,
+    "n_independent_clusters": 0,
+    "draws": null,
+    "reason": "Insufficient independently clustered, measured, quality-matched cases"
+  },
+  "uncertainty_by_condition": {},
+  "matched_case_count_including_estimated_pairs": 0,
+  "simulation": {
+    "status": "not_requested",
+    "interval_kind": "assumption-driven simulation",
+    "draws": null
+  },
+  "scenario_baseline": null,
+  "sensitivity": [],
+  "comparison": {
+    "absolute_savings_usd": null,
+    "percentage_reduction": null,
+    "net_annual_savings_usd": null,
+    "break_even_fmeas": null,
+    "net_savings_per_fmea_usd": null
+  },
+  "comparisons_by_condition": {},
+  "engineering_lead_time_reduction_hours": null,
+  "missing_measurements": [
+    "manual development/review/approval",
+    "AI preparation/supervision/review/rework",
+    "independent acceptance",
+    "failed-call invoices",
+    "skill maintenance",
+    "annual workload"
+  ]
+}

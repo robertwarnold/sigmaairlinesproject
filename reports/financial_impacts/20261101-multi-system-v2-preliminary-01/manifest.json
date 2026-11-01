@@ -1,0 +1,92 @@
+{
+  "analysis_id": "20261101-multi-system-v2-preliminary-01",
+  "report_status": "preliminary",
+  "created_at": "2026-11-01T19:01:35.880071+00:00",
+  "system_ids": [
+    "system_A",
+    "system_B",
+    "system_C",
+    "system_D",
+    "system_E"
+  ],
+  "skill_versions": [
+    "v2.0"
+  ],
+  "analysis_code_version": "1.0.0",
+  "git_commit": "5eee5bae23861bece11af8431fe61d14ca4b348c",
+  "analysis_code_hashes": {
+    "__init__.py": "ed8bb37334b096f9719d3bb78475a13f353598164ea0c972d4a88e6e822dd252",
+    "__main__.py": "f5f5856595a10a6d62d6c75e631081d6013e115055b49a8c5e4a05aae17b6eec",
+    "cost_model.py": "56343ba28eeed7c4a23ba1152f662ee69cf8b0ec1e46aaa8d434c9a79cc24346",
+    "data_schema.py": "7807b191d2f608f2dca35354c5fcf46ebe157533673898d0c0e02ef50f99d2c5",
+    "ingest.py": "caff8d1e2bce65e5a2f6186ce69facc4b2013d726e6bb36c080806d2798129b1",
+    "metrics.py": "330cac4aad0315547d706a51b8c45eb7578841e17767afaf0d3f4108fafaa94c",
+    "report.py": "5d8a1c04e5e03caeb53beadba25c5f210ddea13408a75d0ba3eab6eb8f711684",
+    "uncertainty.py": "e66384a4aefda35ee68d9d6258097de7612090f95b24df0192bb6c1a3174439b",
+    "visualizations.py": "f77fa71c27ffcf65bbb9f027e841eeae5fd5ee97d7683b72ea976b5fa8e84fe3"
+  },
+  "datasets": [
+    {
+      "identifier": "manifest.json",
+      "sha256": "785a74c962542642824272d1ab829474c8bbc963071368d091244b84549f3be0"
+    },
+    {
+      "identifier": "system_B_v2.0_run01_execution.json",
+      "sha256": "9e116dbc02c3dcd80bf42df79054b3d7790a6a839517b34b5420c68aa8fe1cae"
+    },
+    {
+      "identifier": "system_C_v2.0_run01_execution.json",
+      "sha256": "9dc9669408938c2e70b56b24b833fe5259e98cd20e3ee91479156190a477595f"
+    },
+    {
+      "identifier": "system_D_v2.0_run01_execution.json",
+      "sha256": "9c07f6cf62baa581235ccb24f70fcacc31871c8b2886ad77bdc83bc185e4b95d"
+    },
+    {
+      "identifier": "system_E_v2.0_run01_execution.json",
+      "sha256": "62e74869cabb0af435b6cb34ae0ccb82f0106bf3fdcead12cc81a4599c1f9de9"
+    },
+    {
+      "identifier": "assumptions.json",
+      "sha256": "f208b319393212a2ade2330babaa0be9ffee0faf8511459492658531990942e3"
+    },
+    {
+      "identifier": "sources.json",
+      "sha256": "6da2c6d6105a59db499403f876ab0e24344e178fe30909aaf9eaed4cd647191d"
+    }
+  ],
+  "assumptions_version": "financial-assumptions-2026-11-01-v1",
+  "sources_version": "financial-sources-2026-11-01-v1",
+  "assumed_billing_tier": "standard_paid",
+  "assumed_billing_arrangement": "pay_as_you_go",
+  "sample_sizes": {
+    "attempts": 9,
+    "systems": 5,
+    "successful_generations": 5,
+    "quality_records": 0,
+    "labor_records": 0,
+    "matched_cases": 0
+  },
+  "statistical_method": "paired connected-cluster percentile bootstrap when estimable; explicit assumption simulation otherwise",
+  "seed": 5300,
+  "iterations": 10000,
+  "dependency_versions": {
+    "pandas": "3.1.0",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "matplotlib": "3.11.2"
+  },
+  "artifacts": {
+    "assumptions_and_sources.md": "f7ed7a86c7232caaf261a2fc53ef02349b2da7575b8bc8e1e272af3f9517069e",
+    "figures/01_before_after_cost.png": "0421080908ac0ca1ad79aff5536419e8d3e964ef4ed1e6b8a260f307ed36bb55",
+    "figures/02_labor_breakdown.png": "6a1eef848927c2b9f5a9e9d260bbcfdf041fa7aafa0912ee896039ec6a609255",
+    "figures/03_savings_bootstrap.png": "d02954f6ee8f1009567505ed0b7309f3d695cfbcc39387f3b2a9daf3fa7820cf",
+    "figures/04_cost_sensitivity.png": "e58c278f2a8764541fd661456f4e1474345700c7b14a290e212601d466cda0e3",
+    "figures/05_break_even.png": "5bddab3f3d9faff83df96f1725fa19deb2193e32d76d7e152350061614df7023",
+    "figures/06_skill_versions.png": "2003bd5dbc414b32638ad34e4d7cf78e43e306766e43e8bc4c2a6eecef67740c",
+    "figures/07_observed_generation.png": "8bebfca78cb81795a0ad0eaa15d304bfeb3e75a3f0945a668fcc1eb2aa25f9ab",
+    "Financial_Impacts.md": "670453b096b851942dc5d7462e3664c21339aec0e447443a46a1897f6b080d72",
+    "financial_summary.csv": "a48033f94b836d2a38d26da9dee892cdde2315dd8b1299fa0e67ffe31d864433",
+    "metrics.json": "b155c8a9822ada0494c99d309065ffec34b1ab66d1bfb689e99abc751ff9ce66"
+  }
+}

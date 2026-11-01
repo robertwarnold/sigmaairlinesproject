@@ -1,0 +1,88 @@
+name: Recover Failed FMEA Systems
+run-name: FMEA recovery ${{ inputs.original_campaign_id }} (${{ inputs.systems }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      original_campaign_id:
+        description: Existing B-E campaign to reconcile
+        required: true
+        type: string
+      systems:
+        description: Recovery systems; initial recovery permits C and E only
+        required: true
+        default: system_C_system_E
+        type: choice
+        options: [system_C,system_E,system_C_system_E]
+      original_artifact_run_id:
+        description: Run ID of Stage Original FMEA Campaign (unexpired artifact required)
+        required: true
+        type: string
+      recovery_label:
+        description: Optional label; unique recovery ID is generated automatically
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: fmea-recovery-${{ inputs.original_campaign_id }}-${{ inputs.systems }}
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing generator dependencies
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install -e '.[financial]'
+      - name: Restore original campaign from explicit artifact
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.original_artifact_run_id }}
+          name: original-fmea-${{ inputs.original_campaign_id }}
+          path: results/multi-system-pilot/${{ inputs.original_campaign_id }}
+      - name: Initialize and verify recovery plan
+        id: plan
+        env:
+          ORIGINAL_CAMPAIGN_ID: ${{ inputs.original_campaign_id }}
+          SELECTED_SYSTEMS: ${{ inputs.systems }}
+          RECOVERY_LABEL: ${{ inputs.recovery_label }}
+        run: |
+          test "$GITHUB_RUN_ATTEMPT" = 1 || { echo 'Workflow reruns are prohibited'; exit 1; }
+          python -u scripts/recover_fmea.py initialize --original "$ORIGINAL_CAMPAIGN_ID" --systems "$SELECTED_SYSTEMS" --label "$RECOVERY_LABEL" --output results/recovery/plan.json
+          echo "recovery_id=$(python -c 'import json; print(json.load(open("results/recovery/plan.json"))["recovery_campaign_id"])')" >> "$GITHUB_OUTPUT"
+      - name: Recover System C
+        if: ${{ contains(inputs.systems, 'system_C') }}
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          RECOVERY_ID: ${{ steps.plan.outputs.recovery_id }}
+        run: python -u scripts/recover_fmea.py generate --plan results/recovery/plan.json --system system_C --output results/recovery
+      - name: Recover System E
+        if: ${{ contains(inputs.systems, 'system_E') }}
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          RECOVERY_ID: ${{ steps.plan.outputs.recovery_id }}
+        run: python -u scripts/recover_fmea.py generate --plan results/recovery/plan.json --system system_E --output results/recovery
+      - name: Reconcile original campaign offline
+        if: always() && steps.plan.outcome == 'success'
+        run: python -u scripts/recover_fmea.py reconcile --plan results/recovery/plan.json --recovery results/recovery --output results/reconciliation
+      - name: Upload recovery attempts and reconciliation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fmea-recovery-${{ steps.plan.outputs.recovery_id }}-${{ github.run_id }}
+          path: results/
+          retention-days: 14
+          if-no-files-found: warn

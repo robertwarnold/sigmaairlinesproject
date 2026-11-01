@@ -1,0 +1,75 @@
+# Manual C/E recovery and offline financial reconciliation
+
+Original campaign: `20261101T184141Z-B-E-v2`. B/D succeeded; C/E returned
+provider HTTP 503 failures. Original records and frozen research evidence remain intact.
+Neither workflow is dispatched by push or pull request. No new requests are authorized by this PR.
+
+## Original artifacts and runner access
+
+The original manifest, status and four per-system execution sidecars live locally under
+`results/multi-system-pilot/20261101T184141Z-B-E-v2/`; B/D CSVs are in their
+system subdirectories. This ignored directory is absent on GitHub-hosted runners.
+Original per-system Actions artifacts expire after 14 days and do not by themselves
+contain the assembled campaign manifest. Never assume they can restore the campaign.
+
+After approval, configure a trusted self-hosted runner with access to the original
+campaign directory (or privately copy the original directory there). Manually run
+`Stage Original FMEA Campaign`, passing its absolute directory as `original_directory`.
+It uploads the directory as `original-fmea-20261101T184141Z-B-E-v2` without committing
+outputs. The upload includes generated content, so use repository artifact access only
+as approved by the team; private storage/local reconciliation remains available.
+No reference/ground-truth worksheets belong in this directory.
+
+The recovery workflow requires this staging run ID and downloads that exact artifact
+with read-only Actions permission. Missing/expired artifacts block initialization before
+any paid request. Restored original artifacts are hash checked and B/D CSVs validated.
+A self-hosted runner is required only for staging; recovery uses Ubuntu. Availability of
+that runner and original files is an operational prerequisite, not provisioned here.
+Download artifacts to private storage before their 14-day expiry.
+
+## Dispatch after approval
+
+Use Actions > Recover Failed FMEA Systems > Run workflow, selecting the reviewed branch
+(or main after merge). Set original_campaign_id to the ID above, original_artifact_run_id
+to the successful staging run, and systems to `system_C`, `system_E`, or
+`system_C_system_E`. At most one request per selected system; no retries, fallback models,
+or workflow reruns. A later recovery needs a new explicit human authorization.
+
+Live updates appear in the Actions recover job log, including 30-second elapsed heartbeats.
+The plan and per-attempt receipts record outcomes. The always-run upload preserves successful
+and failed attempts plus partial reconciliation under `fmea-recovery-<recovery-id>-<run-id>`.
+Hard runner loss/cancellation can prevent final receipt/upload; inspect logs before any new call.
+
+## Offline use and financial output
+
+Run `python scripts/recover_fmea.py --original-dir <original-directory> reconcile
+--plan <plan.json> --recovery <recovery-root> --output results/reconciliation` on one line.
+For successive offline batches pass `--history <previous-reconciliation_manifest.json>`
+(repeatable) to retain earlier attempts and effective results. Restore the referenced earlier
+CSV paths locally; conflicting evidence or an already selected replacement is rejected.
+The hosted workflow handles one recovery batch; cumulative cross-batch selection is an
+explicit offline operation, never an automatic retry.
+
+Each reconciliation uses a fresh original-ID/recovery-ID directory. It writes
+`effective_campaign_summary.csv`, `all_attempts_history.csv`, `reconciliation_manifest.json`,
+and a versioned `financial_impacts/<recovery-id>-financial-v1/` package using the existing
+financial reporting framework. Existing reports are never replaced. All generated packages
+stay under ignored results, not public source control.
+
+Financial ingestion retains original B/D successes, C/E failures, all supplied recovery
+receipts, elapsed durations and available token usage. Effective-result selection is separate
+from complete request history. Provider invoices are unknown unless supplied; token tariff
+estimates are labeled estimates. Full request expense divided by successful generations is
+unavailable when any required expense is unknown. Engineering acceptance, labor savings and
+other unmeasured financial outcomes remain unavailable. Existing assumption scenarios remain
+separate from observations. The standard financial CLI can rebuild reports offline from a
+reconciliation manifest and supply invoices with `<experiment-id>/<attempt-id>` keys.
+
+Acceptance requires a successful receipt, correct campaign/failed-attempt/system linkage,
+matching model, temperature, skill version/hash and input hash, exact CSV artifact hash,
+and valid headers, row widths, ratings and calculated RPN. Invalid CSVs remain unresolved.
+Original B/D are always selected unchanged. Partial C-only or E-only recovery is supported.
+
+Implementation files: `scripts/recover_fmea.py`, the two manual workflows,
+`analysis/financial_impact/{ingest,metrics}.py`, and `tests/test_recover_fmea.py`.
+Offline tests use synthetic fixtures only; neither tests nor reports call Gemini.
