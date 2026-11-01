@@ -1,5 +1,5 @@
 name: Generate FMEA with shared Gemini key
-run-name: ${{ (startsWith(inputs.mode, 'multi_system_') || inputs.mode == 'ce_recovery_single') && format('{0} {1} {2} ({3})', inputs.mode, inputs.batch_id, inputs.system, inputs.model) || format('{0} {1} ({2})', inputs.mode, inputs.batch_id, inputs.model) }}
+run-name: ${{ (startsWith(inputs.mode, 'multi_system_') || inputs.mode == 'ce_recovery_single') && format('{0} {1} {2} ({3})', inputs.mode, inputs.batch_id, inputs.system, inputs.model) || (inputs.mode == 'single' && format('single {0} run{1} ({2})', inputs.system, inputs.run, inputs.model)) || format('{0} {1} ({2})', inputs.mode, inputs.batch_id, inputs.model) }}
 
 on:
   workflow_dispatch:
@@ -54,6 +54,11 @@ on:
         description: Gemini model ID available to the team account
         required: true
         default: gemini-3.8-flash
+        type: string
+      run:
+        description: Replicate number for single mode (1-99); output files are named <system>_<version>_runNN
+        required: false
+        default: '1'
         type: string
 
 permissions:
@@ -252,6 +257,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SELECTED_SYSTEM: ${{ inputs.system }}
           SELECTED_MODEL: ${{ inputs.model }}
+          SELECTED_RUN: ${{ inputs.run }}
         shell: bash
         run: |
           if [ -z "$GEMINI_API_KEY" ]; then
@@ -262,10 +268,12 @@ jobs:
             system_1|system_2_nasa_fmeca|system_A|system_B|system_C|system_D|system_E) ;;
             *) echo "::error::Unknown system selection"; exit 1 ;;
           esac
+          [[ "$SELECTED_RUN" =~ ^[1-9][0-9]?$ ]] || { echo "::error::Replicate number must be 1-99"; exit 1; }
           python fmea_generator.py \
             --system "system_descriptions/${SELECTED_SYSTEM}.txt" \
             --case-id "$SELECTED_SYSTEM" \
-            --model "$SELECTED_MODEL"
+            --model "$SELECTED_MODEL" \
+            --run "$SELECTED_RUN"
       - name: Run reduced research pilot
         if: ${{ inputs.mode == 'pilot_plan' || inputs.mode == 'pilot_smoke' || inputs.mode == 'pilot_remaining' }}
         env:
