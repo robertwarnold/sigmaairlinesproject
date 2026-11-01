@@ -253,7 +253,8 @@ def execute(frozen, approved_calls):
             manifest["request_invocations"] += 1
             write_json(output / "manifest.json", manifest)
 
-        start = time.monotonic()
+        # Use the same monotonic performance clock as the standardized execution receipt.
+        start = time.perf_counter()
         try:
             rows = engine.generate_fmea(SYSTEM, "system_A", version=engine.PROMPT_VERSION,
                 run=number, output_dir=output, model=frozen["model"],
@@ -275,7 +276,7 @@ def execute(frozen, approved_calls):
             if not record["request_invocations"] or code in {400, 401, 403, 404, 429} or (number == 1 and status == "truncation"):
                 manifest["halt_reason"] = f"Run {number}: configuration/quota/output-limit failure; no further calls"
         finally:
-            record["duration_seconds"] = round(time.monotonic() - start, 5)
+            record["duration_seconds"] = round(time.perf_counter() - start, 5)
             record["finished_at"] = now()
             record["outputs"] = {}
             for kind, suffix in (("csv", ".csv"), ("raw", "_raw.txt")):

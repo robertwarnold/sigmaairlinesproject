@@ -1,5 +1,13 @@
 # Sigma Airlines FMEA engineering support
 
+Offline financial analysis and labor/quality collection templates are documented in
+[analysis/financial_impact/README.md](analysis/financial_impact/README.md).
+It consumes existing metadata without model calls and creates versioned preliminary
+reports under `reports/financial_impacts/`. Accepted-FMEA costs and empirical savings
+intervals remain unavailable until comparable engineering labor and acceptance data
+exist. Future standalone generation stores timing in `*_execution.json` sidecars;
+new CSVs omit the repeated `generation_minutes` column. Historical outputs are unchanged.
+
 This repository supports two distinct Python workflows and preserves a historical R
 prototype. All generated analyses require engineering review.
 

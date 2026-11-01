@@ -6,6 +6,7 @@ import os
 import re
 import time
 from pathlib import Path
+from src.sigma_fmea.execution_metadata import file_hash, utc_now, write_receipt
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_MODEL = "gemini-2.5-flash"
@@ -14,7 +15,8 @@ FIELDS = ["component", "function", "failure_mode", "cause", "local_effect",
           "system_effect", "recommended_action", "severity", "occurrence",
           "detection", "rating_rationale", "evidence", "review_flag"]
 RATINGS = ("severity", "occurrence", "detection")
-CSV_FIELDS = ["case_id", "version", "run", "model", "generation_minutes"] + FIELDS + ["RPN"]
+# Timing belongs in a per-attempt sidecar rather than being repeated in every row.
+CSV_FIELDS = ["case_id", "version", "run", "model"] + FIELDS + ["RPN"]
 RESPONSE_SCHEMA = {
     "type": "ARRAY",
     "min_items": 1,
@@ -103,26 +105,30 @@ def call_gemini(system_text, model=None, execution=None, before_request=None):
             execution["max_output_tokens"] = max_output_tokens
         if before_request is not None:
             before_request()
-        request_start = time.monotonic()
+        request_start = time.perf_counter()
         if execution is not None:
             execution["request_invocations"] = 1
-        response = client.models.generate_content(
-            model=model,
-            contents="SYSTEM DESCRIPTION:\n" + system_text,
-            config=types.GenerateContentConfig(
-                system_instruction=instructions,
-                temperature=0,
-                response_mime_type="application/json",
-                response_schema=RESPONSE_SCHEMA,
-                max_output_tokens=max_output_tokens,
-            ),
-        )
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents="SYSTEM DESCRIPTION:\n" + system_text,
+                config=types.GenerateContentConfig(
+                    system_instruction=instructions,
+                    temperature=0,
+                    response_mime_type="application/json",
+                    response_schema=RESPONSE_SCHEMA,
+                    max_output_tokens=max_output_tokens,
+                ),
+            )
+        finally:
+            # A disconnected/failed request still consumed elapsed time; record it.
+            if execution is not None:
+                execution["generation_seconds"] = max(0, time.perf_counter() - request_start)
         candidates = response.candidates or []
         finish = candidates[0].finish_reason if candidates else None
         if execution is not None:
             usage = getattr(response, "usage_metadata", None)
             execution.update({
-                "generation_seconds": round(time.monotonic() - request_start, 5),
                 "model_version": getattr(response, "model_version", None),
                 "response_id": getattr(response, "response_id", None),
                 "usage_metadata": usage.model_dump(mode="json", exclude_none=True) if usage else None,
@@ -152,41 +158,78 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
     prefix = f"{safe_case}_{safe_version}_run{run:02d}"
     raw_path = output_dir / f"{prefix}_raw.txt"
     csv_path = output_dir / f"{prefix}.csv"
-    for path in (csv_path, raw_path):
+    metadata_path = output_dir / f"{prefix}_execution.json"
+    for path in (csv_path, raw_path, metadata_path):
         if os.path.lexists(path):
             raise FileExistsError(f"Run output already exists: {path}")
     output_dir.mkdir(parents=True, exist_ok=True)
     model = model or os.getenv("GEMINI_MODEL", DEFAULT_MODEL)
+    # Initialize a receipt for every new attempt before credentials or a provider are used.
+    execution = execution if execution is not None else {}
+    record = {"experiment_id": execution.get("experiment_id", output_dir.name),
+              "attempt_id": prefix, "system_id": case_id, "system_sha256": file_hash(system_file),
+              "prompt_version": PROMPT_VERSION, "skill_sha256": file_hash(ROOT / "skill/fmea_instructions.md"),
+              "workflow": "standalone_gemini", "model": model, "run_number": run,
+              "configuration": {"temperature": 0, "response_mime_type": "application/json",
+                                "response_schema": RESPONSE_SCHEMA, "retry_attempts": 1},
+              "started_at": utc_now(), "api_request_seconds": None,
+              "parsing_validation_seconds": None, "status": "running", "failure_classification": None,
+              "usage_metadata": None, "execution": execution}
+    total_start = time.perf_counter()
+    # Claim the receipt exclusively too, so a concurrent loser cannot publish our metadata.
+    receipt_stream = metadata_path.open("x", encoding="utf-8", newline="\n")
+    # An abrupt interruption still leaves the initial identity and uncertain running state.
+    write_receipt(metadata_path, record, (), stream=receipt_stream)
     # Reserve the raw path before any request, so concurrent identical runs cannot
     # both call Gemini. A failed request leaves this marker for manual inspection.
-    with raw_path.open("x", encoding="utf-8") as raw_file:
-        if os.path.lexists(csv_path):
-            raise FileExistsError(f"Run output already exists: {csv_path}")
-        start = time.monotonic()
-        if execution is None and before_request is None:
-            result = call_gemini(system_text, model=model)
-        else:
+    try:
+        with raw_path.open("x", encoding="utf-8") as raw_file:
+            if os.path.lexists(csv_path):
+                raise FileExistsError(f"Run output already exists: {csv_path}")
             result = call_gemini(system_text, model=model, execution=execution,
                                  before_request=before_request)
-        minutes = round((time.monotonic() - start) / 60, 5)
-        raw_file.write(result["text"])
-    if result["finish_reason"] == "MAX_TOKENS":
-        raise ValueError(f"Gemini response truncated at the {result['max_output_tokens']}-token limit; "
-                         f"partial output saved to {raw_path.name}, no CSV written")
-    if result["finish_reason"] != "STOP":
-        raise ValueError(f"Gemini stopped with finish reason {result['finish_reason']}; "
-                         f"output saved to {raw_path.name}, no CSV written")
-    if not result["text"].strip():
-        raise ValueError("Gemini returned no text (possibly blocked)")
-    rows = parse_fmea(result["text"])
-    with csv_path.open("x", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow({"case_id": case_id, "version": version, "run": run,
-                             "model": model, "generation_minutes": minutes, **row})
-    print(f"Saved {len(rows)} FMEA rows to {csv_path}")
-    return rows
+            raw_file.write(result["text"])
+        execution.setdefault("finish_reason", result["finish_reason"])
+        if result["finish_reason"] == "MAX_TOKENS":
+            raise ValueError(f"Gemini response truncated at the {result['max_output_tokens']}-token limit; "
+                             f"partial output saved to {raw_path.name}, no CSV written")
+        if result["finish_reason"] != "STOP":
+            raise ValueError(f"Gemini stopped with finish reason {result['finish_reason']}; "
+                             f"output saved to {raw_path.name}, no CSV written")
+        if not result["text"].strip():
+            raise ValueError("Gemini returned no text (possibly blocked)")
+        parse_start = time.perf_counter()
+        try:
+            # Reuse the unchanged v2 schema/rating validation and local RPN arithmetic.
+            rows = parse_fmea(result["text"])
+        finally:
+            record["parsing_validation_seconds"] = max(0, time.perf_counter() - parse_start)
+        with csv_path.open("x", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+            writer.writeheader()
+            for row in rows:
+                writer.writerow({"case_id": case_id, "version": version, "run": run, "model": model, **row})
+        record.update(status="success", row_count=len(rows))
+        print(f"Saved {len(rows)} FMEA rows to {csv_path}")
+        return rows
+    except BaseException as error:
+        # Record the error class, not arbitrary provider text that might contain a key.
+        finish = execution.get("finish_reason")
+        classification = ("interrupted" if not isinstance(error, Exception) else
+                          "truncation" if finish == "MAX_TOKENS" else "blocked" if finish and finish != "STOP"
+                          else "validation_failure" if isinstance(error, ValueError) else "provider_or_local_failure")
+        record.update(status="failed", failure_classification=classification, error_type=type(error).__name__)
+        raise
+    finally:
+        # Keep monotonic durations, UTC endpoints and usage available even on exceptions.
+        record.update(finished_at=utc_now(), total_elapsed_seconds=max(0, time.perf_counter() - total_start),
+                      api_request_seconds=execution.get("generation_seconds"),
+                      usage_metadata=execution.get("usage_metadata"))
+        record["configuration"]["max_output_tokens"] = execution.get("max_output_tokens")
+        try:
+            write_receipt(metadata_path, record, (csv_path, raw_path), stream=receipt_stream)
+        finally:
+            receipt_stream.close()
 
 
 def main():

@@ -116,6 +116,23 @@ def execute_run(system_path, profile_id, condition, provider_name, model, output
         write_record(output / "execution.json", getattr(provider, "last_execution", {}))
         state["finished_at"] = now()
         write_record(output / "state.json", state)
+        # Publish the same receipt schema as standalone generation, without changing engineering output.
+        from .execution_metadata import write_receipt
+        execution = getattr(provider, "last_execution", {})
+        write_receipt(output / "execution-metadata.json", {
+            "experiment_id": str(output.parent.name), "attempt_id": output.name,
+            "system_id": context.system_id, "system_sha256": input_record["sha256"],
+            "prompt_version": PROMPT_VERSION, "skill_sha256": prompt["sha256"],
+            "workflow": "canonical_research:" + condition, "model": model, "configuration": settings,
+            "started_at": state["started_at"], "finished_at": state["finished_at"],
+            "api_request_seconds": execution.get("api_request_seconds"),
+            "parsing_validation_seconds": execution.get("parsing_validation_seconds"),
+            "total_elapsed_seconds": max(0, time.perf_counter() - started),
+            "status": state["state"], "failure_classification": state.get("error_type"),
+            "row_count": len(draft.rows) if state["state"] == "success" else None,
+            "usage_metadata": execution.get("usage"), "execution": {
+                "model_version": execution.get("actual_model"), "response_id": execution.get("response_id")},
+        }, [output / "state.json", output / "execution.json", output / "metrics.json"])
     return state
 
 
