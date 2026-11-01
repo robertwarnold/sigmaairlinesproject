@@ -87,7 +87,7 @@ def update(folder, **changes):
     state = recovery.read(path) if path.exists() else {}
     state.update(changes, updated_at=datetime.now(timezone.utc).isoformat())
     recovery.atomic(path, state)
-    lines = ["# C/E recovery", "", json.dumps(state, indent=2)]
+    lines = ["# " + state.get("campaign_title", "C/E recovery"), "", json.dumps(state, indent=2)]
     (Path(folder) / "STATUS.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"[{state['updated_at']}] {state.get('phase')} | {state.get('active_system', '')} | {state.get('message', '')}", flush=True)
     return state
@@ -121,11 +121,14 @@ def github(wrapper, *args):
 def run_workflow(folder, wrapper, branch, mode, batch, system, preflight_id=None):
     """Dispatch once; persist reservation before POST and never repeat an uncertain dispatch."""
     state = recovery.read(Path(folder) / "status.json")
-    if mode == "ce_recovery_single":
-        if state["reserved_requests"] >= 6: raise ValueError("Campaign request budget exhausted")
+    paid = mode in ("ce_recovery_single", "replicate_single")
+    if paid:
+        limit = state.get("maximum_new_requests", 6) if mode == "replicate_single" else 6
+        if limit not in (6, 12) or state["reserved_requests"] >= limit:
+            raise ValueError("Campaign request budget exhausted")
         update(folder, reserved_requests=state["reserved_requests"] + 1, phase="dispatch_reserved", active_system=system, active_batch=batch)
     args = ["workflow", "run", "generate-fmea.yml", "--ref", branch, "-f", "mode=" + mode,
-            "-f", "approved_calls=" + ("1" if mode == "ce_recovery_single" else "0"),
+            "-f", "approved_calls=" + ("1" if paid else "0"),
             "-f", "batch_id=" + batch, "-f", "system=" + system, "-f", "model=" + recovery.MODEL]
     if preflight_id: args += ["-f", "preflight_run_id=" + str(preflight_id)]
     response = github(wrapper, *args)

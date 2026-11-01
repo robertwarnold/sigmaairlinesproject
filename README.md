@@ -275,3 +275,5 @@ when the response is truncated or stops for any other reason (raw output is stil
 and rejects the whole sheet if any text cell is empty.
 
 C/E recovery: see [manual workflow, artifact restoration and offline financial reporting](docs/ce-recovery.md).
+
+Additional D/E replication campaigns: see [three new datasets per system](docs/de-replicates.md).

@@ -1,5 +1,5 @@
 name: Generate FMEA with shared Gemini key
-run-name: ${{ (startsWith(inputs.mode, 'multi_system_') || inputs.mode == 'ce_recovery_single') && format('{0} {1} {2} ({3})', inputs.mode, inputs.batch_id, inputs.system, inputs.model) || format('{0} {1} ({2})', inputs.mode, inputs.batch_id, inputs.model) }}
+run-name: ${{ (startsWith(inputs.mode, 'multi_system_') || inputs.mode == 'ce_recovery_single' || inputs.mode == 'replicate_single') && format('{0} {1} {2} ({3})', inputs.mode, inputs.batch_id, inputs.system, inputs.model) || format('{0} {1} ({2})', inputs.mode, inputs.batch_id, inputs.model) }}
 
 on:
   workflow_dispatch:
@@ -20,6 +20,7 @@ on:
           - multi_system_preflight
           - multi_system_single
           - ce_recovery_single
+          - replicate_single
       approved_calls:
         description: Authorization (0 for preflight; 5 for fixed System A pilot; 1/7 for historical pilot)
         default: '0'
@@ -80,7 +81,7 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install -e '.[analysis]'
       - name: Validate fixed B-E campaign inputs
-        if: ${{ startsWith(inputs.mode, 'multi_system_') || inputs.mode == 'ce_recovery_single' }}
+        if: ${{ startsWith(inputs.mode, 'multi_system_') || inputs.mode == 'ce_recovery_single' || inputs.mode == 'replicate_single' }}
         env:
           MODE: ${{ inputs.mode }}
           SYSTEM: ${{ inputs.system }}
@@ -92,7 +93,7 @@ jobs:
           test "$SELECTED_MODEL" = gemini-3.8-flash || exit 1
           [[ "$BATCH_ID" =~ ^[A-Za-z0-9_-]+$ ]] || exit 1
           case "$SYSTEM" in system_B|system_C|system_D|system_E) ;; *) exit 1 ;; esac
-          if [ "$MODE" = multi_system_single ] || [ "$MODE" = ce_recovery_single ]; then test "$APPROVED_CALLS" = 1; else test "$APPROVED_CALLS" = 0; fi
+          if [ "$MODE" = multi_system_single ] || [ "$MODE" = ce_recovery_single ] || [ "$MODE" = replicate_single ]; then test "$APPROVED_CALLS" = 1; else test "$APPROVED_CALLS" = 0; fi
       - name: B-E model preflight without generation
         if: ${{ inputs.mode == 'multi_system_preflight' }}
         env:
@@ -107,7 +108,7 @@ jobs:
           path: results/multi-system-preflight/
           retention-days: 14
       - name: Restore B-E preflight
-        if: ${{ inputs.mode == 'multi_system_single' || inputs.mode == 'ce_recovery_single' }}
+        if: ${{ inputs.mode == 'multi_system_single' || inputs.mode == 'ce_recovery_single' || inputs.mode == 'replicate_single' }}
         uses: actions/download-artifact@v4
         with:
           name: multi-system-preflight-${{ inputs.preflight_run_id }}
@@ -115,7 +116,7 @@ jobs:
           github-token: ${{ github.token }}
           path: results/multi-system-preflight/
       - name: Verify B-E source and reject duplicate dispatch
-        if: ${{ inputs.mode == 'multi_system_single' || inputs.mode == 'ce_recovery_single' }}
+        if: ${{ inputs.mode == 'multi_system_single' || inputs.mode == 'ce_recovery_single' || inputs.mode == 'replicate_single' }}
         env:
           GH_TOKEN: ${{ github.token }}
           PREFLIGHT_RUN_ID: ${{ inputs.preflight_run_id }}
@@ -128,6 +129,21 @@ jobs:
           python -c 'import json,os; r=json.load(open("results/multi-system-preflight/workflow.json")); assert r["conclusion"] == "success" and r["head_sha"] == os.environ["GITHUB_SHA"] and r["path"] == ".github/workflows/generate-fmea.yml"'
           gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/workflows/generate-fmea.yml/runs?event=workflow_dispatch&per_page=100" > results/multi-system-preflight/prior.json
           python -c 'import json,os; title=os.environ["MODE"] + " " + os.environ["BATCH_ID"] + " " + os.environ["SYSTEM"] + " (gemini-3.8-flash)"; runs=[r for p in json.load(open("results/multi-system-preflight/prior.json")) for r in p["workflow_runs"]]; assert not any(r["display_title"] == title and str(r["id"]) != os.environ["GITHUB_RUN_ID"] for r in runs), "System/campaign already dispatched; never retry"'
+      - name: Generate one D/E replicate attempt
+        if: ${{ inputs.mode == 'replicate_single' }}
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BATCH_ID: ${{ inputs.batch_id }}
+          SYSTEM: ${{ inputs.system }}
+        run: python -u scripts/system_replicates.py remote --plan results/multi-system-preflight/plan.json --batch "$BATCH_ID" --system "$SYSTEM" --folder results/system-replicates
+      - name: Preserve D/E replicate outcome
+        if: ${{ always() && inputs.mode == 'replicate_single' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: system-replicate-${{ inputs.batch_id }}-${{ github.run_id }}
+          path: results/system-replicates/
+          retention-days: 14
+          if-no-files-found: error
       - name: Generate exactly one bounded C/E recovery attempt
         if: ${{ inputs.mode == 'ce_recovery_single' }}
         env:
