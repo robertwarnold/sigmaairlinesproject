@@ -96,6 +96,37 @@ class FMEATests(unittest.TestCase):
                     self.assertEqual(prop.type, types.Type.STRING)
         client.close.assert_called_once()
 
+    def test_no_sdk_retries_and_execution_metadata(self):
+        from google.genai import types
+        client = MagicMock()
+        client.models.get.return_value = SimpleNamespace(output_token_limit=65536)
+        usage = types.GenerateContentResponseUsageMetadata(prompt_token_count=10, candidates_token_count=20)
+        client.models.generate_content.return_value = SimpleNamespace(
+            text="[]", candidates=[SimpleNamespace(finish_reason=types.FinishReason.STOP)],
+            usage_metadata=usage, model_version="test-version", response_id="test-response")
+        execution = {"expected_max_output_tokens": 65536}
+        before = MagicMock()
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "offline-test-key"}), \
+                patch("fmea_generator.load_local_env"), \
+                patch("google.genai.Client", return_value=client) as factory:
+            call_gemini("test", "test-model", execution=execution, before_request=before)
+        self.assertEqual(factory.call_args.kwargs["http_options"].retry_options.attempts, 1)
+        before.assert_called_once()
+        self.assertEqual(execution["request_invocations"], 1)
+        self.assertEqual(execution["model_version"], "test-version")
+        self.assertEqual(execution["usage_metadata"]["prompt_token_count"], 10)
+        self.assertEqual(execution["finish_reason"], "STOP")
+
+    def test_changed_limit_prevents_generation(self):
+        client = MagicMock()
+        client.models.get.return_value = SimpleNamespace(output_token_limit=10)
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "offline-test-key"}), \
+                patch("fmea_generator.load_local_env"), \
+                patch("google.genai.Client", return_value=client):
+            with self.assertRaisesRegex(RuntimeError, "limit changed"):
+                call_gemini("test", execution={"expected_max_output_tokens": 20})
+        client.models.generate_content.assert_not_called()
+
     def test_rpn_calculated(self):
         row = {"component": "pump", "function": "pressurize", "failure_mode": "loss of pressure",
                "cause": "wear", "local_effect": "low output", "system_effect": "actuator loss",

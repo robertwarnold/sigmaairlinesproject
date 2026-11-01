@@ -74,7 +74,7 @@ def parse_fmea(raw):
     return output
 
 
-def call_gemini(system_text, model=None):
+def call_gemini(system_text, model=None, execution=None, before_request=None):
     """Return the raw text, finish reason and output cap; the caller saves raw text before judging it."""
     load_local_env()
     key = os.getenv("GEMINI_API_KEY")
@@ -88,12 +88,24 @@ def call_gemini(system_text, model=None):
         raise RuntimeError("Install dependencies: python -m pip install -r requirements.txt") from exc
     model = model or os.getenv("GEMINI_MODEL", DEFAULT_MODEL)
     instructions = (ROOT / "skill" / "fmea_instructions.md").read_text(encoding="utf-8")
-    client = genai.Client(api_key=key)
+    # The SDK otherwise retries transient failures, which can exceed an approved budget.
+    client = genai.Client(api_key=key, http_options=types.HttpOptions(
+        retry_options=types.HttpRetryOptions(attempts=1)))
     try:
         # Use the selected model's own maximum; long one-row-per-unit sheets exceed fixed caps.
         max_output_tokens = client.models.get(model=model).output_token_limit
         if not max_output_tokens:
             raise RuntimeError(f"Could not read the output token limit for {model}; no generation request made")
+        if execution is not None:
+            expected = execution.get("expected_max_output_tokens", max_output_tokens)
+            if expected != max_output_tokens:
+                raise RuntimeError("Model output limit changed since preflight; no generation request made")
+            execution["max_output_tokens"] = max_output_tokens
+        if before_request is not None:
+            before_request()
+        request_start = time.monotonic()
+        if execution is not None:
+            execution["request_invocations"] = 1
         response = client.models.generate_content(
             model=model,
             contents="SYSTEM DESCRIPTION:\n" + system_text,
@@ -107,6 +119,15 @@ def call_gemini(system_text, model=None):
         )
         candidates = response.candidates or []
         finish = candidates[0].finish_reason if candidates else None
+        if execution is not None:
+            usage = getattr(response, "usage_metadata", None)
+            execution.update({
+                "generation_seconds": round(time.monotonic() - request_start, 5),
+                "model_version": getattr(response, "model_version", None),
+                "response_id": getattr(response, "response_id", None),
+                "usage_metadata": usage.model_dump(mode="json", exclude_none=True) if usage else None,
+                "finish_reason": str(getattr(finish, "value", finish)),
+            })
         return {"text": response.text or "", "finish_reason": str(getattr(finish, "value", finish)),
                 "max_output_tokens": max_output_tokens}
     finally:
@@ -114,7 +135,7 @@ def call_gemini(system_text, model=None):
 
 
 def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
-                  output_dir=None, model=None):
+                  output_dir=None, model=None, execution=None, before_request=None):
     if version != PROMPT_VERSION:
         raise ValueError(f"Version must match the active prompt: {PROMPT_VERSION}")
     if isinstance(run, bool) or not isinstance(run, int) or run < 1:
@@ -142,7 +163,11 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
         if os.path.lexists(csv_path):
             raise FileExistsError(f"Run output already exists: {csv_path}")
         start = time.monotonic()
-        result = call_gemini(system_text, model=model)
+        if execution is None and before_request is None:
+            result = call_gemini(system_text, model=model)
+        else:
+            result = call_gemini(system_text, model=model, execution=execution,
+                                 before_request=before_request)
         minutes = round((time.monotonic() - start) / 60, 5)
         raw_file.write(result["text"])
     if result["finish_reason"] == "MAX_TOKENS":
