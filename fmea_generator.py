@@ -5,7 +5,6 @@ import json
 import os
 import re
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -116,6 +115,10 @@ def call_gemini(system_text, model=None):
 
 def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
                   output_dir=None, model=None):
+    if version != PROMPT_VERSION:
+        raise ValueError(f"Version must match the active prompt: {PROMPT_VERSION}")
+    if isinstance(run, bool) or not isinstance(run, int) or run < 1:
+        raise ValueError("Run must be a positive integer")
     system_file = Path(system_file)
     if not system_file.is_file():
         raise FileNotFoundError(f"Missing system description: {system_file}")
@@ -123,16 +126,25 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
     if not system_text:
         raise ValueError("System description is empty")
     output_dir = Path(output_dir) if output_dir else ROOT / "results"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    model = model or os.getenv("GEMINI_MODEL", DEFAULT_MODEL)
-    start = time.monotonic()
-    result = call_gemini(system_text, model=model)
-    minutes = round((time.monotonic() - start) / 60, 5)
     safe_case = re.sub(r"[^a-zA-Z0-9_-]", "_", case_id)
     safe_version = re.sub(r"[^a-zA-Z0-9._-]", "_", version)
     prefix = f"{safe_case}_{safe_version}_run{run:02d}"
     raw_path = output_dir / f"{prefix}_raw.txt"
-    raw_path.write_text(result["text"], encoding="utf-8")
+    csv_path = output_dir / f"{prefix}.csv"
+    for path in (csv_path, raw_path):
+        if os.path.lexists(path):
+            raise FileExistsError(f"Run output already exists: {path}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    model = model or os.getenv("GEMINI_MODEL", DEFAULT_MODEL)
+    # Reserve the raw path before any request, so concurrent identical runs cannot
+    # both call Gemini. A failed request leaves this marker for manual inspection.
+    with raw_path.open("x", encoding="utf-8") as raw_file:
+        if os.path.lexists(csv_path):
+            raise FileExistsError(f"Run output already exists: {csv_path}")
+        start = time.monotonic()
+        result = call_gemini(system_text, model=model)
+        minutes = round((time.monotonic() - start) / 60, 5)
+        raw_file.write(result["text"])
     if result["finish_reason"] == "MAX_TOKENS":
         raise ValueError(f"Gemini response truncated at the {result['max_output_tokens']}-token limit; "
                          f"partial output saved to {raw_path.name}, no CSV written")
@@ -142,8 +154,7 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
     if not result["text"].strip():
         raise ValueError("Gemini returned no text (possibly blocked)")
     rows = parse_fmea(result["text"])
-    csv_path = output_dir / f"{prefix}.csv"
-    with csv_path.open("w", newline="", encoding="utf-8") as f:
+    with csv_path.open("x", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
         writer.writeheader()
         for row in rows:
