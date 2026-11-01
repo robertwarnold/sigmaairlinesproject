@@ -54,6 +54,44 @@ class RetryPolicyTests(unittest.TestCase):
             with self.assertRaises(ValueError): retry.remote("not-read", "system_C", "campaign-E-attempt-1", "out")
             call.assert_not_called()
 
+    def synthetic_worker(self, success):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            recovery.atomic(root / "plan.json", {"recovery_campaign_id":"synthetic-worker", "policy":retry.POLICY, "systems":["system_C","system_E"]})
+            retry.update(root, reserved_requests=0, attempts=[], retry_wait_seconds=0, systems={"system_C":"pending","system_E":"pending"})
+            invocations = []
+            def dispatch(folder, wrapper, branch, mode, batch, system, preflight_id=None):
+                if mode == "multi_system_preflight":return "preflight", "success"
+                invocations.append((batch,system))
+                state=recovery.read(root / "status.json")
+                retry.update(root,reserved_requests=state["reserved_requests"]+1)
+                return str(len(invocations)),"success"
+            def download(wrapper, *args):
+                path=Path(args[args.index("--dir")+1]);path.mkdir(parents=True)
+                if args[2]=="preflight":return ""
+                batch,system=invocations[int(args[2])-1]
+                number=int(batch[-1])
+                recovery.atomic(path / "recovery_metadata.json", {"system_id":system,"recovery_campaign_id":"synthetic-worker","retry_number":number-1,
+                    "attempt_id":batch,"status":"success" if success else "failed","csv_path":"synthetic.csv" if success else None,
+                    "row_count":1 if success else None,"elapsed_seconds":2,"execution":{"request_invocations":1},"artifacts":{},
+                    "failure_classification":None if success else "provider_unavailable_503","http_status":None if success else 503})
+                return ""
+            with patch.object(retry,"run_workflow",side_effect=dispatch), patch.object(retry,"github",side_effect=download), \
+                    patch.object(recovery,"validate_csv"), patch.object(recovery,"reconcile",return_value=root / "reconciliation") as reconcile, patch.object(retry,"retry_delay",return_value=0):
+                retry.worker(root,"branch","wrapper")
+                reconcile.assert_called_once()
+            state=recovery.read(root / "status.json")
+            self.assertEqual(len(invocations),2 if success else 6)
+            self.assertEqual(state["systems"],{s:"success" if success else "unresolved" for s in ("system_C","system_E")})
+            self.assertEqual(state["reserved_requests"],len(invocations))
+            with self.assertRaises(FileExistsError):retry.worker(root,"branch","wrapper")
+
+    def test_worker_stops_after_first_success_each_system(self):
+        self.synthetic_worker(True)
+
+    def test_worker_stops_at_three_attempts_each_and_six_total(self):
+        self.synthetic_worker(False)
+
 
 class RetryReconciliationTests(unittest.TestCase):
     """Extend isolated synthetic fixtures to exercise multiple failed retries plus a success."""
@@ -79,7 +117,7 @@ class RetryReconciliationTests(unittest.TestCase):
         manifest = recovery.read(output / "reconciliation_manifest.json")
         self.assertEqual(manifest["attempt_count"], 7)
         self.assertEqual(manifest["effective_results"][system]["effective_attempt_id"], "C-recovery-3")
-        metrics = recovery.read(output / "financial_impacts" / (batch + "-financial-v1") / "metrics.json")
+        metrics = recovery.read(output / "financial_impacts" / "financial-v1" / "metrics.json")
         self.assertEqual(metrics["observed"]["provider_unavailable_503_count"], 2)
         self.assertEqual(metrics["observed"]["retry_wait_seconds"], 120)
         # A second successful candidate cannot silently replace or coexist with the first.

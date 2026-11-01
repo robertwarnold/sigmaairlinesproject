@@ -199,8 +199,8 @@ def worker(folder, branch, wrapper):
                 state["attempts"][-1]["retry_wait_seconds"] = actual
                 update(folder, attempts=state["attempts"], retry_wait_seconds=state["retry_wait_seconds"] + actual)
         update(folder, phase="reconciling", message="No further requests; offline validation and reports")
-        recovery.reconcile(folder / "plan.json", folder / "attempts", folder / "reconciliation")
-        update(folder, phase="generation_and_reconciliation_complete")
+        destination = recovery.reconcile(folder / "plan.json", folder / "attempts", ROOT / "results/ce-r")
+        update(folder, phase="generation_and_reconciliation_complete", reconciliation_manifest=str((destination / "reconciliation_manifest.json").resolve()))
     except BaseException as exc:
         update(folder, phase="blocked", message=f"{type(exc).__name__}: {exc}; no automatic restart")
         raise

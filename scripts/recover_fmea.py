@@ -299,9 +299,10 @@ def reconcile(plan_path, recovery_root, output_root, histories=()):
     atomic(destination / "reconciliation_manifest.json", manifest)
     from analysis.financial_impact.report import create_report
     create_report([destination / "reconciliation_manifest.json"], destination / "financial_impacts",
-                  analysis_id=plan["recovery_campaign_id"] + "-financial-v1")
+                  analysis_id="financial-v1")
     (destination / "README.md").write_text("# Reconciled B-E campaign\n\nEffective view only; original attempt records remain in the source campaign. A recovery is effective only after validation.\n", encoding="utf-8")
     print(f"[RECOVERY] Reconciliation ready: {destination}; requests={len(attempts)}", flush=True)
+    return destination
 
 
 def global_base(path):

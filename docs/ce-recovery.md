@@ -52,7 +52,7 @@ explicit offline operation, never an automatic retry.
 
 Each reconciliation uses a fresh original-ID/recovery-ID directory. It writes
 `effective_campaign_summary.csv`, `all_attempts_history.csv`, `reconciliation_manifest.json`,
-and a versioned `financial_impacts/<recovery-id>-financial-v1/` package using the existing
+and a versioned `financial_impacts/financial-v1/` package using the existing
 financial reporting framework. Existing reports are never replaced. All generated packages
 stay under ignored results, not public source control.
 
@@ -108,3 +108,32 @@ failures and waiting separately from schema validity and engineering acceptance.
 
 New code/tests: `scripts/provider_recovery.py`, `tests/test_provider_recovery.py`;
 existing recovery reconciliation and financial ingestion/metrics are extended accordingly.
+
+## Consolidated local review
+
+After the bounded controller finishes, run `python scripts/complete_recovery_review.py
+results/<campaign-folder>` on one line. The offline finalizer verifies unchanged source
+and original-campaign checksums, copies the reconciled B-E reports into a new `results/ce-review/<recovery-id>/`,
+indexes every successful A pilot draft separately and selects run 3 chronologically for
+representative A-E comparisons. It produces aggregate CSV/JSON tables, provisional S/O/D
+and RPN figures, lexical component review candidates (no invented coverage fraction),
+a complete A-E financial report with all historical requests, integrity hashes and a
+local ZIP. Verified historical 503 evidence can be supplied in
+`original_provider_evidence.json`; original receipts themselves remain unchanged.
+The ZIP contains generated CSVs and sanitized operational metadata, not secrets or
+reference worksheets. All outputs stay ignored under results. The finalizer and its
+synthetic tests are `scripts/complete_recovery_review.py` and
+`tests/test_complete_recovery_review.py`. It never dispatches or calls a provider.
+
+A no-response transport disconnect has no verified HTTP status and is never treated as
+HTTP 503. Even if request budget remains, the bounded policy does not authorize a repeat
+of that system. Preserve the uncertain bill and request receipt, leave the system unresolved,
+and report the specific transport failure for human review. Do not change generator behavior
+or infer an engineering-quality defect from that operational outcome.
+
+Windows-safe report layout: bounded-controller reconciliation lives under
+`results/ce-r/<original-id>/<recovery-id>/` and records its manifest path in status.json.
+Financial package IDs are short (`financial-v1`, `A-E-financial-v1`) because the enclosing
+campaign directory already supplies unique identity. This prevents Windows MAX_PATH
+failures without overwriting any earlier failed staging or successful report directory.
+Downloaded Actions artifacts are also retained under `results/github/<run-id>/`.

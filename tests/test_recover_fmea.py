@@ -100,7 +100,7 @@ class RecoveryTests(unittest.TestCase):
                 report = self.root / "reports" / recovery.ORIGINAL / batch
                 manifest = json.loads((report / "reconciliation_manifest.json").read_text())
                 self.assertEqual(manifest["reconciliation_status"], "partial")
-                metrics = json.loads((report / "financial_impacts" / (batch + "-financial-v1") / "metrics.json").read_text())
+                metrics = json.loads((report / "financial_impacts" / "financial-v1" / "metrics.json").read_text())
                 self.assertEqual(metrics["observed"]["n_attempts"], 5)
                 self.assertEqual(metrics["observed"]["total_attempt_elapsed_seconds"], 11)
                 self.assertIsNone(metrics["observed"]["cost_per_successful_generation_usd"])
