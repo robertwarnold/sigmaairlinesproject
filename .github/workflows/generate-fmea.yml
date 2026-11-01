@@ -1,5 +1,5 @@
 name: Generate FMEA with shared Gemini key
-run-name: ${{ inputs.mode }} ${{ inputs.batch_id }} (${{ inputs.model }})
+run-name: ${{ startsWith(inputs.mode, 'multi_system_') && format('{0} {1} {2} ({3})', inputs.mode, inputs.batch_id, inputs.system, inputs.model) || format('{0} {1} ({2})', inputs.mode, inputs.batch_id, inputs.model) }}
 
 on:
   workflow_dispatch:
@@ -17,6 +17,8 @@ on:
           - pilot_four_remaining
           - system_a_preflight
           - system_a_replicates
+          - multi_system_preflight
+          - multi_system_single
       approved_calls:
         description: Authorization (0 for preflight; 5 for fixed System A pilot; 1/7 for historical pilot)
         default: '0'
@@ -76,6 +78,69 @@ jobs:
         run: |
           python -m pip install -r requirements.txt
           python -m pip install -e '.[analysis]'
+      - name: Validate fixed B-E campaign inputs
+        if: ${{ startsWith(inputs.mode, 'multi_system_') }}
+        env:
+          MODE: ${{ inputs.mode }}
+          SYSTEM: ${{ inputs.system }}
+          SELECTED_MODEL: ${{ inputs.model }}
+          BATCH_ID: ${{ inputs.batch_id }}
+          APPROVED_CALLS: ${{ inputs.approved_calls }}
+        run: |
+          test "$GITHUB_RUN_ATTEMPT" = 1 || { echo '::error::No workflow retries'; exit 1; }
+          test "$SELECTED_MODEL" = gemini-3.8-flash || exit 1
+          [[ "$BATCH_ID" =~ ^[A-Za-z0-9_-]+$ ]] || exit 1
+          case "$SYSTEM" in system_B|system_C|system_D|system_E) ;; *) exit 1 ;; esac
+          if [ "$MODE" = multi_system_single ]; then test "$APPROVED_CALLS" = 1; else test "$APPROVED_CALLS" = 0; fi
+      - name: B-E model preflight without generation
+        if: ${{ inputs.mode == 'multi_system_preflight' }}
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BATCH_ID: ${{ inputs.batch_id }}
+        run: python -u scripts/multi_system_pilot.py --mode remote-preflight --campaign-id "$BATCH_ID" --plan results/multi-system-preflight/plan.json
+      - name: Upload B-E preflight
+        if: ${{ inputs.mode == 'multi_system_preflight' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-system-preflight-${{ github.run_id }}
+          path: results/multi-system-preflight/
+          retention-days: 14
+      - name: Restore B-E preflight
+        if: ${{ inputs.mode == 'multi_system_single' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: multi-system-preflight-${{ inputs.preflight_run_id }}
+          run-id: ${{ inputs.preflight_run_id }}
+          github-token: ${{ github.token }}
+          path: results/multi-system-preflight/
+      - name: Verify B-E source and reject duplicate dispatch
+        if: ${{ inputs.mode == 'multi_system_single' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREFLIGHT_RUN_ID: ${{ inputs.preflight_run_id }}
+          BATCH_ID: ${{ inputs.batch_id }}
+          SYSTEM: ${{ inputs.system }}
+        run: |
+          [[ "$PREFLIGHT_RUN_ID" =~ ^[0-9]+$ ]] || exit 1
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PREFLIGHT_RUN_ID" > results/multi-system-preflight/workflow.json
+          python -c 'import json,os; r=json.load(open("results/multi-system-preflight/workflow.json")); assert r["conclusion"] == "success" and r["head_sha"] == os.environ["GITHUB_SHA"] and r["path"] == ".github/workflows/generate-fmea.yml"'
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/workflows/generate-fmea.yml/runs?event=workflow_dispatch&per_page=100" > results/multi-system-preflight/prior.json
+          python -c 'import json,os; title="multi_system_single " + os.environ["BATCH_ID"] + " " + os.environ["SYSTEM"] + " (gemini-3.8-flash)"; runs=[r for p in json.load(open("results/multi-system-preflight/prior.json")) for r in p["workflow_runs"]]; assert not any(r["display_title"] == title and str(r["id"]) != os.environ["GITHUB_RUN_ID"] for r in runs), "System/campaign already dispatched; never retry"'
+      - name: Generate one campaign FMEA
+        if: ${{ inputs.mode == 'multi_system_single' }}
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BATCH_ID: ${{ inputs.batch_id }}
+          SYSTEM: ${{ inputs.system }}
+        run: python -u scripts/multi_system_pilot.py --mode remote-single --campaign-id "$BATCH_ID" --system "$SYSTEM" --approved-calls 1 --plan results/multi-system-preflight/plan.json
+      - name: Upload this system before the next request
+        if: ${{ always() && inputs.mode == 'multi_system_single' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-system-${{ inputs.batch_id }}-${{ inputs.system }}-${{ github.run_id }}
+          path: results/multi-system-remote/
+          retention-days: 14
+          if-no-files-found: warn
       - name: Validate System A replicate authorization
         if: ${{ startsWith(inputs.mode, 'system_a_') }}
         env:
