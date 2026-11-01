@@ -1,0 +1,72 @@
+{
+  "analysis_id": "20261101-system-A-v2-preliminary-01",
+  "report_status": "preliminary",
+  "created_at": "2026-11-01T18:07:53.788813+00:00",
+  "system_ids": [
+    "system_A"
+  ],
+  "skill_versions": [
+    "v2.0"
+  ],
+  "analysis_code_version": "1.0.0",
+  "git_commit": "04ef3c35f3370c2d59ed7a9d83d79857445373d4",
+  "analysis_code_hashes": {
+    "__init__.py": "eab60eb7daf3da8a8c8aa85f49f72cf90dd126cb6bcb07206aaeeeb34fb42ba8",
+    "__main__.py": "71b0591a2ab6f5c8d82299a54dbbbaac37292abe181dc134928e8b8e6d5e83d7",
+    "cost_model.py": "52d2ec256a322fe9a971d74f0f34a1353d47e109f65784e53a88a56a188697c3",
+    "data_schema.py": "dd4d132f088514324e8e7f031dd5c2d41a902a6b37df3abd5679ec744ed524e1",
+    "ingest.py": "f53310c8b0689eb67f8d4fd5cadb38921eb023eeeba4ff347b6abe37156ab015",
+    "metrics.py": "5448e809e1f8b4a45a489ce1d6756eeb5e7adcf22960238cefc4b43c8710a19a",
+    "report.py": "24ead07d860de335610d9267b52b271638f6e738a4b3fb68bfbc152456e7c5ad",
+    "uncertainty.py": "33a402e712ea6f043d78201d0493231f8a92e36602535642e3708707ef5ea889",
+    "visualizations.py": "0f09e322544e6eea0f6f1b77d5713bec9fc8106dae74c15b024457598625ecd9"
+  },
+  "datasets": [
+    {
+      "identifier": "manifest.json",
+      "sha256": "785a74c962542642824272d1ab829474c8bbc963071368d091244b84549f3be0"
+    },
+    {
+      "identifier": "assumptions.json",
+      "sha256": "dd15683288e7a675dbc2b6b6a74444ae7b067ba5e952b59bf13f5ef400df5e37"
+    },
+    {
+      "identifier": "sources.json",
+      "sha256": "bc9bbb6e17dadf2c301eeb56be666d328487e34d1e31742dcffd1e95be7818ff"
+    }
+  ],
+  "assumptions_version": "financial-assumptions-2026-11-01-v1",
+  "sources_version": "financial-sources-2026-11-01-v1",
+  "assumed_billing_tier": "standard_paid",
+  "assumed_billing_arrangement": "pay_as_you_go",
+  "sample_sizes": {
+    "attempts": 5,
+    "systems": 1,
+    "successful_generations": 3,
+    "quality_records": 0,
+    "labor_records": 0,
+    "matched_cases": 0
+  },
+  "statistical_method": "paired connected-cluster percentile bootstrap when estimable; explicit assumption simulation otherwise",
+  "seed": 5300,
+  "iterations": 10000,
+  "dependency_versions": {
+    "pandas": "3.1.0",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "matplotlib": "3.11.2"
+  },
+  "artifacts": {
+    "assumptions_and_sources.md": "f7ed7a86c7232caaf261a2fc53ef02349b2da7575b8bc8e1e272af3f9517069e",
+    "figures/01_before_after_cost.png": "2531117e7fd7ae0bcc100f76b7f61a864a75dfed643f1ba419b2c8b550c94e8d",
+    "figures/02_labor_breakdown.png": "d69ed7f8d173e0a194b2b345ead8458557d77f2cc30701e64493921a80fd2018",
+    "figures/03_savings_bootstrap.png": "0999e7c2699bdee3bc6744129b1f2a76d1c7137b6dcb9400d33565f3d5a9d9a4",
+    "figures/04_cost_sensitivity.png": "0c13e6f57ccb4657908b2e22888bd8bd2d76ff787c259d3538aec2cc7f7d0506",
+    "figures/05_break_even.png": "f287d23f98e9e0d0e1bbb51085fca64965f706d027109e46a903d28821f76744",
+    "figures/06_skill_versions.png": "fb0f554757baba66dae236dd9a8a89fbe4b4af087ec9af12896fd81cfbf87ac4",
+    "figures/07_observed_generation.png": "5e1fda691b7f6549d613e51f284a8dc7bdb6dbee7493d7ccfae60993ef5eb3f3",
+    "Financial_Impacts.md": "0b55e5a2b904422cc0e11ad2d2a62813fe3502d451ab9be0470a0e60cb7064d6",
+    "financial_summary.csv": "d9acd36163fff9d63e3b91c8b64ca30490e0867a2a709d5906e745c3443fd9fa",
+    "metrics.json": "78611c956a31690400564cd4fb8e6474882cc545790950766200328dc8aaa35d"
+  }
+}
