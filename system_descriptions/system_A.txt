@@ -1,0 +1,70 @@
+SYSTEM A INPUT PACKAGE
+
+1. SCOPE
+- The analysis covers the propulsion powertrain: rotating system (motors, generators, gearboxes, shafts), flight control system components that send or receive control signals to the propulsion system, and thermal management components.
+- Rotors, low-voltage (LV) batteries, flight control computers (FCCs), general wiring, and actuators are not analyzed in detail.
+- Scope is in-flight, power-on operation over populated urban areas. Excluded: autorotation, power-off wing-borne flight, and ground hazards (e.g. overheating during charging, arcing, fuel leaks). The fuel system is assumed to meet its own reliability requirements.
+- Other aircraft systems (flight controls, environmental systems) are assumed unaffected by the propulsion architecture except where listed here.
+
+2. TERMS
+- OEI/OMI avoid region: combination of speed, altitude and weight where losing one engine (OEI) or one motor (OMI) leaves power required above power available.
+- ESC: electronic speed controller. HVDC: high-voltage DC. LV: low voltage. RGB: rotor gearbox. AGB: accessory gearbox. FCC: flight control computer.
+- Failure rates are failures per flight hour. They are conceptual-stage estimates from historical data for similar components, scaled by environmental factors with engineering judgment. Purpose-built components may differ. Each rate is for the component as a whole, not split by failure mode.
+
+3. COMMON DESIGN FACTS
+- Each ESC holds speed-control authority for its motor, which isolates the FCC from the motors. If the FCC signal is lost, the ESC regulates rotor speed through a local control loop and holds its last recorded speed.
+- Rotors and any cross-shafting are isolated from each electric motor by an emergency disconnect (an overrunning clutch or a friction disc clutch).
+- Temperature limits: maximum ambient 125 F. ESC and inverter/rectifier box temperature 131 F. Battery operating range 59-113 F (15-45 C); thermal runaway risk rises above 80 C (176 F). Motor and gearbox box temperature 250 F.
+
+4. COMMON THERMAL MANAGEMENT DESCRIPTION
+- Motors and generators are cooled by a mechanically driven cooling and lubrication system shared with the gearbox. In the accessory gearbox, a fan draws air across a heat exchanger and a lube pump pressurizes the loop.
+- ESCs, rectifiers and power converters are cooled with ambient air, using an individual electric fan at each.
+- Battery cooling: a vapor-cycle refrigeration system (R134a: compressor, air-cooled condenser, expansion valves, evaporator) serves a closed water/glycol liquid loop through the battery packs. The loop has two redundant, independent pumps, each with its own motor controller and level sensor. They share one reservoir and a common filter with a bypass. The battery packs contain a phase change material (PCM) for thermal storage.
+- Where turboshaft engines are present, the engine and its gearbox have their own independent cooling and lubrication. Engine bay cooling is not configured.
+
+5. SYSTEM A: CONFIGURATION
+- 15 passengers, 3,000 lb payload, 400 nm range (8 x 50 nm legs), design gross weight 14,039 lb. Turboelectric (series hybrid) powertrain.
+- Four rotors, two on each tilting wing, with the wings in the prop-wash. Collective pitch plus single-axis cyclic control at each rotor. Interconnecting shafting links the rotors for emergency conditions.
+- Rotor tip speed 550 ft/s in hover and 275 ft/s in cruise. Rotor diameter 12.20 ft; 861 RPM in hover, 431 RPM in cruise.
+
+6. SYSTEM A: POWER CHAIN AND ELECTRICAL
+- A turboshaft engine is directly connected to an AC generator. Generator output goes through an AC/DC converter to HVDC, which feeds the battery network and four 731 HP electric motors (14,999 RPM).
+- Each motor has its own ESC and its own battery. Batteries are physically isolated from one another and placed near each motor and ESC. The battery network is charged before flight and recharged during the mission. In the failure analysis, batteries are treated as used only after the primary HVDC source is lost.
+- Each ESC takes commands from the FCC, accepts HV power, and powers itself through an internal DC-DC converter.
+- The HV source is the battery network or the AC generator through the AC/DC converter. The AC/DC converter also provides low voltage to the FCCs.
+- The starter system (electric or APU) is isolated from the primary propulsion system.
+
+7. SYSTEM A: ROTATING SYSTEM
+- Each motor, remotely located near its rotor, drives an overrunning (sprag) clutch inside an AGB. The AGB parallel-axis gear train drives a cooling fan and lube pumps and carries no primary power. The fan draws air across a heat exchanger that cools the motor, AGB and RGB; the lube pump pressurizes the loop.
+- Primary power passes through the AGB clutch into the RGB, a dual-stage simple planetary with a 17.42:1 reduction.
+- A secondary path in each RGB, a 1.67:1 spiral bevel mesh, sends power through the interconnecting shafts to the other RGBs. It serves single-motor-out conditions and rotor synchronization. No collector gearbox is used (limited wing sweep and dihedral).
+
+8. SYSTEM A: OPERATING PREMISES
+- Only hover and level-flight cruise are analysed. Transition and climb/descent are excluded.
+- Mission: 2 min hover, 15 min cruise (50 nm at 200 kts), 2 min hover. Time split about 78% cruise, 11% takeoff/climb, 11% descent/landing. Cruise altitude 5,000 ft or below.
+- About 20% of flight time is in the OEI/OMI avoid region. Effective translational lift is reached at about 25 kts.
+- After the engine, generator or AC/DC converter chain is lost, the batteries can run the motors alone for about 2 minutes. The vehicle is within 2 minutes of a suitable landing zone 60% of the time.
+- Battery cooling is a shared system with two pumps in parallel, either able to supply adequate flow and pressure.
+
+9. SYSTEM A: COMPONENT LIST
+Format: component | quantity | failure rate per flight hour | existing indications and design provisions
+- Turboshaft engine | 1 | 2.67E-06 | Visual and audible pilot warning.
+- Engine gearbox | 1 | 5.00E-07 | Visual and audible pilot warning.
+- AC generator (generator unit and control unit) | 1 | 1.30E-04 | Visual and audible pilot warning.
+- AC/DC converter | 1 | 2.00E-04 | Visual and audible pilot warning.
+- Battery (one per motor) | 4 | 1.00E-06 each | Visual and audible pilot warning; system health monitoring; battery protection device; battery cooling and fire protection system.
+- ESC | 4 | 2.70E-04 each | Visual and audible pilot warning.
+- Electric motor | 4 | 9.24E-05 each | Visual and audible pilot warning.
+- ESC cooling fan | 4 | 5.17E-05 each | Visual and audible pilot warning. Ram air can cool the ESC in forward flight.
+- Motor cooling and lube system | 4 | 5.17E-05 each | Visual and audible pilot warning. A health management system can automatically shut down the motor (outside the OMI avoid region).
+- Prop-rotor gearbox (includes input shaft and clutch) | 4 | 5.00E-06 each | Visual and audible pilot warning; chip light and temperature/pressure indications.
+- Battery coolant circuit | 1 | 1.00E-05 | Health monitoring alert to the pilot; automatic battery disconnect when hot; battery fire protection system.
+- Battery cooling pump pair (two redundant electrically driven pumps; rate as listed for the pair) | 1 | 1.90E-09 | Same as battery coolant circuit.
+- Vapor-cycle cooling system (compressor, condenser, electric fan, etc.) | 1 | 5.08E-04 | Same as battery coolant circuit.
+- Per-battery cooling path (coolant line, heat exchanger, bypass valve, thermostat) | 4 | 1.00E-06 each | No detection method specified. Automatic battery disconnect when hot; battery fire protection system.
+- Interconnecting shafts and AGB gear trains: no failure rates provided.
+
+10. OCCURRENCE CALIBRATION ANCHORS FOR THIS ANALYSIS
+- Unit: failures per flight hour, applied to the failure mode's own rate, on a log scale. Anchors: <=1E-9 = 1; 1E-8 = 2; 1E-7 = 4; 1E-6 = 5; 1E-5 = 7; 1E-4 = 8-9; >=1E-3 = 10. Interpolate between anchors.
+- The rates in this package span roughly 1E-9 to 1E-3.
+- Reference point: a regulatory target for catastrophic aircraft-level failure is 1E-9 per flight hour. The propulsion system would need to be about 1E-10 or better to support it.
