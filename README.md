@@ -1,9 +1,47 @@
 # Sigma Airlines FMEA engineering support
 
-**Prepared eight-generation pilot:** see [the reviewer guide](docs/pilot-reviewer.md)
-for the inspected current workflow, shared-secret name, exact smoke/continuation inputs,
-artifact contents and approval gates. Added pilot modes require publication first;
-no paid pilot was run during preparation.
+This repository supports two distinct Python workflows and preserves a historical R
+prototype. All generated analyses require engineering review.
+
+- **Standalone Gemini skill v2.0:** `fmea_generator.py` uses
+  `skill/fmea_instructions.md` and input packages `system_descriptions/system_A.txt`
+  through `system_E.txt`. It estimates provisional S/O/D scores and calculates RPN.
+- **Canonical research package:** `src/sigma_fmea/` provides profiles, provider
+  integrations, controlled experiments, validation, evaluation and auditable
+  FMECA-to-FMEA conversion. Its unrated policies intentionally leave unsupported
+  target risk ratings null, including when converting source risk data.
+- **Historical research:** `fmea_generator.R`, `run_experiment.R`, `README.txt` and
+  `project.Rproj` preserve the original R prototype. They are not the current Python
+  entry points. See [cleanup decisions](docs/fmea-v2-integration.md).
+
+Do not pool standalone v2 and canonical research outputs as one experimental
+condition: they use different prompts, schemas, scoring policies and research aims.
+Keep prompt versions separate as well.
+
+The archived `research_results/preliminary-2026-11-01/` evidence is frozen. Its
+preliminary smoke result demonstrates execution, not engineering accuracy or a
+completed eight-run comparison. See [the historical reviewer guide](docs/pilot-reviewer.md)
+and [the four-dataset amendment](docs/four-dataset-pilot.md) for provenance and
+limitations; preparation-time status statements describe those historical snapshots.
+
+## Standalone Gemini v2
+
+Use Python 3.12 or 3.13 and install `python -m pip install -r requirements.txt`.
+Configure `GEMINI_API_KEY` locally (environment or ignored `.env`). The following
+command makes one paid generation; run it only with explicit generation authorization:
+
+```powershell
+python fmea_generator.py --system system_descriptions/system_A.txt --case-id system_A --version v2.0 --run 1 --model YOUR_MODEL_ID
+```
+
+Outputs go to ignored `results/`. The version must match the active prompt and the
+run number must be a positive integer. Either existing CSV or raw-response output
+blocks the request. Exclusive file creation prevents overwriting; a raw-output file
+is reserved before calling Gemini. Failed calls can leave an empty reservation, and
+invalid/truncated responses retain raw text for manual inspection. Inspect these
+before choosing a fresh run number; never automatically retry an uncertain paid call.
+Provisional scores and RPN are hypotheses requiring engineering review, not approved
+risk assessments. The skill text and its v2.0 version remain bound together.
 
 ## Team generation with the shared Gemini secret
 
@@ -76,11 +114,14 @@ Paid calls require explicit approval; offline mock and the converter remain avai
 Python-first offline milestone. Outputs are **FMEA drafts requiring engineering review**.
 The original R scripts and README.txt remain the historical baseline.
 
-## Run without credentials or third-party runtime packages
+## Canonical package and offline tests
 
 Python 3.12 is the target runtime (3.13 is also tested). From the repository root in PowerShell:
 
 ```powershell
+python -m pip install --upgrade setuptools wheel
+python -m pip install -r requirements.txt
+python -m pip install -e ".[analysis]"
 $env:PYTHONPATH = Join-Path (Get-Location) 'src'
 python -m sigma_fmea profiles
 python -m sigma_fmea generate --context examples/context.json --profile general --output results/mock
@@ -98,6 +139,10 @@ prebuilt wheel supplied in `SIGMA_TEST_WHEEL`. Its install uses `--no-index --no
 in a temporary isolated environment, clears provider keys and PYTHONPATH, and runs the
 actual console executable outside the repository. All tests and build/install steps
 run offline with those tools available. There are no API calls or credentials.
+
+The complete suite also tests the standalone Gemini SDK with mocked clients, so it
+requires `requirements.txt`. Install dependencies before running offline tests; package
+installation may require network access. Tests never need live provider credentials.
 
 For a target runtime without local build tools, build once using an available Python
 with setuptools/wheel, then run the suite on Python 3.12:
@@ -122,7 +167,9 @@ bibliographic references from reviewed guidance. Additional sources require regi
 The deterministic mock creates one loss-of-function hypothesis per context item. It
 does not assess failure coverage, establish causes/effects, or supply ratings. Context
 evidence supports the item/function, not the generated hypothesis. Missing content is
-identified explicitly. Provider adapters for OpenAI, Anthropic, and Ollama are future work.
+identified explicitly. The canonical package implements OpenAI Responses, Anthropic
+Messages and Gemini REST adapters in `src/sigma_fmea/llm.py`, plus the offline mock.
+The standalone generator uses the Google Gen AI SDK. No Ollama adapter exists.
 
 ## Conversion and artifacts
 
@@ -196,13 +243,25 @@ They establish software behavior, not engineering validity.
 The research prototype adds allowlisted guidance retrieval, real-provider adapters,
 an experiment runner and descriptive reporting; see docs/research-prototype.md.
 Actual paid generation still requires configured credentials and explicit approval.
-There is no PDF/DOCX importer, reviewed crosswalk, RPN calculator, authenticated review,
+The canonical package has no PDF/DOCX importer, reviewed crosswalk, RPN calculator, authenticated review,
 LLM judge, vector database, or frontend. Review-decision
 metadata validates zoned ISO timestamps and exact content-version binding, but reviewer
 identity is not authenticated. Unresolved flags remain attached to decisions and
 `approval_status` must stay `unauthenticated_draft`. Providers cannot create review
 decisions. A future controlled workflow must establish approval authority.
 
-## RUN PROPERLY - FROM ROBERT
+### Skill v2.0 (`skill/fmea_instructions.md`)
 
-python fmea_generator.py --system system_descriptions/system_2_nasa_fmeca.txt --case-id system_2 --model gemini-3.8-flash
+CSV rows and file names carry `version` v2.0; do not pool them with v1.0 sheets as one condition.
+Intentional differences from v1.0 that change what a comparison measures:
+
+- v1.0 analysed "ONLY the supplied system description"; v2.0 allows general engineering
+  knowledge for modes, causes, effects and actions, but forbids recalled details of a known design.
+- One row per individual unit ("Motor 1", "Motor 2"), never grouped. Grouped reference
+  sheets ("Motor #1-#4") must be expanded to one row per unit before matching.
+- Banded severity/detection scales; occurrence from apportioned package failure rates or
+  calibration anchors; detection only from provisions the package states.
+
+The generator uses the selected model's own maximum output length, fails with a clear error
+when the response is truncated or stops for any other reason (raw output is still saved),
+and rejects the whole sheet if any text cell is empty.

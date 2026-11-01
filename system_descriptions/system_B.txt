@@ -1,0 +1,60 @@
+SYSTEM B INPUT PACKAGE
+
+1. SCOPE
+- The analysis covers the propulsion powertrain: rotating system (motors, generators, gearboxes, shafts), flight control system components that send or receive control signals to the propulsion system, and thermal management components.
+- Rotors, low-voltage (LV) batteries, flight control computers (FCCs), general wiring, and actuators are not analyzed in detail.
+- Scope is in-flight, power-on operation over populated urban areas. Excluded: autorotation, power-off wing-borne flight, and ground hazards (e.g. overheating during charging, arcing, fuel leaks).
+- Other aircraft systems (flight controls, environmental systems) are assumed unaffected by the propulsion architecture except where listed here.
+
+2. TERMS
+- OEI/OMI avoid region: combination of speed, altitude and weight where losing one engine (OEI) or one motor (OMI) leaves power required above power available.
+- ESC: electronic speed controller. HVDC: high-voltage DC. LV: low voltage. RGB: rotor gearbox. AGB: accessory gearbox. CGB: collector gearbox. FCC: flight control computer.
+- Failure rates are failures per flight hour. They are conceptual-stage estimates from historical data for similar components, scaled by environmental factors with engineering judgment. Purpose-built components may differ. Each rate is for the component as a whole, not split by failure mode.
+
+3. COMMON DESIGN FACTS
+- Each ESC holds speed-control authority for its motor, which isolates the FCC from the motors. If the FCC signal is lost, the ESC regulates rotor speed through a local control loop and holds its last recorded speed.
+- Rotors and any cross-shafting are isolated from each electric motor by an emergency disconnect (an overrunning clutch or a friction disc clutch).
+- Temperature limits: maximum ambient 125 F. ESC and inverter/rectifier box temperature 131 F. Battery operating range 59-113 F (15-45 C); thermal runaway risk rises above 80 C (176 F). Motor and gearbox box temperature 250 F.
+
+4. COMMON THERMAL MANAGEMENT DESCRIPTION
+- Motors and generators are cooled by a mechanically driven cooling and lubrication system shared with the gearbox. In the accessory gearbox, a fan draws air across a heat exchanger and a lube pump pressurizes the loop.
+- ESCs, rectifiers and power converters are cooled with ambient air, using an individual electric fan at each.
+- Battery cooling: a vapor-cycle refrigeration system (R134a: compressor, air-cooled condenser, expansion valves, evaporator) serves a closed water/glycol liquid loop through the battery packs. The loop has two redundant, independent pumps, each with its own motor controller and level sensor. They share one reservoir and a common filter with a bypass. The battery packs contain a phase change material (PCM) for thermal storage.
+- Where turboshaft engines are present, the engine and its gearbox have their own independent cooling and lubrication. Engine bay cooling is not configured.
+
+5. SYSTEM B: CONFIGURATION
+- 1 occupant, 250 lb payload, 50 nm range, design gross weight 1,252 lb. All-electric powertrain.
+- Four articulated rotors on pylons in an "X" layout, with the rear rotors higher than the front rotors. Collective pitch control at each rotor, set by a swashplate driven by a single electric actuator.
+- Rotor tip speed 450 ft/s. Rotor diameter 12.62 ft; 681 RPM. Interconnecting shafting links the rotors for emergency conditions.
+
+6. SYSTEM B: POWER CHAIN AND ELECTRICAL
+- A battery network, charged before flight, feeds four 21.6 HP electric motors (11,863 RPM), each with its own ESC. The battery is modelled as one component with four outputs (one per ESC). Battery packs are distributed and physically isolated from one another inside the fuselage, with fail-safe switching.
+- Each ESC takes HV power (for the motor) and LV power (for itself). The HV source also powers the electric actuators. The LV source powers the FCC, which commands the ESCs and the swashplate actuators.
+- The flight control system and rotor pitch actuators run on an LV battery that stays operational if the HV battery is lost.
+
+7. SYSTEM B: ROTATING SYSTEM
+- Each motor drives an overrunning (sprag) clutch inside an AGB. The AGB parallel-axis gear train drives a cooling fan and lube pumps and carries no primary power. The fan draws air across a heat exchanger that cools the motor, AGB and RGB; the lube pump pressurizes the loop.
+- Primary power passes through the AGB clutch into the RGB, a dual-stage simple planetary with a 17.42:1 reduction.
+- A secondary path in each RGB, a 1.16:1 spiral bevel mesh, sends power through cross-shafting to a collector gearbox (CGB). A forward spiral bevel mesh in the CGB splits power between the front rotors, and a short quill shaft sends power aft to a second mesh that splits it between the rear rotors (six spiral bevel gears in total).
+- The cross-shafting is a secondary load path intended to damp rotor-to-rotor modes and to provide power to all rotors after the loss of a single motor.
+
+8. SYSTEM B: OPERATING PREMISES
+- About 25% of flight time is in the OEI/OMI avoid region. For this vehicle the OMI region is below about 20 kts.
+- Loss of the LV battery or the FCC removes control of all propulsors (the ESCs depend on the LV supply and the FCC for speed control).
+
+9. SYSTEM B: COMPONENT LIST
+Format: component | quantity | failure rate per flight hour | existing indications and design provisions
+- HV battery system and output wiring (one battery, four outputs, one to each ESC) | 1 | 1.00E-06 (as listed for the battery and for each output) | Visual and audible pilot warning; battery monitoring system detects and isolates faults; battery cooling and fire protection system; LV battery separately powers the flight controls and pitch actuators.
+- ESC | 4 | 2.70E-04 each | Visual and audible pilot warning.
+- Electric motor | 4 | 9.24E-05 each | Visual and audible pilot warning.
+- Clutch between motor and gearbox | 4 | 4.20E-07 each | Indication of motor torque loss to the pilot. No dedicated clutch indication specified. Fire detection and suppression system.
+- ESC cooling fan | 4 | 9.24E-05 each | Fan failure indication and ESC-hot indication to the pilot; health monitoring can reduce or turn off motor output.
+- Motor cooling oil pump and oil system | 4 | 5.17E-05 each | Motor oil temperature and/or pressure indication to the pilot; health monitoring can reduce or turn off motor output.
+- Rotor gearbox | 4 | 5.00E-06 each | Visual and audible pilot alert.
+- Collector (combiner) gearbox | 1 | 5.00E-06 | Visual and audible pilot alert.
+- Cross-shafting and AGB gear trains: no failure rates provided.
+
+10. OCCURRENCE CALIBRATION ANCHORS FOR THIS ANALYSIS
+- Unit: failures per flight hour, applied to the failure mode's own rate, on a log scale. Anchors: <=1E-9 = 1; 1E-8 = 2; 1E-7 = 4; 1E-6 = 5; 1E-5 = 7; 1E-4 = 8-9; >=1E-3 = 10. Interpolate between anchors.
+- The rates in this package span roughly 1E-9 to 1E-3.
+- Reference point: a regulatory target for catastrophic aircraft-level failure is 1E-9 per flight hour. The propulsion system would need to be about 1E-10 or better to support it.

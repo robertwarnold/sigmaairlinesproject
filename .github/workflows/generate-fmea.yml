@@ -31,6 +31,11 @@ on:
         options:
           - system_1
           - system_2_nasa_fmeca
+          - system_A
+          - system_B
+          - system_C
+          - system_D
+          - system_E
       model:
         description: Gemini model ID available to the team account
         required: true
@@ -83,7 +88,7 @@ jobs:
             exit 1
           fi
           case "$SELECTED_SYSTEM" in
-            system_1|system_2_nasa_fmeca) ;;
+            system_1|system_2_nasa_fmeca|system_A|system_B|system_C|system_D|system_E) ;;
             *) echo "::error::Unknown system selection"; exit 1 ;;
           esac
           python fmea_generator.py \
