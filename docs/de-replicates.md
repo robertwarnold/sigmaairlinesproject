@@ -43,3 +43,11 @@ Implementation: scripts/system_replicates.py, tests/test_system_replicates.py, t
 manual generate-fmea workflow, and the shared dispatch helper. No reference FMEA is
 read or transmitted. All generated material remains ignored under results; never commit
 raw model responses, FMEA CSVs, credentials or frozen research evidence.
+
+HTTP429 quota exhaustion halts the entire dispatcher immediately, even when the total
+request allowance has unused capacity. An attempt already dispatched is collected without
+sending another request. Partial reports preserve unresolved/not-attempted slots and the
+stop reason. If the provider explicitly reports its free-tier quota, the financial report
+uses that tier identity; no free-tier tariff or invoice is configured, so costs remain
+unavailable instead of substituting paid prices or assuming zero billing. Resume requires
+available provider quota; billing/account settings are never changed automatically.

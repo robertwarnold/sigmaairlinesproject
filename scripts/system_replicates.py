@@ -206,7 +206,7 @@ def worker(folder, branch, wrapper):
             state["replicate_status"][f"{system}-r{replica:02d}"]=record["status"]
             provider.update(folder,phase="attempt_complete",attempts=state["attempts"],replicate_status=state["replicate_status"],
                 message=f"{system} dataset {replica}: {record['status']}; HTTP {record.get('http_status')}; rows={record.get('row_count')}")
-            if record.get("http_status") in (400,401,403,404):raise RuntimeError("Provider authentication/configuration error; stop")
+            if record.get("http_status") in (400,401,403,404,429):raise RuntimeError("Provider authentication/configuration/quota error; stop")
         provider.update(folder,phase="generation_complete",message="No further calls; offline replicate analysis and financial reporting")
     except BaseException as error:
         provider.update(folder,phase="blocked",message=f"{type(error).__name__}: {error}; no automatic restart")
@@ -218,13 +218,19 @@ def complete(folder):
     folder=Path(folder).resolve();plan=recovery.read(folder/"plan.json");state=recovery.read(folder/"status.json")
     if state["phase"]!="generation_complete":raise ValueError("Generation is not complete")
     records=state["attempts"]
-    if len(records)>plan["maximum_new_requests"] or state["reserved_requests"]>plan["maximum_new_requests"]:raise ValueError("Request cap exceeded")
+    if len(records)!=state["reserved_requests"] or len(records)>plan["maximum_new_requests"] or state["reserved_requests"]>plan["maximum_new_requests"]:raise ValueError("Request cap exceeded")
     if any(sum(r["system_id"]==s for r in records)>plan["maximum_requests_per_system"] for s in SYSTEMS):raise ValueError("System request cap exceeded")
     for path,digest in recovery.read(folder/"original_checksums.json").items():
         if recovery.digest(path)!=digest:raise ValueError("Original evidence changed")
+    for record in records:
+        verified=check_receipt(record["metadata_path"],plan,record["system_id"],record["replicate_number"],record["retry_number"]+1)
+        if any(record.get(key)!=value for key,value in verified.items()):
+            raise ValueError("Campaign ledger differs from immutable attempt evidence")
     output=folder/"review-v1";output.mkdir(exist_ok=False)
     manifest={"plan":plan,"runs":records};recovery.atomic(output/"campaign-manifest.json",manifest)
-    financial,metrics=create_report([output/"campaign-manifest.json"],output/"financial_impacts",analysis_id="financial-v1")
+    free_tier_evidence = any(r.get("http_status")==429 and "generate_content_free_tier_requests" in r.get("provider_diagnostic","") for r in records)
+    tier = "provider_reported_free_tier" if free_tier_evidence else "standard_paid"
+    financial,metrics=create_report([output/"campaign-manifest.json"],output/"financial_impacts",analysis_id="financial-v1",tier=tier)
     rows=[];structures={};distributions=[]
     for system,replica in slots():
         attempts=[r for r in records if r["system_id"]==system and r["replicate_number"]==replica]
@@ -256,12 +262,16 @@ def complete(folder):
             "mean_success_seconds":statistics.mean(durations) if durations else None,"engineering_acceptance":None})
     summary={"campaign_id":plan["campaign_id"],"systems":summaries,"total_new_requests":len(records),
         "successful_datasets":sum(r["status"]=="success" for r in rows),"target_datasets":6,
-        "failed_requests":sum(r["status"]!="success" for r in records),"actual_retry_wait_seconds":state["retry_wait_seconds"],
+        "failed_requests":sum(r["status"]!="success" for r in records),"stop_reason":state.get("stop_reason"),
+        "provider_reported_free_tier_quota":free_tier_evidence,
+        "billing_note":"Provider reported free-tier quota; no matching tariff/invoice is configured, so request costs are unavailable rather than zero." if free_tier_evidence else "Token tariff estimates are not invoices.",
+        "actual_retry_wait_seconds":state["retry_wait_seconds"],
         "financial_observed":metrics["observed"],"baseline_index":plan["baseline_index"],"replicate_index":rows,
         "financial_report":str(financial),"caution":"Three separate drafts per system; rows are nested observations. No engineering acceptance, reference coverage or validated repeatability claim."}
     recovery.atomic(output/"campaign-summary.json",summary)
     notes=["# D/E additional replicate campaign", "", "Each new successful CSV is a separate observation. Original D/E outputs remain separate and unchanged.",
         "S/O/D and RPN are provisional; no reference FMEA was read. Row distributions and n=3 summaries are descriptive, not engineering acceptance or independent row-level replication.", ""]
+    if state.get("stop_reason"):notes.extend(["Execution stop: "+state["stop_reason"],"Unresolved slots remain explicit; quota failures are not engineering observations.",""])
     for key,data in structures.items():
         notes.extend(["## "+key,f"Rows: {data['row_count']}; labels: {data['distinct_components']}; duplicate component/mode/cause triples: {data['exact_duplicate_triples']}; one-row labels: {len(data['single_mode_component_labels'])}.",
             "Possible unit-coverage/omission candidates (lexical only): "+str([i["inventory_component"] for i in data["inventory"] if i["needs_omission_or_unit_review"]]),

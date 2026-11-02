@@ -106,7 +106,7 @@ class ReplicateReceiptTests(unittest.TestCase):
             generate.assert_not_called()
 
 
-    def run_campaign(self,failed):
+    def run_campaign(self,failed,quota=False):
         source=self.root/"system_descriptions/system_E.txt";source.write_text("synthetic E")
         self.condition["systems"]["system_E"]={"path":"system_descriptions/system_E.txt","sha256":recovery.digest(source)}
         folder=self.root/"campaign";folder.mkdir()
@@ -131,19 +131,22 @@ class ReplicateReceiptTests(unittest.TestCase):
         def generate(*args,**kwargs):
             self.generate(*args,**kwargs)
             if failed:
-                from google.genai.errors import ServerError
+                from google.genai.errors import ServerError, ClientError
                 system=args[1];run=kwargs["run"];path=kwargs["output_dir"]/f"{system}_v2.0_run{run:02d}_execution.json"
                 record=recovery.read(path);record.update(status="failed",row_count=None);recovery.atomic(path,record)
+                if quota:raise ClientError(429,{"error":{"status":"RESOURCE_EXHAUSTED","message":"synthetic daily quota exhausted"}})
                 raise ServerError(503,{"error":{"status":"UNAVAILABLE","message":"synthetic capacity failure"}})
         recovery.atomic(self.planfile,self.condition)
         with patch.object(campaign.pilot,"specification",return_value=self.condition),patch.object(campaign.importlib.metadata,"version",return_value="synthetic-sdk"), \
                 patch.object(campaign.engine,"generate_fmea",side_effect=generate),patch.object(provider,"run_workflow",side_effect=dispatch), \
                 patch.object(provider,"github",side_effect=download),patch.object(campaign,"retry_wait",side_effect=lambda r,n:0 if n<3 and r.get("http_status")==503 else None):
-            campaign.worker(folder,"branch","wrapper")
+            if quota:
+                with self.assertRaises(RuntimeError):campaign.worker(folder,"branch","wrapper")
+            else:campaign.worker(folder,"branch","wrapper")
         state=recovery.read(folder/"status.json")
-        self.assertEqual(len(dispatched),12 if failed else 6)
+        self.assertEqual(len(dispatched),1 if quota else 12 if failed else 6)
         self.assertEqual(state["reserved_requests"],len(dispatched))
-        self.assertEqual(state["phase"],"generation_complete")
+        self.assertEqual(state["phase"],"blocked" if quota else "generation_complete")
         self.assertTrue(all(s in campaign.SYSTEMS for _,s in dispatched))
         with self.assertRaises(FileExistsError):campaign.worker(folder,"branch","wrapper")
         return folder,state
@@ -167,3 +170,25 @@ class ReplicateReceiptTests(unittest.TestCase):
         folder,state=self.run_campaign(True)
         self.assertEqual(sum(r["status"]=="success" for r in state["attempts"]),0)
         self.assertTrue(all(r["http_status"]==503 for r in state["attempts"]))
+
+    def test_quota_exhaustion_stops_before_any_further_dispatch(self):
+        folder,state=self.run_campaign(True,quota=True)
+        self.assertEqual(len(state["attempts"]),1)
+        self.assertEqual(state["attempts"][0]["http_status"],429)
+
+    def test_partial_quota_report_does_not_assume_zero_or_paid_cost(self):
+        folder,state=self.run_campaign(True,quota=True)
+        state["phase"]="generation_complete";state["stop_reason"]="provider_daily_quota_exhausted"
+        record=state["attempts"][0]
+        record["provider_diagnostic"]="synthetic quota metric generate_content_free_tier_requests"
+        record["usage_metadata"]={"prompt_token_count":100,"candidates_token_count":200,"thoughts_token_count":10}
+        recovery.atomic(Path(record["metadata_path"]),{k:v for k,v in record.items() if k not in ("metadata_path","workflow_run_id")})
+        recovery.atomic(folder/"status.json",state)
+        with patch("analysis.financial_impact.report.figures",return_value={}):output,archive=campaign.complete(folder)
+        summary=recovery.read(output/"campaign-summary.json")
+        self.assertTrue(summary["provider_reported_free_tier_quota"])
+        self.assertEqual(summary["stop_reason"],"provider_daily_quota_exhausted")
+        self.assertEqual(summary["successful_datasets"],0)
+        metrics=recovery.read(output/"financial_impacts/financial-v1/metrics.json")
+        self.assertIsNone(metrics["attempts"][0]["cost_usd"])
+        self.assertEqual(metrics["observed"]["unknown_billing_attempts"],1)
