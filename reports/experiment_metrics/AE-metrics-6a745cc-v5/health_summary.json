@@ -1,0 +1,80 @@
+{
+  "schema": "public-aggregate-fmea-health-1",
+  "source_report": "AE-metrics-6a745cc-v5",
+  "data_audit": {
+    "manifests_loaded": 7,
+    "unique_attempts": 24,
+    "systems": [
+      "system_A",
+      "system_B",
+      "system_C",
+      "system_D",
+      "system_E"
+    ],
+    "successful_generations": 14,
+    "failed_generations": 10,
+    "attempts_with_duration": 24,
+    "attempts_with_usable_tokens": 13,
+    "attempts_with_invoice_expense": 0,
+    "attempts_with_estimated_expense": 13,
+    "attempts_with_unknown_actual_billing": 24,
+    "attempts_without_priced_amount": 11,
+    "manual_labor_observations": 0,
+    "all_labor_observations": 0,
+    "engineering_review_observations": 0,
+    "independent_acceptance_decisions": 0,
+    "validated_csv_outputs": 14,
+    "primary_dataset_outputs": 7,
+    "representative_outputs": 5,
+    "canonical_attempts_included": 0
+  },
+  "systems": [
+    {
+      "system": "system_A",
+      "attempts": 6,
+      "valid_drafts": 4,
+      "failed_requests": 2,
+      "verified_http_503": 0,
+      "verified_http_429": 0,
+      "review_status": "unreviewed; no independent decisions recorded"
+    },
+    {
+      "system": "system_B",
+      "attempts": 5,
+      "valid_drafts": 4,
+      "failed_requests": 1,
+      "verified_http_503": 0,
+      "verified_http_429": 1,
+      "review_status": "unreviewed; no independent decisions recorded"
+    },
+    {
+      "system": "system_C",
+      "attempts": 4,
+      "valid_drafts": 1,
+      "failed_requests": 3,
+      "verified_http_503": 2,
+      "verified_http_429": 0,
+      "review_status": "unreviewed; no independent decisions recorded"
+    },
+    {
+      "system": "system_D",
+      "attempts": 4,
+      "valid_drafts": 3,
+      "failed_requests": 1,
+      "verified_http_503": 1,
+      "verified_http_429": 0,
+      "review_status": "unreviewed; no independent decisions recorded"
+    },
+    {
+      "system": "system_E",
+      "attempts": 5,
+      "valid_drafts": 2,
+      "failed_requests": 3,
+      "verified_http_503": 2,
+      "verified_http_429": 1,
+      "review_status": "unreviewed; no independent decisions recorded"
+    }
+  ],
+  "engineering_ratings": "provisional",
+  "actual_billing": "unknown for every attempt"
+}
