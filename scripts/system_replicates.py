@@ -213,10 +213,11 @@ def worker(folder, branch, wrapper):
         raise
 
 
-def complete(folder):
+def complete(folder, version="v1"):
     """Create immutable per-replicate analysis and cost reports; successful drafts stay separate."""
+    if not re.fullmatch(r"v[1-9][0-9]*",version):raise ValueError("Invalid report version")
     folder=Path(folder).resolve();plan=recovery.read(folder/"plan.json");state=recovery.read(folder/"status.json")
-    if state["phase"]!="generation_complete":raise ValueError("Generation is not complete")
+    if state["phase"] not in ("generation_complete","outputs_ready"):raise ValueError("Generation is not complete")
     records=state["attempts"]
     if len(records)!=state["reserved_requests"] or len(records)>plan["maximum_new_requests"] or state["reserved_requests"]>plan["maximum_new_requests"]:raise ValueError("Request cap exceeded")
     if any(sum(r["system_id"]==s for r in records)>plan["maximum_requests_per_system"] for s in SYSTEMS):raise ValueError("System request cap exceeded")
@@ -226,8 +227,8 @@ def complete(folder):
         verified=check_receipt(record["metadata_path"],plan,record["system_id"],record["replicate_number"],record["retry_number"]+1)
         if any(record.get(key)!=value for key,value in verified.items()):
             raise ValueError("Campaign ledger differs from immutable attempt evidence")
-    output=folder/"review-v1";output.mkdir(exist_ok=False)
-    manifest={"plan":plan,"runs":records};recovery.atomic(output/"campaign-manifest.json",manifest)
+    output=folder/("review-"+version);output.mkdir(exist_ok=False)
+    manifest={"plan":plan,"runs":[{**r,"dataset_included":r["status"]=="success"} for r in records]};recovery.atomic(output/"campaign-manifest.json",manifest)
     free_tier_evidence = any(r.get("http_status")==429 and "generate_content_free_tier_requests" in r.get("provider_diagnostic","") for r in records)
     tier = "provider_reported_free_tier" if free_tier_evidence else "standard_paid"
     financial,metrics=create_report([output/"campaign-manifest.json"],output/"financial_impacts",analysis_id="financial-v1",tier=tier)
@@ -267,7 +268,7 @@ def complete(folder):
         "billing_note":"Provider reported free-tier quota; no matching tariff/invoice is configured, so request costs are unavailable rather than zero." if free_tier_evidence else "Token tariff estimates are not invoices.",
         "actual_retry_wait_seconds":state["retry_wait_seconds"],
         "financial_observed":metrics["observed"],"baseline_index":plan["baseline_index"],"replicate_index":rows,
-        "financial_report":str(financial),"caution":"Three separate drafts per system; rows are nested observations. No engineering acceptance, reference coverage or validated repeatability claim."}
+        "financial_report":str(financial),"caution":"Target: three additional separate drafts per system; actual counts are explicit. Rows are nested observations. No engineering acceptance, reference coverage or validated repeatability claim."}
     recovery.atomic(output/"campaign-summary.json",summary)
     notes=["# D/E additional replicate campaign", "", "Each new successful CSV is a separate observation. Original D/E outputs remain separate and unchanged.",
         "S/O/D and RPN are provisional; no reference FMEA was read. Row distributions and n=3 summaries are descriptive, not engineering acceptance or independent row-level replication.", ""]
@@ -286,7 +287,7 @@ def complete(folder):
             label=row["system_id"][-1]+str(row["replicate_number"])
             axes[0].scatter(label,row["row_count"]);axes[1].scatter(label,row["generation_seconds"])
     axes[0].set(ylabel="Generated rows / separate draft");axes[1].set(ylabel="Successful attempt seconds")
-    fig.suptitle("Three additional replicates per system; descriptive, unreviewed")
+    fig.suptitle("Additional D/E replicates; descriptive, unreviewed")
     fig.tight_layout();fig.savefig(output/"replicate-comparison.png",dpi=300);plt.close(fig)
     checksums={str(p.relative_to(output)).replace("\\","/"):recovery.digest(p) for p in output.rglob("*") if p.is_file()}
     recovery.atomic(output/"checksums.json",checksums)
@@ -294,10 +295,10 @@ def complete(folder):
         if path.is_file() and path.suffix in (".json",".csv",".md",".txt"):
             if re.search(r"AIza[0-9A-Za-z_-]{30,}|gh[pousr]_[A-Za-z0-9]{30,}|-----BEGIN .*PRIVATE KEY",path.read_text(encoding="utf-8-sig")):
                 raise ValueError("Possible credential in review package; ZIP not created")
-    archive=folder/(plan["campaign_id"]+"-review.zip")
+    archive=folder/(plan["campaign_id"]+"-review"+("" if version=="v1" else "-"+version)+".zip")
     with zipfile.ZipFile(archive,"x",zipfile.ZIP_DEFLATED) as stream:
         for path in output.rglob("*"):
-            if path.is_file():stream.write(path,"review-v1/"+str(path.relative_to(output)).replace("\\","/"))
+            if path.is_file():stream.write(path,"review-"+version+"/"+str(path.relative_to(output)).replace("\\","/"))
     provider.update(folder,phase="outputs_ready",review_directory=str(output),review_zip=str(archive),message=f"{summary['successful_datasets']}/6 additional valid datasets; no further calls")
     print(json.dumps(summary,indent=2));return output,archive
 
@@ -306,6 +307,7 @@ def main():
     """Expose explicit preparation, one remote call, bounded campaign execution and offline reports."""
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode",choices=("prepare","remote","worker","complete"));parser.add_argument("--folder",type=Path,required=True)
+    parser.add_argument("--version",default="v1")
     parser.add_argument("--request-limit",type=int,choices=(6,12),default=6);parser.add_argument("--baseline-index",type=Path)
     parser.add_argument("--plan",type=Path);parser.add_argument("--batch");parser.add_argument("--system",choices=SYSTEMS)
     parser.add_argument("--branch",default="fmea-ce-recovery-20261101");parser.add_argument("--wrapper",type=Path)
@@ -313,7 +315,7 @@ def main():
     if args.mode=="prepare":prepare(args.folder,args.request_limit,args.baseline_index)
     elif args.mode=="remote":remote(args.plan,args.batch,args.system,args.folder)
     elif args.mode=="worker":worker(args.folder,args.branch,args.wrapper)
-    else:complete(args.folder)
+    else:complete(args.folder,args.version)
 
 
 if __name__=="__main__":main()

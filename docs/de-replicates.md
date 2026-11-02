@@ -51,3 +51,9 @@ stop reason. If the provider explicitly reports its free-tier quota, the financi
 uses that tier identity; no free-tier tariff or invoice is configured, so costs remain
 unavailable instead of substituting paid prices or assuming zero billing. Resume requires
 available provider quota; billing/account settings are never changed automatically.
+
+Financial analysis v1.2.0 accepts an explicit dataset_included flag for successful,
+validated replica receipts. This counts multiple valid CSV observations per system
+without converting them into engineering acceptance. Failed/not-attempted slots never
+count as included datasets. Use complete --version v2 (or later) for an immutable report
+rebuild; previous report versions stay unchanged.

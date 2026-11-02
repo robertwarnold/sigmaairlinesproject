@@ -163,6 +163,7 @@ class ReplicateReceiptTests(unittest.TestCase):
         metrics=recovery.read(output/"financial_impacts/financial-v1/metrics.json")
         self.assertEqual(metrics["observed"]["n_attempts"],6)
         self.assertEqual(metrics["observed"]["n_successful_generations"],6)
+        self.assertEqual(metrics["observed"]["effective_dataset_size"],6)
         self.assertIsNone(metrics["observed"]["cost_per_successful_generation_usd"])
         with zipfile.ZipFile(archive) as stream:self.assertIsNone(stream.testzip())
 

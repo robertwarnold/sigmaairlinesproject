@@ -138,6 +138,7 @@ def import_attempts(path, assumptions, tier="standard_paid", arrangement="pay_as
             "model": model, "configuration": settings, "configuration_id": configuration_id(settings),
             "actual_model": execution.get("model_version", run.get("actual_model")),
             "started_at": started, "finished_at": run.get("finished_at"), "status": status,
+            "effective_result": run.get("dataset_included", False) is True and status == "success",
             "failure_type": run.get("failure_classification") or run.get("error_type"),
             "http_status": run.get("http_status"), "retry_number": run.get("retry_number", 0),
             "retry_wait_seconds": run.get("retry_wait_seconds", 0),
