@@ -282,3 +282,29 @@ Automatic standalone metrics, ten-figure dashboards, offline financial execution
 review-only aggregate publication: see [experiment reporting](analysis/experiments/README.md).
 Raw data and locally generated reports remain under ignored `results/`; no model calls
 are needed to regenerate reports.
+
+## Dashboards and Financial Figures
+
+[View all 13 generated financial figures](reports/experiment_metrics/AE-metrics-6a745cc-v5/financial_figures.md),
+including the actual high-resolution PNG images rendered directly in GitHub.
+[Open the A-E experiment dashboard](reports/experiment_metrics/AE-metrics-6a745cc-v5/dashboard.md)
+for ten additional figures, or browse the [reports index](reports/README.md).
+Observed operational data, assumed tariff estimates and unavailable economics are
+identified separately. All FMEA ratings remain provisional pending engineering review.
+
+### Overall FMEA Run Health
+
+The available standalone A-E history contains **24 attempts: 14 valid drafts and
+10 failed requests**. Five failures are verified HTTP 503 and two are HTTP 429.
+All 14 valid drafts remain unreviewed; CSV validity does not establish engineering acceptance.
+[See system-by-system health counts and all dashboard figures](reports/experiment_metrics/AE-metrics-6a745cc-v5/dashboard.md).
+
+![Generation outcomes across Systems A-E](reports/experiment_metrics/AE-metrics-6a745cc-v5/figures/01_generation_success.png)
+
+### Observed Financial Operations
+
+The financial report includes observed request durations and token-based tariff
+estimates. Actual billing and manual-versus-AI savings remain unavailable.
+[View every financial figure and its caption](reports/experiment_metrics/AE-metrics-6a745cc-v5/financial_figures.md).
+
+![Observed generation duration by system](reports/experiment_metrics/AE-metrics-6a745cc-v5/financial-figures/08_observed_duration.png)
