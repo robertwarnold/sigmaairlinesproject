@@ -16,12 +16,13 @@ def main():
     parser.add_argument("--invoices", type=Path)
     parser.add_argument("--expenses", type=Path)
     parser.add_argument("--analysis-id")
+    parser.add_argument("--scenario", type=Path)
     parser.add_argument("--tier", default="standard_paid")
     parser.add_argument("--billing-arrangement", default="pay_as_you_go")
     args = parser.parse_args()
     output, metrics = create_report(args.manifest, args.output_root, args.assumptions,
         args.labor, args.quality, args.invoices, args.expenses, args.analysis_id, args.sources,
-        args.tier, args.billing_arrangement)
+        args.tier, args.billing_arrangement, args.scenario)
     # Print the evidence distinction rather than a misleading zero-dollar accepted cost.
     observed = metrics["observed"]
     print(f"Report: {output.resolve()}")

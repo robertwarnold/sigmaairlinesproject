@@ -125,7 +125,9 @@ def generate(plan_path, system, output_root, attempt_number=None):
     try:
         # The established engine owns output collision checks, schema validation and raw evidence.
         engine.generate_fmea(source, system, run=1, output_dir=root, model=MODEL,
-            execution={"experiment_id": plan["recovery_campaign_id"], "expected_max_output_tokens": 65536})
+            execution={"experiment_id": plan["recovery_campaign_id"], "expected_max_output_tokens": 65536,
+                       "attempt_id": receipt["attempt_id"], "retry_number": receipt["retry_number"],
+                       "supersedes_attempt_id": receipt["supersedes_attempt_id"]})
         validate_csv(root / f"{system}_v2.0_run01.csv")
         receipt["status"] = "success"
     except Exception as exc:
@@ -324,9 +326,16 @@ def main():
     parser.add_argument("--original-dir", type=Path, default=BASE)
     args = parser.parse_args()
     global_base(args.original_dir)
-    if args.command == "initialize": initialize(args.original, args.systems, args.label, args.output)
-    elif args.command == "generate": generate(args.plan, args.system, args.output)
-    else: reconcile(args.plan, args.recovery, args.output, args.history)
+    try:
+        if args.command == "initialize": initialize(args.original, args.systems, args.label, args.output)
+        elif args.command == "generate": generate(args.plan, args.system, args.output)
+        else: reconcile(args.plan, args.recovery, args.output, args.history)
+    finally:
+        # Reporting remains offline and cannot replace the saved generation outcome.
+        if args.command=="generate":
+            from src.sigma_fmea.execution_metadata import automatic_report
+            automatic_report(args.output)
+
 
 
 if __name__ == "__main__":

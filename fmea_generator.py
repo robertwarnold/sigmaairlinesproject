@@ -6,7 +6,7 @@ import os
 import re
 import time
 from pathlib import Path
-from src.sigma_fmea.execution_metadata import file_hash, utc_now, write_receipt
+from src.sigma_fmea.execution_metadata import file_hash, utc_now, write_receipt, failure_metadata, automatic_report, campaign_identity
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_MODEL = "gemini-2.5-flash"
@@ -166,10 +166,14 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
     model = model or os.getenv("GEMINI_MODEL", DEFAULT_MODEL)
     # Initialize a receipt for every new attempt before credentials or a provider are used.
     execution = execution if execution is not None else {}
-    record = {"experiment_id": execution.get("experiment_id", output_dir.name),
-              "attempt_id": prefix, "system_id": case_id, "system_sha256": file_hash(system_file),
+    execution.setdefault("experiment_id", campaign_identity(execution.get("experiment_id")))
+    record = {"experiment_id": execution["experiment_id"],
+              "attempt_id": execution.get("attempt_id", prefix), "source_attempt_id": prefix,
+              "retry_number": execution.get("retry_number", 0),
+              "system_id": case_id, "system_sha256": file_hash(system_file),
               "prompt_version": PROMPT_VERSION, "skill_sha256": file_hash(ROOT / "skill/fmea_instructions.md"),
               "workflow": "standalone_gemini", "model": model, "run_number": run,
+              "supersedes_attempt_id": execution.get("supersedes_attempt_id"),
               "configuration": {"temperature": 0, "response_mime_type": "application/json",
                                 "response_schema": RESPONSE_SCHEMA, "retry_attempts": 1},
               "started_at": utc_now(), "api_request_seconds": None,
@@ -219,6 +223,7 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
                           "truncation" if finish == "MAX_TOKENS" else "blocked" if finish and finish != "STOP"
                           else "validation_failure" if isinstance(error, ValueError) else "provider_or_local_failure")
         record.update(status="failed", failure_classification=classification, error_type=type(error).__name__)
+        record.update(failure_metadata(error))
         raise
     finally:
         # Keep monotonic durations, UTC endpoints and usage available even on exceptions.
@@ -230,6 +235,11 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
             write_receipt(metadata_path, record, (csv_path, raw_path), stream=receipt_stream)
         finally:
             receipt_stream.close()
+        # Reporting is offline and occurs after timing/outcome preservation; it never changes the Gemini call.
+        try:
+            automatic_report(metadata_path)
+        except Exception as reporting_error:
+            print(f"[REPORTING] {type(reporting_error).__name__}; generation outcome preserved", flush=True)
 
 
 def main():
@@ -239,8 +249,9 @@ def main():
     parser.add_argument("--version", default=PROMPT_VERSION)
     parser.add_argument("--run", type=int, default=1)
     parser.add_argument("--model", default=None)
+    parser.add_argument("--campaign-id", default=None, help="Metadata only; generation settings are unchanged")
     args = parser.parse_args()
-    generate_fmea(args.system, args.case_id, args.version, args.run, model=args.model)
+    generate_fmea(args.system, args.case_id, args.version, args.run, model=args.model, execution={"experiment_id": args.campaign_id} if args.campaign_id else None)
 
 
 if __name__ == "__main__":

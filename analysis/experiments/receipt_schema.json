@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fmea-execution-1-extended",
+  "$comment": "Backward-compatible reporting fields on the existing receipt, not a second telemetry format.",
+  "type": "object",
+  "required": [
+    "metadata_schema",
+    "experiment_id",
+    "attempt_id",
+    "system_id",
+    "status"
+  ],
+  "properties": {
+    "metadata_schema": {
+      "const": "fmea-execution-1"
+    },
+    "experiment_id": {
+      "type": "string"
+    },
+    "attempt_id": {
+      "type": "string"
+    },
+    "system_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "http_status": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "retry_number": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "retry_wait_seconds": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "invoice_expense_usd": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "engineering_review_status": {
+      "enum": [
+        "unreviewed",
+        "provisional_unreviewed",
+        "pending",
+        "accepted",
+        "rejected"
+      ]
+    },
+    "fmea_metrics": {
+      "type": "object",
+      "properties": {
+        "schema_valid": {
+          "type": "boolean"
+        },
+        "component_coverage": {
+          "type": "null"
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

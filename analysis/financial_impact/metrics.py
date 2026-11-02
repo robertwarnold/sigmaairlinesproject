@@ -123,6 +123,8 @@ def observed_summary(attempts):
             "n_failed_or_uncertain_attempts": len(attempts) - len(successful),
             "generation_success_fraction": len(successful) / len(attempts) if attempts else None,
             "engineering_acceptance_rate": None,
+            "n_schema_valid_generations":sum(r.get("schema_valid") is True and r["status"]=="success" for r in attempts),
+            "unknown_actual_billing_attempts":sum(r["cost_basis"]!="invoice" for r in attempts),
             "provider_unavailable_503_count": sum(r.get("http_status") == 503 for r in attempts),
             "provider_unavailable_503_fraction": sum(r.get("http_status") == 503 for r in attempts) / len(attempts) if attempts else None,
             "retry_wait_seconds": sum(r.get("retry_wait_seconds", 0) for r in attempts),
