@@ -127,4 +127,7 @@ def figures(metrics, output):
     ax.set_xticks(positions)
     ax.margins(y=.2)
     save(fig, "07_observed_generation", "Observed elapsed durations and tariff estimates only. Red bars are failed/uncertain attempts; unobserved failed billing remains unknown. No labor or acceptance claim.")
+    # Operational panels remain populated even when acceptance/labor/scenario inputs are absent.
+    from .operational_figures import figures as operational_figures
+    captions.update(operational_figures(metrics, output))
     return captions

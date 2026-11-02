@@ -92,7 +92,8 @@ def remote(plan_path, batch, system, output):
     heartbeat.start();diagnostics={}
     try:
         engine.generate_fmea(source,system,run=replica,output_dir=root,model=pilot.MODEL,
-            execution={"experiment_id":campaign,"expected_max_output_tokens":pilot.TOKEN_LIMIT})
+            execution={"experiment_id":campaign,"expected_max_output_tokens":pilot.TOKEN_LIMIT,
+                       "attempt_id":f"{system}-r{replica:02d}-a{attempt:02d}","retry_number":attempt-1})
     except Exception as error:
         diagnostics=provider.diagnostic(error)
     finally:
@@ -100,7 +101,7 @@ def remote(plan_path, batch, system, output):
         sidecar=root/f"{system}_v2.0_run{replica:02d}_execution.json"
         if not sidecar.exists():raise RuntimeError("Generator did not preserve an execution receipt")
         record=recovery.read(sidecar)
-        record.update(diagnostics,source_attempt_id=record["attempt_id"],attempt_id=f"{system}-r{replica:02d}-a{attempt:02d}",
+        record.update(diagnostics,source_attempt_id=record.get("source_attempt_id",record["attempt_id"]),attempt_id=f"{system}-r{replica:02d}-a{attempt:02d}",
             replicate_number=replica,retry_number=attempt-1,elapsed_seconds=time.perf_counter()-start,source_receipt=sidecar.name,
             provider_billing_usd=None,engineering_review_status="provisional_unreviewed")
         csv_path=root/f"{system}_v2.0_run{replica:02d}.csv"
@@ -312,10 +313,17 @@ def main():
     parser.add_argument("--plan",type=Path);parser.add_argument("--batch");parser.add_argument("--system",choices=SYSTEMS)
     parser.add_argument("--branch",default="fmea-ce-recovery-20261101");parser.add_argument("--wrapper",type=Path)
     args=parser.parse_args()
-    if args.mode=="prepare":prepare(args.folder,args.request_limit,args.baseline_index)
-    elif args.mode=="remote":remote(args.plan,args.batch,args.system,args.folder)
-    elif args.mode=="worker":worker(args.folder,args.branch,args.wrapper)
-    else:complete(args.folder,args.version)
+    try:
+        if args.mode=="prepare":prepare(args.folder,args.request_limit,args.baseline_index)
+        elif args.mode=="remote":remote(args.plan,args.batch,args.system,args.folder)
+        elif args.mode=="worker":worker(args.folder,args.branch,args.wrapper)
+        else:complete(args.folder,args.version)
+    finally:
+        # Reporting remains offline and cannot replace the saved generation outcome.
+        if args.mode=="worker":
+            from src.sigma_fmea.execution_metadata import automatic_report
+            automatic_report(args.folder)
+
 
 
 if __name__=="__main__":main()

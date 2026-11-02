@@ -317,11 +317,18 @@ def main():
     parser.add_argument("--batch")
     parser.add_argument("--history", type=Path)
     args = parser.parse_args()
-    if args.mode == "c-preflight": c_prepare(args.folder)
-    elif args.mode == "c-worker": c_worker(args.folder,args.branch,args.wrapper,args.history)
-    elif args.mode == "preflight": preflight(args.folder)
-    elif args.mode == "worker": worker(args.folder, args.branch, args.wrapper)
-    else: remote(args.plan, args.system, args.batch, args.folder)
+    try:
+        if args.mode == "c-preflight": c_prepare(args.folder)
+        elif args.mode == "c-worker": c_worker(args.folder,args.branch,args.wrapper,args.history)
+        elif args.mode == "preflight": preflight(args.folder)
+        elif args.mode == "worker": worker(args.folder, args.branch, args.wrapper)
+        else: remote(args.plan, args.system, args.batch, args.folder)
+    finally:
+        # Reporting remains offline and cannot replace the saved generation outcome.
+        if args.mode in ("worker","c-worker"):
+            from src.sigma_fmea.execution_metadata import automatic_report
+            automatic_report(args.folder)
+
 
 
 if __name__ == "__main__": main()

@@ -98,16 +98,19 @@ def import_attempts(path, assumptions, tier="standard_paid", arrangement="pay_as
         execution = run.get("execution", {})
         # Failed standardized receipts may have usage at top level; canonical Gemini uses explicit names.
         attempt_id = str(run.get("attempt_id", run.get("run_number", "")))
-        if not attempt_id or attempt_id in seen or not status:
+        run_experiment = run.get("experiment_id", experiment)
+        attempt_key = (run_experiment, attempt_id)
+        if not attempt_id or attempt_key in seen or not status:
             raise ValueError("Missing/duplicate attempt identity or status")
-        seen.add(attempt_id)
-        started = run.get("started_at")
+        seen.add(attempt_key)
+        run_experiment = run.get("experiment_id", experiment)
+        started = run.get("started_at") or run.get("observed_at")
         if not started:
             raise ValueError("Attempt lacks its observation date")
         observed_at = datetime.fromisoformat(started.replace("Z", "+00:00"))
         if observed_at.utcoffset() is None:
             raise ValueError("Attempt timestamp requires a timezone")
-        settings = run.get("configuration") or {k: plan.get(k) for k in (
+        settings = run.get("configuration") or {k: run.get(k, plan.get(k)) for k in (
             "temperature", "max_output_tokens", "response_mime_type", "response_schema_sha256", "retry_attempts")}
         usage = execution.get("usage_metadata", run.get("usage_metadata"))
         if usage and "input_tokens" in usage:
@@ -115,7 +118,7 @@ def import_attempts(path, assumptions, tier="standard_paid", arrangement="pay_as
                      "candidates_token_count": usage.get("output_tokens"),
                      "thoughts_token_count": usage.get("reasoning_tokens")}
         model = run.get("model", plan.get("model"))
-        invoice = invoices.get(f"{experiment}/{attempt_id}")
+        invoice = invoices.get(f"{run_experiment}/{attempt_id}", run.get("invoice_expense_usd"))
         try:
             price = select_price(assumptions["pricing"], model, started, tier, arrangement)
             expense = token_cost(usage, price, invoice)
@@ -130,16 +133,22 @@ def import_attempts(path, assumptions, tier="standard_paid", arrangement="pay_as
         duration = number(run.get("duration_seconds", run.get("total_elapsed_seconds")), "duration", nullable=True)
         if any(not run.get(k, plan.get(k)) for k in ("system_id", "prompt_version", "model")):
             raise ValueError("Missing system, skill version or model identity")
-        result.append({"experiment_id": experiment, "attempt_id": attempt_id,
+        result.append({"experiment_id": run_experiment, "attempt_id": attempt_id,
             "system_id": run.get("system_id", plan.get("system_id")),
             "input_hash": run.get("system_sha256", plan.get("system_sha256")),
             "skill_version": run.get("prompt_version", plan.get("prompt_version")),
             "skill_hash": run.get("skill_sha256", plan.get("skill_sha256")), "workflow": workflow,
             "model": model, "configuration": settings, "configuration_id": configuration_id(settings),
             "actual_model": execution.get("model_version", run.get("actual_model")),
-            "started_at": started, "finished_at": run.get("finished_at"), "status": status,
+            "started_at": run.get("started_at"), "observed_at": started,
+            "timestamp_basis": "generation_start" if run.get("started_at") else "recorded_observation_date_only",
+            "finished_at": run.get("finished_at"), "status": status,
+            "schema_valid": run.get("fmea_metrics", {}).get("schema_valid"),
             "effective_result": run.get("dataset_included", False) is True and status == "success",
-            "failure_type": run.get("failure_classification") or run.get("error_type"),
+            "failure_type": run.get("provider_error_classification") or run.get("failure_classification") or run.get("error_type"),
+            "error_type": run.get("error_type"), "duration_kind": run.get("duration_kind", "total_elapsed_seconds"),
+            "is_recovery": bool(run.get("supersedes_attempt_id") or run.get("is_recovery")),
+            "engineering_review_status": run.get("engineering_review_status", "unreviewed"),
             "http_status": run.get("http_status"), "retry_number": run.get("retry_number", 0),
             "retry_wait_seconds": run.get("retry_wait_seconds", 0),
             "duration_seconds": duration, "api_request_seconds": execution.get("generation_seconds", run.get("api_request_seconds")),

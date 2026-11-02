@@ -277,3 +277,8 @@ and rejects the whole sheet if any text cell is empty.
 C/E recovery: see [manual workflow, artifact restoration and offline financial reporting](docs/ce-recovery.md).
 
 Additional D/E replication campaigns: see [three new datasets per system](docs/de-replicates.md).
+
+Automatic standalone metrics, ten-figure dashboards, offline financial execution and
+review-only aggregate publication: see [experiment reporting](analysis/experiments/README.md).
+Raw data and locally generated reports remain under ignored `results/`; no model calls
+are needed to regenerate reports.
