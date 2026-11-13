@@ -1,0 +1,38 @@
+{
+  "rationale": "EDIT: document assumptions and obtain approval before executing; not observed project savings",
+  "approval_status": "awaiting_user_values",
+  "distributions": {
+    "labor_rate": {
+      "distribution": "constant",
+      "value": null
+    },
+    "manual_hours": {
+      "distribution": "constant",
+      "value": null
+    },
+    "ai_hours": {
+      "distribution": "constant",
+      "value": null
+    },
+    "api_usd_per_attempt": {
+      "distribution": "constant",
+      "value": null
+    },
+    "success_probability": {
+      "distribution": "constant",
+      "value": null
+    },
+    "maintenance_usd": {
+      "distribution": "constant",
+      "value": null
+    },
+    "development_usd": {
+      "distribution": "constant",
+      "value": null
+    },
+    "annual_volume": {
+      "distribution": "constant",
+      "value": null
+    }
+  }
+}

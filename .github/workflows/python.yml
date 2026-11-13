@@ -18,4 +18,6 @@ jobs:
       - run: python -m unittest discover -s tests -v
         env:
           PYTHONPATH: src
+          # Collection stays on; expensive automatic rendering is covered by dedicated offline report tests.
+          SIGMA_FMEA_AUTOREPORT: 'off'
           SIGMA_TEST_WHEEL: .venv/test-wheels/sigma_fmea-0.3.0-py3-none-any.whl

@@ -86,3 +86,39 @@ jobs:
           path: results/
           retention-days: 14
           if-no-files-found: warn
+
+
+  experiment-report:
+    needs: recover
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install offline reporting dependencies
+        run: python -m pip install -e '.[financial]'
+      - name: Download this run's recoverable evidence
+        uses: actions/download-artifact@v4
+        with:
+          path: results/report-input
+      - name: Build offline metrics, dashboard and financial reports
+        run: |
+          mkdir -p results/report-input
+          python -m analysis.experiments report --source results/report-input --output-root results/post-report --catalog results/post-report/catalog.json --analysis-id actions-${{ github.run_id }}-${{ github.run_attempt }} --skip-empty --summary-file "$GITHUB_STEP_SUMMARY"
+          echo 'Download the experiment-metrics artifact from this workflow run for dashboard.md, figures and financial reports.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload offline dashboard and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-metrics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: results/post-report/
+          retention-days: 14
+          if-no-files-found: warn

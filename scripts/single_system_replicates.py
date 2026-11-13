@@ -301,19 +301,26 @@ def main():
     parser.add_argument("--approved-calls", type=int, default=0)
     parser.add_argument("--plan-file", type=Path, required=True)
     args = parser.parse_args()
-    if args.mode == "preflight":
-        frozen = preflight(args.model, args.batch_id)
-        write_json(args.plan_file, frozen, exclusive=True)
-        print(json.dumps(frozen, indent=2))
-    else:
-        frozen = json.loads(args.plan_file.read_text(encoding="utf-8"))
-        if (args.model, args.batch_id) != (frozen["model"], frozen["batch_id"]):
-            raise ValueError("CLI does not match frozen preflight")
-        output, manifest = execute(frozen, args.approved_calls)
-        print(json.dumps({"output": str(output), "requests": manifest["request_invocations"],
-                          "summary": manifest["summary"]}, indent=2))
-        if manifest["summary"]["successes"] != 5:
-            sys.exit(1)
+    try:
+        if args.mode == "preflight":
+            frozen = preflight(args.model, args.batch_id)
+            write_json(args.plan_file, frozen, exclusive=True)
+            print(json.dumps(frozen, indent=2))
+        else:
+            frozen = json.loads(args.plan_file.read_text(encoding="utf-8"))
+            if (args.model, args.batch_id) != (frozen["model"], frozen["batch_id"]):
+                raise ValueError("CLI does not match frozen preflight")
+            output, manifest = execute(frozen, args.approved_calls)
+            print(json.dumps({"output": str(output), "requests": manifest["request_invocations"],
+                              "summary": manifest["summary"]}, indent=2))
+            if manifest["summary"]["successes"] != 5:
+                sys.exit(1)
+    finally:
+        # Flush the finalized campaign receipts; this cannot send provider requests.
+        if args.mode == "run":
+            from src.sigma_fmea.execution_metadata import automatic_report
+            automatic_report(BASE / args.batch_id)
+
 
 
 if __name__ == "__main__":

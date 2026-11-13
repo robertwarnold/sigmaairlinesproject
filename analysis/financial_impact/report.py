@@ -111,11 +111,14 @@ def measured_narrative(metrics):
 
 def create_report(manifests, output_root, assumptions_path=None, labor_path=None, quality_path=None,
                   invoices_path=None, expenses_path=None, analysis_id=None, sources_path=None,
-                  tier="standard_paid", billing_arrangement="pay_as_you_go"):
+                  tier="standard_paid", billing_arrangement="pay_as_you_go", scenario_path=None):
     """Create one immutable preliminary package; return its path and structured metrics."""
     assumptions_path = Path(assumptions_path or CONFIG / "assumptions.json")
     sources_path = Path(sources_path or CONFIG / "sources.json")
     assumptions, sources = read_json(assumptions_path), read_json(sources_path)
+    if scenario_path:
+        # Explicit scenario inputs reuse the existing model; source assumptions remain immutable.
+        assumptions={**assumptions,"scenario":read_json(scenario_path)}
     # Analysis identity is unique; callers can supply a fixed ID for an auditable rerun attempt.
     created = datetime.now(timezone.utc).isoformat()
     analysis_id = analysis_id or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ-") + uuid.uuid4().hex[:8]
@@ -183,6 +186,9 @@ def create_report(manifests, output_root, assumptions_path=None, labor_path=None
                                                              if len(comparisons) == 1 else None),
                    "missing_measurements": ["manual development/review/approval", "AI preparation/supervision/review/rework",
                                             "independent acceptance", "failed-call invoices", "skill maintenance", "annual workload"]}
+        audit=data_audit(attempts,labor,quality,len(manifests))
+        metrics["data_audit"]=audit
+        print("FINANCIAL DATA AUDIT (before rendering): " + json.dumps(audit,sort_keys=True),flush=True)
         captions = figures(metrics, staging / "figures")
         write_json(staging / "metrics.json", metrics)
         # Only aggregates and non-sensitive provenance are written; private notes/identities stay out.
@@ -215,7 +221,7 @@ def create_report(manifests, output_root, assumptions_path=None, labor_path=None
             "\n".join(f"- {name}: {caption}" for name, caption in captions.items()))
         (staging / "assumptions_and_sources.md").write_text(explanation, encoding="utf-8")
         paths = [*map(Path, manifests), assumptions_path, sources_path, *[Path(p) for p in (
-            labor_path, quality_path, invoices_path, expenses_path) if p]]
+            labor_path, quality_path, invoices_path, expenses_path, scenario_path) if p]]
         manifest = {"analysis_id": analysis_id, "report_status": "preliminary", "created_at": created,
             "system_ids": sorted({a["system_id"] for a in attempts}),
             "skill_versions": sorted({a["skill_version"] for a in attempts}),
@@ -255,3 +261,17 @@ def rebuild_index(root):
     temporary = root / (".index-" + uuid.uuid4().hex + ".json")
     write_json(temporary, {"analyses": entries})
     temporary.replace(root / "index.json")
+
+
+def data_audit(attempts,labor,quality,manifest_count):
+    """Expose measured inputs and billing missingness before any financial chart is rendered."""
+    usable=lambda r:bool(r.get("usage")) and all(r["usage"].get(k) is not None for k in ("prompt_token_count","candidates_token_count","thoughts_token_count"))
+    return {"manifests_loaded":manifest_count,"unique_attempts":len(attempts),"systems":sorted({r["system_id"] for r in attempts}),
+        "successful_generations":sum(r["status"]=="success" for r in attempts),"failed_generations":sum(r["status"]!="success" for r in attempts),
+        "attempts_with_duration":sum(r["duration_seconds"] is not None for r in attempts),"attempts_with_usable_tokens":sum(usable(r) for r in attempts),
+        "attempts_with_invoice_expense":sum(r["cost_basis"]=="invoice" for r in attempts),
+        "attempts_with_estimated_expense":sum(r["cost_basis"].startswith("estimated") and r["cost_usd"] is not None for r in attempts),
+        "attempts_with_unknown_actual_billing":sum(r["cost_basis"]!="invoice" for r in attempts),
+        "attempts_without_priced_amount":sum(r["cost_usd"] is None for r in attempts),
+        "manual_labor_observations":sum(r["method"]=="manual" for r in labor),"all_labor_observations":len(labor),
+        "engineering_review_observations":len(quality),"independent_acceptance_decisions":sum(r["decision"] in ("accepted","rejected") and str(r["independent_review"]).lower()=="true" for r in quality)}

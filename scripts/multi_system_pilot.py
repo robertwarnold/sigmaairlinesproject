@@ -304,16 +304,23 @@ def main():
     parser.add_argument("--branch", default="feat/fmea-b-e-live-pilot")
     parser.add_argument("--gh-wrapper", type=Path)
     args = parser.parse_args()
-    if args.mode == "initialize":
-        initialize(args.folder, args.campaign_id)
-    elif args.mode == "remote-preflight":
-        remote_preflight(args.campaign_id, args.plan)
-    elif args.mode == "remote-single":
-        if read_json(args.plan)["campaign_id"] != args.campaign_id:
-            raise ValueError("Campaign ID differs from preflight")
-        remote_single(args.plan, args.system, args.approved_calls)
-    else:
-        worker(args.folder, args.branch, args.gh_wrapper, args.approved_calls)
+    try:
+        if args.mode == "initialize":
+            initialize(args.folder, args.campaign_id)
+        elif args.mode == "remote-preflight":
+            remote_preflight(args.campaign_id, args.plan)
+        elif args.mode == "remote-single":
+            if read_json(args.plan)["campaign_id"] != args.campaign_id:
+                raise ValueError("Campaign ID differs from preflight")
+            remote_single(args.plan, args.system, args.approved_calls)
+        else:
+            worker(args.folder, args.branch, args.gh_wrapper, args.approved_calls)
+    finally:
+        # Reporting remains offline and cannot replace the saved generation outcome.
+        if args.mode in ("worker","remote-single"):
+            from src.sigma_fmea.execution_metadata import automatic_report
+            automatic_report(args.folder if args.folder else ROOT / "results/multi-system-remote" / args.campaign_id)
+
 
 
 if __name__ == "__main__":

@@ -152,3 +152,31 @@ Pricing fields are null with an explicit offline-analysis status; receipt creati
 does not guess a billing arrangement or couple generation to financial assumptions.
 Historical CSV timing columns and pilot evidence remain unchanged. Newly generated
 standalone CSVs omit repeated generation_minutes; clients should read the sidecar.
+
+## Observed operations, empirical economics and scenarios
+
+Version 1.3 adds six operational panels (08-13) to the existing seven: recorded
+duration, token usage, failure/wait overhead, retries, expense and schema-valid response
+efficiency. These use observed records even without labor or acceptance measurements.
+Tariff estimates are assumption-based; unknown actual billing remains unknown, including
+failed requests. A priced subset per valid response is not a complete billed campaign
+cost or cost per engineering-accepted FMEA. The data audit prints counts before rendering.
+
+The original empirical economics panels legitimately need matched manual/AI scope and
+criteria, measured active development/preparation/supervision/review/rework/approval time,
+loaded labor rates, independent accepted/rejected decisions, reconciled invoices,
+development/maintenance expense and annual workload. Passive API waiting is not labor.
+No observed project savings or empirical confidence interval is invented when these are missing.
+
+Use `--scenario path/to/scenario.json` for an explicitly specified illustrative scenario.
+Copy [scenario_template.json](templates/scenario_template.json), supply the eight
+distributions, units/rationale and obtain approval of those assumptions first. Null
+template values are intentionally not executable. Existing Monte Carlo, sensitivity
+and break-even calculations are reused; figure 14 appears only for a complete scenario.
+Simulation intervals remain assumption-driven, never empirical confidence intervals.
+
+For heterogeneous or reconciled standalone evidence, run
+`python -m analysis.experiments report --registry results/my-sources.json`. It validates
+and deduplicates receipts and actually invokes this module's CLI, saving its audit/log.
+Do not pass overlapping original and embedded histories directly as separate expenses.
+See [automatic reporting and artifact backups](../experiments/README.md).
