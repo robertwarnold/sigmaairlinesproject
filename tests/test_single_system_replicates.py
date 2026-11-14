@@ -18,6 +18,8 @@ class ReplicateTests(unittest.TestCase):
         root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.base = root / "results"
         self.enterContext(patch.object(runner, "BASE", self.base))
+        # The System A pilot is pinned to skill v2.0; test its logic independently of the active version.
+        self.enterContext(patch.object(runner.engine, "PROMPT_VERSION", "v2.0"))
         # plan.output is informational; keep the test base inside ROOT via relative_to override.
         self.enterContext(patch.object(runner, "ROOT", root))
         (root / "fmea_generator.py").write_text("offline engine source")

@@ -294,7 +294,7 @@ class TimingTests(unittest.TestCase):
                             engine.generate_fmea(system, "synthetic", output_dir=root / "out")
                     else:
                         engine.generate_fmea(system, "synthetic", output_dir=root / "out")
-                record = schema.read_json(root / "out/synthetic_v2.0_run01_execution.json")
+                record = schema.read_json(root / f"out/synthetic_{engine.PROMPT_VERSION}_run01_execution.json")
                 self.assertGreaterEqual(record["api_request_seconds"], 0)
                 self.assertGreaterEqual(record["total_elapsed_seconds"], record["api_request_seconds"])
                 self.assertIsNone(record["usage_metadata"])
@@ -304,7 +304,7 @@ class TimingTests(unittest.TestCase):
                     self.assertIsNone(record["parsing_validation_seconds"])
                 else:
                     self.assertGreaterEqual(record["parsing_validation_seconds"], 0)
-                    with (root / "out/synthetic_v2.0_run01.csv").open() as stream:
+                    with (root / f"out/synthetic_{engine.PROMPT_VERSION}_run01.csv").open() as stream:
                         self.assertNotIn("generation_minutes", csv.DictReader(stream).fieldnames)
 
     def test_api_duration_uses_monotonic_difference_even_on_disconnect(self):
