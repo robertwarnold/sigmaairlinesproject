@@ -270,6 +270,22 @@ Intentional differences from v1.0 that change what a comparison measures:
 - Banded severity/detection scales; occurrence from apportioned package failure rates or
   calibration anchors; detection only from provisions the package states.
 
+### Skill v3.0
+
+The active version. Sheets carry `version` v3.0 and are not pooled with v2.0. v3.0 keeps all
+v2.0 rules and adds three general coverage rules, aimed at the two largest causes of missed
+failure modes in the v2.0 round (repeated units skipped, distinct failures merged into one row):
+
+- Step 1: list every item first, expanding quantities into numbered units and including the
+  connections and sub-assemblies the package describes (a connection described once for a
+  group of units is a separate item per unit).
+- Step 2: a general failure-type checklist per item, written as separate rows: fails on demand,
+  stops during operation, partial, uncommanded; each direction for switching or connecting
+  items; contained vs spreading for energy-storing items; drive loss vs seizure for rotating items.
+- A completeness check before returning; output length is never a reason to merge or drop rows.
+
+None of the rules names a part or system from the test set.
+
 The generator uses the selected model's own maximum output length, fails with a clear error
 when the response is truncated or stops for any other reason (raw output is still saved),
 and rejects the whole sheet if any text cell is empty.
