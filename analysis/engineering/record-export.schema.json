@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Private selected engineering records",
+  "type": "object",
+  "required": ["schema", "private", "scope", "rows", "records", "coverage_audits", "metric_scope"],
+  "properties": {
+    "schema": {"const": "engineering-record-export-1"},
+    "private": {"const": true},
+    "scope": {"const": "selected_record_ids"},
+    "rows": {"$ref": "workspace.schema.json#/properties/rows"},
+    "records": {"$ref": "workspace.schema.json#/properties/records"},
+    "coverage_audits": {"type": "object"},
+    "metric_scope": {"type": "string"}
+  },
+  "additionalProperties": false
+}
