@@ -48,3 +48,12 @@ Respect reduced motion. Preserve manual/30-second refresh and last-known-good ca
 Validated Python calculations remain authoritative. Layout, formatting, manifest-ID
 selection and visual mark placement do not create or change research statistics.
 Keep private records and API keys out of public/browser presentation datasets.
+
+## Private engineering workspace
+
+Keep row-level engineering work inside Explorer, with detailed risk counts in the
+existing Quality view. Use the same tokens, compact controls and ordinary details
+panels; preserve the six primary views. Label synthetic fixtures and private mode.
+Wide technical tables scroll inside their container, not the whole page. Original
+AI values, reviewed values, citation presence and human-verified support must have
+distinct labels. Do not make approval styling resemble independent judge evidence.

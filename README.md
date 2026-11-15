@@ -375,3 +375,9 @@ rendering tests, before/after previews, benchmark commands and retained data bou
 
 The [premium workspace redesign](docs/v42-premium-dashboard.md) documents the six-view
 layout, manifest-matched progress, compact Explorer, financial tabs and 16:9 focus mode.
+
+The [private engineering workspace](docs/v42-engineering-integration.md) adds explicit
+V4 artifact imports, row-level evidence inspection, append-only human review,
+rating-safe risk analysis and private CSV/JSON exports within Experiment Explorer.
+Start the opt-in loopback-only workstation with `Rscript dashboard/run_private.R`.
+It is disabled in public mode and never contributes unjudged rows to research metrics.

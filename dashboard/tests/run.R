@@ -1,6 +1,16 @@
 # Run from the project root: Rscript dashboard/tests/run.R
 source('dashboard/bootstrap.R'); source('dashboard/data.R'); source('dashboard/plots.R'); source('dashboard/poster.R')
 library(testthat)
+
+test_that('private RPN histogram preserves supplied bins and missing values stay outside', {
+  source('dashboard/charts.R'); source('dashboard/engineering.R')
+  bins <- data.frame(lower=c(1,101),upper=c(100,200),count=c(2,0))
+  chart <- as.character(engineering_rpn_chart(bins))
+  expect_match(chart,'RPN 1 to 100 : 2 rows',fixed=TRUE)
+  expect_match(chart,'RPN 101 to 200 : 0 rows',fixed=TRUE)
+  expect_match(chart,'100-point bins',fixed=TRUE)
+  expect_false(grepl('NaN|Infinity',chart))
+})
 test_that('baseline is explicit and missing versions remain pending', {
   d <- read_snapshot('dashboard/data/baseline.json')
   expect_equal(nrow(as_table(d$runs)),0)
@@ -36,6 +46,18 @@ cat('Dashboard R checks completed\n')
 
 source('dashboard/charts.R')
 source('dashboard/workspace.R')
+source('dashboard/engineering.R')
+test_that('private workspace requires explicit loopback origin and does not expose public records', {
+  request <- list(REMOTE_ADDR='127.0.0.1',HTTP_HOST='127.0.0.1:5393',HTTP_ORIGIN='http://127.0.0.1:5393')
+  expect_true(engineering_allowed('1',request))
+  expect_false(engineering_allowed('',request)); expect_false(engineering_allowed('1',NULL))
+  request$REMOTE_ADDR <- '192.0.2.1'; expect_false(engineering_allowed('1',request))
+  request$REMOTE_ADDR <- '127.0.0.1'; request$HTTP_ORIGIN <- 'https://outside.example'; expect_false(engineering_allowed('1',request))
+  request$HTTP_ORIGIN <- NULL; request$HTTP_X_FORWARDED_FOR <- '192.0.2.1'; expect_false(engineering_allowed('1',request))
+  rows <- data.frame(record_id='synthetic-only',failure_mode='<script>synthetic</script>',severity=NA_real_)
+  html <- as.character(engineering_table(rows,c('failure_mode','severity')))
+  expect_false(grepl('<script>',html,fixed=TRUE)); expect_match(html,'Unknown')
+})
 test_that('manifest progress excludes historical aliases and duplicate attempts', {
   d <- list(registry=data.frame(run_id=c('old','planned-A','planned-A'),system='A',skill_version='v4.0',
     generation_status='success',evaluation_status=c('not_evaluated','evaluated','evaluated')))

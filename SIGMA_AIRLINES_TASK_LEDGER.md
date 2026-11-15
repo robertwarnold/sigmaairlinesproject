@@ -280,3 +280,13 @@ V4.1 final verification: 209 Python tests and 26 R assertions; live API metadata
   loss/reset and academic exports. No research calculations or live registry changed.
 - Remaining: actual comparable V4 evaluation, confirmed plan/model settings, complete
   authorized GitHub backfill and invoice/labor evidence; no publication or paid calls.
+- V4.2 engineering integration (2026-11-15): extended premium Explorer with opt-in
+  private generated-output workspace, hash-bound V4 adapter, immutable originals,
+  append-only review history, missing-rating-safe RPN, evidence inspection, private
+  risk counts and scoped exports. Existing judge/research/financial pipeline and
+  all prompt versions preserved. See docs/v42-engineering-integration.md.
+  Offline and browser validation use labeled synthetic fixtures only. Pending:
+  authorized V4 artifacts, engineer acceptance, comparable judge observations and
+  authenticated multi-user hosting; no paid calls, push or deployment authorized.
+  Verified 223 Python tests, 82 R assertions, six-view desktop/tablet rendering,
+  persistent synthetic review and private exports, and 25 academic export files.

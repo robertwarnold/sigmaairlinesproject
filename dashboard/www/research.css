@@ -188,3 +188,27 @@ pre { white-space:pre-wrap; overflow-wrap:anywhere; color:var(--ink); background
 #financial_metrics:empty::before,#finance_cost:empty::before,#finance_distribution:empty::before {
   content:'Calculating scenario...'; display:block; padding:16px 0; color:var(--muted); font-size:12px;
 }
+.engineering-controls { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; padding:16px 0; }
+.engineering-controls .shiny-input-container { width:100%; }
+.engineering-table-wrap { max-width:100%; max-height:480px; overflow:auto; border-bottom:1px solid var(--line); }
+.engineering-table { min-width:1050px; }
+.engineering-table th { position:sticky; top:0; background:var(--surface); z-index:1; }
+.engineering-row { cursor:pointer; }
+.engineering-row:hover { background:var(--surface); }
+.engineering-exports { display:flex; gap:12px; margin:20px 0; }
+.private-notice { color:var(--warning); font-size:12px; }
+.metric-definitions { grid-column:1/-1; }
+#engineering_body .tab-content > .tab-pane { padding:20px 0; }
+#engineering_body .detail-grid pre { max-height:360px; overflow:auto; }
+#eng_origin { font-size:12px; color:var(--warning); margin:12px 0; }
+.engineering-assessment dl { margin:0; }
+.engineering-assessment dt { font-size:11px; font-weight:500; color:var(--muted); margin-top:12px; }
+.engineering-assessment dd { font-size:13px; color:var(--ink); margin:4px 0 0; overflow-wrap:anywhere; }
+.engineering-facts { border-top:1px solid var(--line); padding:16px 0; }
+.engineering-facts blockquote { border-left:1px solid var(--line); padding:12px; font-size:13px; color:var(--ink); }
+.engineering-facts li { font-size:12px; color:var(--muted); }
+.engineering-exports .btn { min-width:0; }
+#engineering_risk rect[role=button] { cursor:pointer; }
+#engineering_risk rect[role=button]:focus { stroke:var(--ink); stroke-width:2px; outline:none; }
+@media(max-width:1000px) { .engineering-controls { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) { .engineering-controls { grid-template-columns:1fr; } }

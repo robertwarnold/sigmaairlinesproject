@@ -1,6 +1,6 @@
-# Sigma Airlines: no API clients or private row data are loaded in this app.
+# Aggregate mode has no private rows. Engineering mode is explicitly loopback-only.
 source('bootstrap.R')
-source('data.R'); source('plots.R'); source('poster.R'); source('charts.R'); source('workspace.R')
+source('data.R'); source('plots.R'); source('poster.R'); source('charts.R'); source('workspace.R'); source('engineering.R')
 library(shiny); library(bslib)
 source_path <- Sys.getenv('SIGMA_DASHBOARD_DATA', file.path(project_root,'results','research','current.json'))
 fallback <- 'data/baseline.json'
@@ -21,6 +21,8 @@ ui <- page_navbar(
       uiOutput('historical_reference'),uiOutput('criteria'),textOutput('sync_summary'),tableOutput('workflow_table'))),
   nav_panel('Experiment Explorer',value='Experiment explorer',
     div(class='page-intro',h1('Experiment explorer'),p('Find a run. Inspect its generation, evaluation and provenance.')),
+    tabsetPanel(id='explorer_mode',
+      tabPanel('Run registry',value='registry',
     tags$div(tags$details(class='filter-panel',tags$summary('Filter runs'),div(class='filter-grid',
       textInput('search','Search run or model'),selectInput('systems','Systems',choices=LETTERS[1:5],selected=LETTERS[1:5],multiple=TRUE),
       selectInput('versions','Skill versions',choices=c('v2.0','v3.0','v3.0-audit','v4.0'),selected=c('v2.0','v3.0','v3.0-audit','v4.0'),multiple=TRUE),
@@ -31,6 +33,7 @@ ui <- page_navbar(
       uiOutput('explorer_table'),numericInput('run_page','Page',1,min=1,width='6rem'),
       tags$details(id='run-detail',class='analysis-details',tags$summary('Selected run details'),uiOutput('generation_detail'),
       tags$details(tags$summary('Lifecycle history'),tableOutput('event_table'))))),
+      tabPanel('FMEA workspace',value='workspace',engineering_ui()))),
   nav_panel('Engineering Quality',value='Engineering quality',
     div(class='page-intro',h1('Engineering quality'),p('Accepted evaluations only. Historical aggregates remain a separate reference.')),
     chart_panel('Missed failure modes by run',uiOutput('run_plot'), 'Accepted evaluations only | missed reference opportunities (%) | target below 20%'),
@@ -42,6 +45,7 @@ ui <- page_navbar(
       chart_panel('Generated rows and missed percentage',uiOutput('quality_completeness')),
       h2('Version summary'),tableOutput('version_summary'),h2('System summary'),tableOutput('system_summary'),
       h2('Component coverage'),tableOutput('coverage_table'),h2('Unmatched rows (not adjudicated false positives)'),tableOutput('extras')),
+    tags$details(class='analysis-details',tags$summary('Private engineering risk and experiment comparison'),uiOutput('engineering_risk')),
     tags$details(class='analysis-details',tags$summary('Inference, acceptance criteria and human review'),
       verbatimTextOutput('statistics'),tableOutput('review'))),
   nav_panel('Financial Analysis',value='Financial analysis',
@@ -327,5 +331,6 @@ server <- function(input,output,session) {
   output$review_costs <- renderTable(as_table(financial()$quality_review_estimates),digits=2)
   output$historical_finance <- renderTable({h <- financial()$historical_scenario; if(is.null(h)) return(data.frame(Status='Pending')); data.frame(Metric=names(h),Value=vapply(h,function(x) paste(x,collapse=' to '),character(1)))})
 
+  engineering_server(input,output,session)
 }
 shinyApp(ui,server)
