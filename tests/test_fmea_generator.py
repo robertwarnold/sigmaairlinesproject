@@ -21,7 +21,7 @@ class FMEATests(unittest.TestCase):
             root = Path(tmp)
             system = root / "system.txt"
             system.write_text("test system", encoding="utf-8")
-            for metadata in ({"version": "v1.0"}, {"version": "v3.0"},
+            for metadata in ({"version": "v1.0"}, {"version": "v9.9"},
                              *({"run": run} for run in (True, False, 0, -1, 1.5, "1"))):
                 with self.subTest(metadata=metadata), patch("fmea_generator.call_gemini") as call:
                     with self.assertRaises(ValueError):
@@ -178,7 +178,7 @@ class FMEATests(unittest.TestCase):
         out, error = self._generate("MAX_TOKENS", '[{"component": "x"')
         self.assertRegex(str(error), "truncated at the 100-token limit")
         self.assertEqual({p.name for p in out.iterdir()},
-                         {"case_v2.0_run01_raw.txt", "case_v2.0_run01_execution.json"})
+                         {f"case_{PROMPT_VERSION}_run01_raw.txt", f"case_{PROMPT_VERSION}_run01_execution.json"})
 
     def test_other_finish_reason_fails(self):
         out, error = self._generate("SAFETY", "")
@@ -188,7 +188,7 @@ class FMEATests(unittest.TestCase):
     def test_complete_response_writes_csv(self):
         out, rows = self._generate("STOP", json.dumps([VALID_ROW]))
         self.assertEqual(rows[0]["RPN"], 1)
-        self.assertTrue((out / "case_v2.0_run01.csv").is_file())
+        self.assertTrue((out / f"case_{PROMPT_VERSION}_run01.csv").is_file())
 
 
 if __name__ == "__main__":

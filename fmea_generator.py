@@ -10,7 +10,7 @@ from src.sigma_fmea.execution_metadata import file_hash, utc_now, write_receipt,
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_MODEL = "gemini-2.5-flash"
-PROMPT_VERSION = "v2.0"
+PROMPT_VERSION = "v3.0"
 FIELDS = ["component", "function", "failure_mode", "cause", "local_effect",
           "system_effect", "recommended_action", "severity", "occurrence",
           "detection", "rating_rationale", "evidence", "review_flag"]

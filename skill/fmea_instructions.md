@@ -25,6 +25,24 @@ Packages typically contain: scope and exclusions; terms; common design facts; th
 - Failure rates are given per component, not per failure mode. Apportion a component's rate across the failure modes you identify, using judgment. State the split you used in rating_rationale.
 - Existing indications and design provisions are the only detection and mitigation information you may assume exist.
 
+## Step 1: list every item before writing rows
+Before writing any row, build an item list (for your own use; do not output it):
+- Every component in the component list, expanded into individually numbered units. A component with quantity 4 becomes four items ("Motor 1" to "Motor 4"), each analysed on its own.
+- Every connection and sub-assembly the package names or describes: power and signal links, wiring, terminals, branches, buses, pipes, hoses, shafts, couplings, mounts. If a connection is described once for a group of units (for example "each motor is fed by its own cable"), the connection to each unit is a separate item.
+- Do not add items the package does not state or describe (ground rule 2).
+
+## Step 2: go through the failure types for each item
+For every item on the list, check each failure type below and write a separate row for each one that is credible for that item. Skip a type that cannot occur for the item; do not write a row just to fill the list.
+- Fails to work when demanded.
+- Stops working during operation.
+- Works only partly, or degraded.
+- Works when it should not, or cannot be stopped.
+- Items that switch, connect, isolate or transfer: each direction is a separate failure (fails to engage and fails to disengage; fails open and fails closed; open circuit and short circuit).
+- Items that store energy (batteries, pressure vessels, fuel, springs, flywheels): split by whether the failure stays contained within the item or spreads beyond it.
+- Rotating or load-carrying items: loss of drive or breakage, and seizure or jamming, are separate failures.
+- Loss of cooling or lubrication, overheating, and failures that disable a redundancy or protective feature, where relevant.
+Each row describes one failure type with its own effects and ratings. Never combine two failure types in one row (for example "fails or overheats").
+
 ## Columns (in this order)
 | # | Column | Content |
 |---|--------|---------|
@@ -43,8 +61,8 @@ Packages typically contain: scope and exclusions; terms; common design facts; th
 | 13 | review_flag | Text noting what needs engineering review, e.g. "Engineering review required: provisional ratings" |
 
 ## Row construction
-- One row per individual unit per distinct failure mode and cause. Do not group numbered units; name them as in the component list with the unit number, e.g. "Motor 1", "Motor 2".
-- For each component, consider where relevant: complete loss of function, partial or degraded function, unintended or uncommanded operation, loss of cooling or lubrication, overheating, mechanical seizure or breakage, and failures that disable a redundancy or protective feature.
+- One row per individual unit per distinct failure mode and cause. Do not group numbered units; name them as in the component list with the unit number, e.g. "Motor 1", "Motor 2". Never write a range or group ("Motor 1-4", "all motors", "each motor", "typical of all units") in a row.
+- Identical units get the same set of failure types, each in its own rows, unless the package states a difference between them.
 - Trace effects through the architecture described: use the power chain, dependencies, redundancy and isolation facts in the package to state the local effect and the system effect.
 - recommended_action must be specific and implementable (a design change, monitoring, inspection, redundancy or procedure). Build on existing provisions listed in the package rather than repeating them. Do not present a recommended action as an existing feature.
 - evidence: cite the package statement(s) the row relies on (section and wording). Write "Not provided" if the row rests only on general engineering knowledge.
@@ -74,6 +92,13 @@ Detection (likelihood the failure is detected or prevented before it has its eff
 - In rating_rationale, state the main driver of each rating and the rate split used for occurrence. In review_flag, state what you assumed and what would change the rating.
 - Every row that depends on an assumption, an estimated rate, a rate that looks inconsistent with similar components in the package, or missing information must carry a review_flag. If you notice a package value that looks inconsistent (for example, a rate far from comparable components), use it as given and note the inconsistency in review_flag.
 - Ratings are provisional engineering estimates. Do not claim they are validated.
+
+## Completeness check before returning
+Before returning the sheet, check it against your item list from step 1:
+- Every item has at least one row, and every numbered unit has its own rows.
+- Identical units have the same failure types, unless the package states a difference.
+- No row covers more than one unit or more than one failure type.
+Add any missing rows. Output length is not a constraint: never merge units or failure types, or drop rows, to keep the sheet short.
 
 ## Output format
 Return a JSON array only, no other text. Each element is an object with exactly these keys: component, function, failure_mode, cause, local_effect, system_effect, recommended_action, severity, occurrence, detection, rating_rationale, evidence, review_flag. severity, occurrence and detection are integers 1-10; all other values are strings, never null or empty. Keep rating_rationale to at most four short sentences (about 60 words), covering the main driver of each rating and the rate split used for occurrence. Put any general note (an assumption, a gap, an inconsistent package value) in the review_flag of the affected rows instead of in a separate notes row. Do not include RPN; it is computed elsewhere.
