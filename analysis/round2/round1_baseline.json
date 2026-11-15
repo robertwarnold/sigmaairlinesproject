@@ -1,0 +1,35 @@
+{
+  "provenance": "User-supplied November 14, 2026 report aggregates; not reconstructed item-level data",
+  "skill_version": "v2.0",
+  "generator": "Gemini",
+  "judge_model": "Claude Sonnet 5.5",
+  "judge_skill_version": "v1.2",
+  "systems": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+  ],
+  "total_runs": 18,
+  "opportunities": 738,
+  "missed": 232,
+  "pooled_missed_percentage_reported": 31.4,
+  "pooled_missed_percentage_recalculated": 31.43631436314363,
+  "dpmo_recalculated": 314363.1436314363,
+  "sigma_reported_approximate": 2.0,
+  "extra_unmatched_rows": 43,
+  "extra_per_run_reported_approximate": 2.4,
+  "extra_per_run_recalculated": 2.388888888888889,
+  "miss_categories": {
+    "Repeated unit skipped": 114,
+    "Sub-case not split out": 63,
+    "Part never covered": 51,
+    "Wrong failure direction": 4
+  },
+  "per_system_denominators": null,
+  "run_level_mean": null,
+  "cause_correctness_reported_approximate": 0.98,
+  "severity_within_one_reported_approximate": 0.58,
+  "additional_values_provenance": "User-supplied V4 master instructions; original report and item evidence unavailable"
+}

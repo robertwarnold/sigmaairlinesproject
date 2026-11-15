@@ -1,0 +1,103 @@
+{
+  "baseline": {
+    "additional_values_provenance": "User-supplied V4 master instructions; original report and item evidence unavailable",
+    "cause_correctness_reported_approximate": 0.98,
+    "dpmo_recalculated": 314363.1436314363,
+    "extra_per_run_recalculated": 2.388888888888889,
+    "extra_per_run_reported_approximate": 2.4,
+    "extra_unmatched_rows": 43,
+    "generator": "Gemini",
+    "judge_model": "Claude Sonnet 5.5",
+    "judge_skill_version": "v1.2",
+    "miss_categories": {
+      "Part never covered": 51,
+      "Repeated unit skipped": 114,
+      "Sub-case not split out": 63,
+      "Wrong failure direction": 4
+    },
+    "miss_category_cumulative_percentages": {
+      "Part never covered": 98.27586206896552,
+      "Repeated unit skipped": 49.13793103448276,
+      "Sub-case not split out": 76.29310344827586,
+      "Wrong failure direction": 100.0
+    },
+    "miss_category_percentages": {
+      "Part never covered": 21.982758620689655,
+      "Repeated unit skipped": 49.13793103448276,
+      "Sub-case not split out": 27.155172413793103,
+      "Wrong failure direction": 1.7241379310344827
+    },
+    "missed": 232,
+    "opportunities": 738,
+    "per_system_denominators": null,
+    "pooled_missed_percentage_recalculated": 31.43631436314363,
+    "pooled_missed_percentage_reported": 31.4,
+    "provenance": "User-supplied November 14, 2026 report aggregates; not reconstructed item-level data",
+    "run_level_mean": null,
+    "severity_within_one_reported_approximate": 0.58,
+    "sigma_reported_approximate": 2.0,
+    "skill_version": "v2.0",
+    "systems": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E"
+    ],
+    "total_runs": 18
+  },
+  "coverage_summary": [],
+  "data_version": "feb433f641f4dfd96f2e3f378a2d8c7c6bb36dd4e9c6fde0b2c655ce712f393b",
+  "last_updated": "2026-11-15T15:32:16.569283+00:00",
+  "pareto": [],
+  "per_system": [],
+  "per_version": [],
+  "registry": [],
+  "research_status": "REPORT_DERIVED_BASELINE_ONLY",
+  "review_summary": {
+    "events": 0,
+    "status": "PENDING"
+  },
+  "runs": [],
+  "schema": "sigma-dashboard-4",
+  "statistics": {
+    "anova": {
+      "reason": "All five systems required in every compared version",
+      "status": "INSUFFICIENT_DATA"
+    },
+    "confidence_intervals": {
+      "reason": "Need at least two independent runs in every version/system cell",
+      "status": "INSUFFICIENT_DATA"
+    },
+    "criteria": {
+      "extra_rows_at_most_4_8": "PENDING",
+      "four_systems_improve": "PENDING",
+      "mean_below_20": "PENDING",
+      "no_system_worsens_over_5pp": "PENDING",
+      "structural_completeness": "PENDING",
+      "unsupported_inflation_acceptable": "PENDING",
+      "valid_format": "PENDING",
+      "version_p_below_0_05": "PENDING"
+    },
+    "evaluated_v4_runs": 0,
+    "exploratory_three_version": {
+      "reason": "All five systems required in every compared version",
+      "status": "INSUFFICIENT_DATA"
+    },
+    "limitations": "Report-derived pooled V2 baseline cannot support run means, CIs or ANOVA. Bootstrap is exploratory with four runs/cell; no item-independence claim. Engineering review remains required.",
+    "planned_v4_runs": 20,
+    "primary_comparison": "v2.0 vs v4.0",
+    "research_status": "PENDING_LIVE_EVALUATION",
+    "secondary_v3_vs_v4": {
+      "anova": {
+        "reason": "All five systems required in every compared version",
+        "status": "INSUFFICIENT_DATA"
+      },
+      "confidence_intervals": {
+        "reason": "Need at least two independent runs in every version/system cell",
+        "status": "INSUFFICIENT_DATA"
+      }
+    }
+  },
+  "validation_status": "VALIDATED"
+}

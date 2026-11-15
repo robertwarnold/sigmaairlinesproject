@@ -1,5 +1,5 @@
 name: Generate FMEA with shared Gemini key
-run-name: ${{ (startsWith(inputs.mode, 'multi_system_') || inputs.mode == 'ce_recovery_single' || inputs.mode == 'replicate_single') && format('{0} {1} {2} ({3})', inputs.mode, inputs.batch_id, inputs.system, inputs.model) || (inputs.mode == 'single' && format('single {0} run{1} ({2})', inputs.system, inputs.run, inputs.model)) || format('{0} {1} ({2})', inputs.mode, inputs.batch_id, inputs.model) }}
+run-name: ${{ (startsWith(inputs.mode, 'multi_system_') || inputs.mode == 'ce_recovery_single' || inputs.mode == 'replicate_single') && format('{0} {1} {2} ({3})', inputs.mode, inputs.batch_id, inputs.system, inputs.model) || format('{0} {1} ({2})', inputs.mode, inputs.batch_id, inputs.model) }}
 
 on:
   workflow_dispatch:
@@ -51,15 +51,24 @@ on:
           - system_C
           - system_D
           - system_E
+      skill_version:
+        description: Standalone skill version (single mode only)
+        default: v2.0
+        type: choice
+        options: [v2.0, v3.0, v3.0-audit, v4.0]
+      run:
+        description: Legacy single-run replicate alias (overrides run_number when set)
+        default: ""
+        required: false
+        type: string
+      run_number:
+        description: Standalone replicate number
+        default: "1"
+        type: string
       model:
         description: Gemini model ID available to the team account
         required: true
         default: gemini-3.8-flash
-        type: string
-      run:
-        description: Replicate number for single mode (1-99); output files are named <system>_<version>_runNN
-        required: false
-        default: '1'
         type: string
 
 permissions:
@@ -84,7 +93,7 @@ jobs:
       - name: Install generator dependencies
         run: |
           python -m pip install -r requirements.txt
-          python -m pip install -e '.[analysis]'
+          python -m pip install -e '.[analysis,round2]'
       - name: Validate fixed B-E campaign inputs
         if: ${{ startsWith(inputs.mode, 'multi_system_') || inputs.mode == 'ce_recovery_single' || inputs.mode == 'replicate_single' }}
         env:
@@ -271,9 +280,13 @@ jobs:
         if: ${{ inputs.mode == 'single' }}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BATCH_ID: ${{ inputs.batch_id }}
+          APPROVED_CALLS: ${{ inputs.approved_calls }}
+          GH_TOKEN: ${{ github.token }}
+          SELECTED_VERSION: ${{ inputs.skill_version }}
+          RUN_NUMBER: ${{ inputs.run || inputs.run_number }}
           SELECTED_SYSTEM: ${{ inputs.system }}
           SELECTED_MODEL: ${{ inputs.model }}
-          SELECTED_RUN: ${{ inputs.run }}
         shell: bash
         run: |
           if [ -z "$GEMINI_API_KEY" ]; then
@@ -284,12 +297,28 @@ jobs:
             system_1|system_2_nasa_fmeca|system_A|system_B|system_C|system_D|system_E) ;;
             *) echo "::error::Unknown system selection"; exit 1 ;;
           esac
-          [[ "$SELECTED_RUN" =~ ^[1-9][0-9]?$ ]] || { echo "::error::Replicate number must be 1-99"; exit 1; }
+          test "$GITHUB_RUN_ATTEMPT" = 1 || exit 1
+          [[ "$RUN_NUMBER" =~ ^[1-9][0-9]*$ ]] || exit 1
+          case "$SELECTED_VERSION" in v2.0|v3.0|v3.0-audit|v4.0) ;; *) exit 1 ;; esac
+          campaign_id="single-${GITHUB_RUN_ID}"
+          if [ "$SELECTED_VERSION" = v4.0 ]; then
+            test "$APPROVED_CALLS" = 1 || exit 1
+            [[ "$BATCH_ID" =~ ^round2-v4-[A-E]-r[0-9][0-9]$ ]] || exit 1
+            python -c 'import os; s=os.environ["SELECTED_SYSTEM"]; r=int(os.environ["RUN_NUMBER"]); assert s in ["system_"+x for x in "ABCDE"] and 1<=r<=4; assert os.environ["BATCH_ID"]=="round2-v4-"+s[-1]+"-r"+str(r).zfill(2)'
+            campaign_id="$BATCH_ID"
+            gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/workflows/generate-fmea.yml/runs?event=workflow_dispatch&per_page=100" > /tmp/prior.json
+            python -c 'import json,os; title="single "+os.environ["BATCH_ID"]+" ("+os.environ["SELECTED_MODEL"]+")"; runs=[r for p in json.load(open("/tmp/prior.json")) for r in p["workflow_runs"]]; assert not any(r["display_title"]==title and str(r["id"])!=os.environ["GITHUB_RUN_ID"] for r in runs), "Study run already dispatched; do not retry"'
+          fi
+          inventory_args=()
+          if [ "$SELECTED_VERSION" = v4.0 ]; then
+            python standalone_v4.py --system "system_descriptions/${SELECTED_SYSTEM}.txt" --system-id "$SELECTED_SYSTEM" --output results/input_inventory.json
+            inventory_args=(--inventory results/input_inventory.json)
+          fi
           python fmea_generator.py \
             --system "system_descriptions/${SELECTED_SYSTEM}.txt" \
             --case-id "$SELECTED_SYSTEM" \
             --model "$SELECTED_MODEL" \
-            --run "$SELECTED_RUN"
+            --version "$SELECTED_VERSION" --run "$RUN_NUMBER" --campaign-id "$campaign_id" "${inventory_args[@]}"
       - name: Run reduced research pilot
         if: ${{ inputs.mode == 'pilot_plan' || inputs.mode == 'pilot_smoke' || inputs.mode == 'pilot_remaining' }}
         env:
@@ -337,6 +366,8 @@ jobs:
             results/*_raw.txt
             results/*_execution.json
             results/*_reporting.json
+            results/input_inventory.json
+            results/research/current.json
           if-no-files-found: ignore
           retention-days: 14
 

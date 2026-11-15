@@ -1,0 +1,31 @@
+:root { --paper:#f7f5ef; --ink:#172b36; --teal:#145e63; --pending:#966021; }
+body { color:var(--ink); font-size:17px; }
+h1 { font-family:Georgia,serif; font-size:clamp(2rem,3vw,3.8rem); line-height:1.1; max-width:31ch; letter-spacing:-.02em; }
+h2 { font-size:1.2rem; font-weight:700; margin-top:1.8rem; color:var(--teal); }
+p { max-width:72ch; line-height:1.55; }
+.navbar { border-bottom:2px solid var(--teal); }
+.nav-link { font-weight:600; }
+.evidence-strip { display:flex; align-items:center; flex-wrap:wrap; gap:1rem; padding:.8rem 2rem; background:#e5ece8; border-bottom:1px solid #bdcec6; }
+.evidence-strip .shiny-text-output { flex:1; min-width:260px; font-size:.9rem; }
+.poster { padding:1.4rem 2.2rem; max-width:1800px; margin:auto; }
+.eyebrow { font-size:.82rem; font-weight:700; letter-spacing:.1em; color:var(--teal); margin:0 0 .7rem; }
+.poster-title { border-bottom:2px solid var(--ink); padding-bottom:.5rem; }
+.poster-evidence { display:flex; flex-wrap:wrap; gap:2rem; padding-top:.7rem; }
+.poster-evidence p { margin:.2rem 0; }
+.poster-narrative { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:2.5rem; border-top:1px solid #bdcec6; }
+.caption,.footer { font-size:.82rem; color:#3d555d; }
+.footer { padding:1rem 2rem; border-top:1px solid #bdcec6; }
+table { font-variant-numeric:tabular-nums; font-size:.88rem; }
+th { color:var(--teal); }
+.tab-pane { padding:1rem; overflow-x:auto; }
+:focus-visible { outline:3px solid var(--pending); outline-offset:3px; }
+::selection { background:#c6ded4; color:var(--ink); }
+input,select { caret-color:var(--teal); }
+@media (max-width:850px) { .poster-narrative { grid-template-columns:1fr; gap:0; } .poster { padding:1rem; } h1 { font-size:2rem; } }
+@media print { .navbar,.evidence-strip,.footer { display:none; } .poster { width:100%; } }
+
+.shiny-plot-output img { max-width:100% !important; height:auto !important; }
+.poster-title h1 { font-size:clamp(2rem,2.5vw,3rem); max-width:none; }
+.criteria-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.5rem 1rem; }
+.criteria-grid > div { border-left:3px solid var(--pending); padding-left:.6rem; display:flex; gap:.5rem; font-size:.8rem; }
+@media(max-width:850px) { .criteria-grid { grid-template-columns:1fr 1fr; } }

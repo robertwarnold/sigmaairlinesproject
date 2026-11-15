@@ -324,3 +324,25 @@ estimates. Actual billing and manual-versus-AI savings remain unavailable.
 [View every financial figure and its caption](reports/experiment_metrics/AE-metrics-6a745cc-v5/financial_figures.md).
 
 ![Observed generation duration by system](reports/experiment_metrics/AE-metrics-6a745cc-v5/financial-figures/08_observed_duration.png)
+
+## Standalone v3 and Round 2
+
+Explicit `--version v3.0` selects the new inventory/case audit; existing commands
+still default to v2.0. See [Round 2 execution and import runbook](docs/round2-runbook.md)
+for private judge imports, analysis workbooks, controlled pilot dispatch and limitations.
+
+## V4 research platform and Shiny poster
+
+V4 extends the discovered remote V3 and complementary local audit work while retaining
+both prompts. Main's V2 remains the default. See [branch discovery](docs/v4-discovery.md)
+and [the V4 implementation/runbook](docs/v4-research-platform.md) for independent input
+inventory verification, controlled generation, unchanged external judging, validated
+aggregation, system-stratified confidence intervals and R Shiny/poster export.
+
+```powershell
+python -m analysis.research build --output results/research/my-new-build
+Rscript -e ".libPaths(c('.venv/r-library',.libPaths())); shiny::runApp('dashboard',port=5384,launch.browser=FALSE)"
+```
+
+The offline dashboard contains report-derived V2 aggregates. V3/V4 evaluated performance
+is pending; no model calls, public deployment or statistical efficacy claims are implied.

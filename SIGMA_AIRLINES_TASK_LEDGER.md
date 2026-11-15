@@ -185,3 +185,40 @@ These are **workstreams, not person assignments**. Multiple contributors may wor
 - No secrets, unlicensed documents, or sensitive datasets committed.
 - Change reviewed on a feature branch; no direct push to `main`.
 - Owner remains **Unassigned** until the team explicitly assigns one.
+
+## Round 2 implementation ? November 15, 2026
+
+- Implemented standalone v3 selection and auditable inventory/case structural validation; v2 skill unchanged.
+- Implemented private identifier-level judge import, deterministic aggregation, workbook, Pareto, condition gates and deferred additive ANOVA.
+- Preserved user-supplied Round 1 report aggregates without inferred run/system records.
+- Prepared seeded 20-run generation and external judging manifests offline; execution runbook in docs/round2-runbook.md.
+- Blockers: exact Round 1 model/settings and reviewed classification/ground-truth/judge revisions; actual private judge records; pilot authorization and permission to push. No live generation/judging performed.
+- Reference worksheets and frozen archive excluded. Software checks do not establish engineering completeness or efficacy.
+- Validation: full offline suite passed 179 tests; subsequent targeted suite passed 11 tests including receipt joins and synthetic ANOVA. Final full-suite verification recorded in results/round2-offline-tests-release.log.
+
+## V4 research platform implementation ? November 15, 2026
+
+- Discovered remote V3 at e143ec4 after fetching all branches; V4 starts there and
+  incorporates complementary local 99647d4 changes without a merge commit. Original branches and prompts retained.
+- V2 default preserved; remote V3 array and prior local V3 audit explicitly separated.
+- Added V4 input-bound inventory, deterministic coverage/unsupported/duplicate checks,
+  targeted gap reports, Git/inventory hashes and single-call generation workflow support.
+- Extended authoritative judge importer/orchestrator with V4, provenance/condition gates,
+  private immutable builds, cumulative import catalog, safe presentation snapshots,
+  sampled human-review events, bootstrap intervals and primary V2/V4 additive inference.
+- Implemented five-view Shiny app, periodic/manual refresh, last-good cache, offline
+  baseline mode, shared ggplot figures, landscape poster PDF and generated presenter notes.
+- Prepared 20-run V4 manifest and external judge queue offline. No paid model calls.
+- Offline validation: 192 Python tests passed in initial full V4 run; R data/refresh/
+  plot/PDF checks passed; browser exercised locally. Final verification logs and exported
+  previews remain ignored under results/.
+- Pending: exact Round 1 conditions, original private judge/run evidence, reviewed input
+  inventories, unchanged external judge runner and human review; then explicit pilot
+  authorization. No V3/V4 performance has been measured.
+- Pending approval/configuration: branch push, public sanitized publication/deployment,
+  durable hosted private import store and permanent approved HTTPS endpoint. Local
+  refresh is implemented; cross-run hosted publication is not claimed as configured.
+- Architecture, schema/methods, experiment/refresh/export/hosting runbook and backlog:
+  docs/v4-research-platform.md. Students must verify/rewrite presentation prose.
+
+Final V4 validation: 193 Python tests passed (results/v4-release-tests.log); 16 R assertions passed including Shiny startup; populated synthetic-only rendering passed; desktop/mobile browser previews saved privately; all Actions YAML parsed and design detector reported no findings. No actual V3/V4 evaluations or public deployment occurred.
