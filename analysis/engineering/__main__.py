@@ -5,6 +5,7 @@ from pathlib import Path
 from analysis.round2.__main__ import private
 from standalone_v4 import strict_read
 from .store import EngineeringStore, atomic_export, compare_keys, export_csv
+from .analytics import selected_analytics, operational_activity
 
 
 def main():
@@ -14,10 +15,17 @@ def main():
     imp = sub.add_parser('import-v4')
     for arg in ('response', 'inventory', 'receipt', 'dataset-version'): imp.add_argument('--'+arg, required=True)
     snap = sub.add_parser('snapshot'); snap.add_argument('--output', required=True)
+    analytics = sub.add_parser('analytics'); analytics.add_argument('--selection', required=True); analytics.add_argument('--output', required=True)
+    operations = sub.add_parser('operations'); operations.add_argument('--input',required=True); operations.add_argument('--output',required=True)
     rev = sub.add_parser('review'); rev.add_argument('--request', required=True)
     exp = sub.add_parser('export'); exp.add_argument('--output', required=True); exp.add_argument('--format', choices=('json','csv'), default='json'); exp.add_argument('--selection')
     comp = sub.add_parser('compare'); comp.add_argument('--run-id', action='append', required=True); comp.add_argument('--output', required=True)
-    args = p.parse_args(); store = EngineeringStore(args.database)
+    args = p.parse_args()
+    if args.command=='operations':
+        rows=strict_read(private(args.input).read_text(encoding='utf-8'))
+        if not isinstance(rows,list) or any(not isinstance(r,dict) for r in rows): raise ValueError('Expected generation receipt array')
+        atomic_export(args.output,operational_activity(rows)); return
+    store = EngineeringStore(args.database)
     try:
         if args.command == 'import-v4':
             key = store.ingest(args.response, args.inventory, args.receipt, args.dataset_version); print('Imported one immutable V4 run; engineering review required')
@@ -26,6 +34,10 @@ def main():
             print('Review event appended; original assessment preserved')
         else:
             data = store.snapshot()
+            if args.command == 'analytics':
+                ids = strict_read(private(args.selection).read_text(encoding='utf-8'))
+                if not isinstance(ids,list) or any(not isinstance(i,str) for i in ids): raise ValueError('Selection must contain record IDs')
+                atomic_export(args.output,selected_analytics(data,ids)); return
             ids = None
             if args.command == 'export' and args.selection:
                 ids = strict_read(private(args.selection).read_text(encoding='utf-8'))
