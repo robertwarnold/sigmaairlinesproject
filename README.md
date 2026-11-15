@@ -372,3 +372,6 @@ Dashboard charts now use compact HTML/SVG components while academic ggplot2 figu
 remain available through the existing export command. Both consume the same validated
 Python snapshot. See [visualization refactor](docs/v42-visualization-refactor.md) for
 rendering tests, before/after previews, benchmark commands and retained data boundaries.
+
+The [premium workspace redesign](docs/v42-premium-dashboard.md) documents the six-view
+layout, manifest-matched progress, compact Explorer, financial tabs and 16:9 focus mode.

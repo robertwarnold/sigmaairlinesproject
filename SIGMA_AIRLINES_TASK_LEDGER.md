@@ -264,3 +264,19 @@ V4.1 final verification: 209 Python tests and 26 R assertions; live API metadata
   benchmark documented in docs/v42-visualization-refactor.md; artifacts stay ignored.
 - No paid calls, push, merge or deployment. Real V4 evaluation, invoices and accepted
   engineering labor evidence remain pending; Explorer table refinements remain backlog.
+
+## V4.2 premium workspace refinement — 2026-11-15
+
+- Applied shared restrained tokens, compact branding/navigation and four landing KPIs.
+- Added exact-manifest progress projection; current missed rate remains Pending
+  without comparable accepted V4 observations. Historical aggregates stay separate.
+- Refined Explorer into paged seven-column records and expandable provenance; mobile
+  record lists replace horizontal tables. Financial analysis uses four task tabs.
+- Condensed methods and quality detail; retained two academic figures, notes and PDF
+  export with a 16:9 focus layout and keyboard exit.
+- Completed first/final 18-view viewport inspection passes and interaction checks;
+  gallery in ignored results/v42-previews/index.html, report docs/v42-premium-dashboard.md.
+- Verified 209 Python tests, 70 R assertions, valid/invalid snapshot refresh, financial
+  loss/reset and academic exports. No research calculations or live registry changed.
+- Remaining: actual comparable V4 evaluation, confirmed plan/model settings, complete
+  authorized GitHub backfill and invoice/labor evidence; no publication or paid calls.

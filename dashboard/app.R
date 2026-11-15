@@ -1,51 +1,60 @@
 # Sigma Airlines: no API clients or private row data are loaded in this app.
 source('bootstrap.R')
-source('data.R'); source('plots.R'); source('poster.R'); source('charts.R')
+source('data.R'); source('plots.R'); source('poster.R'); source('charts.R'); source('workspace.R')
 library(shiny); library(bslib)
 source_path <- Sys.getenv('SIGMA_DASHBOARD_DATA', file.path(project_root,'results','research','current.json'))
 fallback <- 'data/baseline.json'
+plan_path <- Sys.getenv('SIGMA_DASHBOARD_MANIFEST',file.path(project_root,'results','v4','round2-plan','experiment_manifest.json'))
 financial_defaults <- jsonlite::fromJSON('data/financial-defaults.json')
 ui <- page_navbar(
-  title = 'Sigma Airlines', id = 'view', selected = 'Mission control', fillable=FALSE,
-  theme = bs_theme(version=5,bg='#0c1118',fg='#e9f0f6',primary='#6ac9df',base_font='sans-serif'),
+  title = div(class='brand',strong('SIGMA AIRLINES'),span('FMEA RESEARCH PLATFORM')), id = 'view', selected = 'Mission control', fillable=FALSE,
+  theme = bs_theme(version=5,bg=chart_tokens$background,fg=chart_tokens$ink,primary=chart_tokens$accent,base_font='sans-serif'),
   header = tagList(tags$head(chart_css_tokens(),tags$link(rel='stylesheet',type='text/css',href='research.css'),tags$script(src='presentation.js'),tags$script(src='charts.js')),
-    div(class='evidence-strip',textOutput('evidence_status'),actionButton('refresh','Refresh data'),
-        actionButton('presentation_toggle','Focus presentation'),downloadButton('poster_pdf','Export poster PDF'))),
-  nav_panel('Mission control',
-    div(class='page-intro',h1('Research mission control'),p('Generation is an operational outcome. Quality requires independent evaluation.')),
+    div(class='evidence-strip',uiOutput('workspace_status'),actionButton('refresh','Refresh data'))),
+  nav_panel('Mission Control',value='Mission control',
+    div(class='page-intro',h1('Research overview'),p('Generation is progress. Independent evaluation establishes quality.')),
     uiOutput('mission_kpis'),
-    div(class='chart-grid-layout',chart_panel('Generation activity',uiOutput('mission_activity')),
-      chart_panel('Skill version comparison',uiOutput('mission_quality'))),
-    div(class='research-panel',h2('Recent activity'),uiOutput('recent_activity')),
-    layout_columns(div(class='research-panel',h2('Research target progress'),uiOutput('criteria')),
-      div(class='research-panel',h2('Synchronization'),textOutput('sync_summary'),tableOutput('workflow_table')),col_widths=c(6,6))),
-  nav_panel('Experiment explorer',
-    div(class='page-intro',h1('Every generation. Every evaluation.'),p('Click a generation to inspect safe provenance. Private rows and judge notes remain private.')),
-    layout_sidebar(sidebar=sidebar(
+    div(class='mission-layout',chart_panel('Generation & evaluation activity',uiOutput('mission_activity')),
+      chart_panel('Round 2 progress',uiOutput('experiment_progress'))),
+    chart_panel('Recent runs',uiOutput('recent_activity')),
+    tags$details(class='analysis-details',tags$summary('Historical baseline, acceptance criteria and synchronization'),
+      uiOutput('historical_reference'),uiOutput('criteria'),textOutput('sync_summary'),tableOutput('workflow_table'))),
+  nav_panel('Experiment Explorer',value='Experiment explorer',
+    div(class='page-intro',h1('Experiment explorer'),p('Find a run. Inspect its generation, evaluation and provenance.')),
+    tags$div(tags$details(class='filter-panel',tags$summary('Filter runs'),div(class='filter-grid',
       textInput('search','Search run or model'),selectInput('systems','Systems',choices=LETTERS[1:5],selected=LETTERS[1:5],multiple=TRUE),
       selectInput('versions','Skill versions',choices=c('v2.0','v3.0','v3.0-audit','v4.0'),selected=c('v2.0','v3.0','v3.0-audit','v4.0'),multiple=TRUE),
       textInput('batch','Batch contains'),textInput('workflow_filter','Workflow contains'),
       selectInput('generation_filter','Generation status',choices=c('All','planned','queued','running','success','failed')),
       selectInput('eval_status','Evaluation status',choices=c('All','evaluated','awaiting_evaluation','not_evaluated')),
-      dateRangeInput('dates','Generation date',start='2026-01-01',end=Sys.Date())),
-      uiOutput('explorer_table'),h2('Generation detail'),uiOutput('generation_detail'),
-      h2('Lifecycle history'),tableOutput('event_table'))),
-  nav_panel('Engineering quality',
-    div(class='page-intro',h1('Coverage supported by evidence'),uiOutput('pending_versions')),
+      dateRangeInput('dates','Generation date',start='2026-01-01',end=Sys.Date()))),
+      uiOutput('explorer_table'),numericInput('run_page','Page',1,min=1,width='6rem'),
+      tags$details(id='run-detail',class='analysis-details',tags$summary('Selected run details'),uiOutput('generation_detail'),
+      tags$details(tags$summary('Lifecycle history'),tableOutput('event_table'))))),
+  nav_panel('Engineering Quality',value='Engineering quality',
+    div(class='page-intro',h1('Engineering quality'),p('Accepted evaluations only. Historical aggregates remain a separate reference.')),
     chart_panel('Missed failure modes by run',uiOutput('run_plot'), 'Accepted evaluations only | missed reference opportunities (%) | target below 20%'),
     uiOutput('selected_chart_run'),
-    div(class='chart-grid-layout',chart_panel('Miss categories',uiOutput('pareto_detail')),
-      chart_panel('Field-level agreement',uiOutput('quality_accuracy'))),
+    chart_panel('Skill version comparison',uiOutput('mission_quality')),
+    tags$details(class='analysis-details',tags$summary('Failure categories and field-level agreement'),
+      div(class='chart-grid-layout',chart_panel('Miss categories',uiOutput('pareto_detail')),chart_panel('Field-level agreement',uiOutput('quality_accuracy')))),
     tags$details(class='analysis-details',tags$summary('Output completeness and supporting research tables'),
       chart_panel('Generated rows and missed percentage',uiOutput('quality_completeness')),
       h2('Version summary'),tableOutput('version_summary'),h2('System summary'),tableOutput('system_summary'),
       h2('Component coverage'),tableOutput('coverage_table'),h2('Unmatched rows (not adjudicated false positives)'),tableOutput('extras')),
     tags$details(class='analysis-details',tags$summary('Inference, acceptance criteria and human review'),
       verbatimTextOutput('statistics'),tableOutput('review'))),
-  nav_panel('Financial analysis',
-    div(class='page-intro',h1('What does better coverage cost?'),p('Measured spending and modeled savings are distinct. Missing invoices remain unknown.')),
+  nav_panel('Financial Analysis',value='Financial analysis',
+    div(class='page-intro',h1('Financial impact'),p('Modeled economics, measured expenses. Missing invoices remain unknown.')),
     tags$div(class='financial-workspace',
-      tags$details(class='finance-assumptions',tags$summary('Edit scenario assumptions'),div(class='assumption-grid',
+      uiOutput('financial_metrics'),
+      tabsetPanel(id='finance_view',type='tabs',
+        tabPanel('Cost comparison',value='cost',chart_panel('Annual operating cost',uiOutput('finance_cost'),'Modeled USD at the same annual workload'),
+          tags$details(class='analysis-details',tags$summary('Cost breakdown and measured spending'),
+            chart_panel('Cost per FMEA',uiOutput('finance_breakdown')),chart_panel('Measured API spending',uiOutput('finance_spending')))),
+        tabPanel('Monte Carlo',value='simulation',chart_panel('First-year net savings',uiOutput('finance_distribution'),'Modeled scenario, not verified savings')),
+        tabPanel('Sensitivity',value='sensitivity',chart_panel('Sensitivity to assumptions',uiOutput('finance_sensitivity'))),
+        tabPanel('Assumptions',value='assumptions',tags$details(open=TRUE,class='finance-assumptions',tags$summary('Scenario assumptions'),div(class='assumption-grid',
       numericInput('fin_annual_volume','Annual FMEAs',50,min=1),numericInput('fin_labor_rate','Loaded rate (USD/hour)',92.71,min=0),
       numericInput('fin_manual_hours','Manual hours/FMEA',financial_defaults$manual_hours,min=0),
       numericInput('fin_setup_hours','AI setup hours',.5,min=0),numericInput('fin_matched_review_minutes','Matched-item review minutes',3,min=0),
@@ -54,37 +63,40 @@ ui <- page_navbar(
       numericInput('fin_development_usd','Implementation cost (USD)',3500,min=0),numericInput('fin_maintenance_usd','Annual maintenance (USD)',0,min=0),
       numericInput('fin_api_usd_per_attempt','Assumed API USD/attempt',1,min=0),numericInput('fin_success_probability','Assumed success probability',.8,min=.01,max=1),
       sliderInput('fin_uncertainty_fraction','Scenario uncertainty +/- fraction',min=0,max=.6,value=.2,step=.05),
-      actionButton('reset_finance','Reset to baseline assumptions'))),
-      tags$p(class='chart-note',textOutput('financial_status')),uiOutput('financial_metrics'),
-      div(class='chart-grid-layout',chart_panel('Annual operating cost',uiOutput('finance_cost'),'Modeled USD | same annual workload'),
-        chart_panel('First-year net savings',uiOutput('finance_distribution'),'Modeled scenario, not verified savings')),
-      tags$details(class='analysis-details',tags$summary('Cost drivers and sensitivity'),
-        div(class='chart-grid-layout',chart_panel('Cost per FMEA',uiOutput('finance_breakdown')),
-          chart_panel('Sensitivity to assumptions',uiOutput('finance_sensitivity')))),
-      chart_panel('Measured API spending',uiOutput('finance_spending')),
-      tags$details(class='analysis-details',tags$summary('Version review costs and billing records'),
-        chart_panel('Modeled review cost by version',uiOutput('finance_versions')),
-        tableOutput('observed_costs'),tableOutput('review_costs')),
+      actionButton('reset_finance','Reset Assumptions'))))
+),
+      tags$details(class='analysis-details',tags$summary('Model provenance and billing records'),textOutput('financial_status'),
+        chart_panel('Modeled review cost by version',uiOutput('finance_versions')),tableOutput('observed_costs'),tableOutput('review_costs')),
       tags$details(class='analysis-details',tags$summary('Preserved historical planning scenario'),tableOutput('historical_finance')))),
-  nav_panel('Research methodology',h1('Research method'),h2('Historical Round 1 report aggregates'),p('Report-derived values only. They are separate from the normalized generation registry and have no reconstructed item records or confidence intervals.'),tableOutput('historical_baseline'),
-    h2('Define / Measure / Analyze'),p('Quantity of interest: missed failure-mode opportunities per evaluated run, with separate pooled counts. The V2 report establishes a pooled historical baseline; it cannot reconstruct independent run observations.'),
-    h2('Improve'),p('Remote V3 introduced prompt-based unit and failure-type checks. The complementary local V3 audit emitted structured links. V4 adds an independent input inventory, deterministic gap audit and targeted remediation preparation.'),
-    h2('Control'),p('Freeze model settings, package hashes, judge v1.2 and human reference revisions. Validate every receipt and judge import. Preserve original AI decisions alongside engineer review and adjudication.'),
-    h2('Inference and limitations'),p('Primary: V2 versus V4. Additive model: missed_percentage ~ skill_version + system. Independent-run bootstrap within version/system retains equal system weights. At least two runs per cell are needed for intervals; four planned runs per cell still yield limited precision.'),
-    p('Sigma is inverse-normal yield plus the conventional 1.5 shift, not a certification. Bounded percentages, variance, independence and additive-model assumptions need review. Canonical package 0.3 is a different workflow and is excluded.'),
-    h2('Validation / approval'),p('Schema validity, model completeness claims and engineering acceptance are distinct. No live evaluations are fabricated. Public hosting and sanitized-data publication require explicit approval.')),
-  nav_panel('Presentation mode',
+  nav_panel('Research Methods',value='Research methodology',
+    div(class='page-intro',h1('Research methods'),p('A controlled comparison of engineering coverage across five systems.')),
+    div(class='method-layout',
+      method_section('Research question','Does structured engineering coverage reduce missed failure modes without unsupported output inflation?'),
+      method_section('Data sources','Validated generation receipts, independent evaluations and a separate historical V2 report.',
+        tagList(p('The reported 18-run baseline is aggregate only. It cannot reconstruct independent run observations or confidence intervals.'),tableOutput('historical_baseline'))),
+      method_section('Experimental design','Round 2 plans four independent V4 generations per system, A through E.',
+        p('Randomized order; freeze model settings, skill hashes, judge v1.2 and engineer-written reference revisions. Confirm historical settings before live execution.')),
+      method_section('Generator and judge','Generation and independent evaluation are separate research events.',
+        p('An output passing schema validation has not received engineering approval. Preserve original AI decisions alongside human review and adjudication.')),
+      method_section('Metrics','Missed reference opportunities measure coverage; unmatched rows are a guard metric.',
+        p('Use reference opportunities for missed percentage and matched reference items for conditional field agreement. Keep pooled rates separate from run-level means.')),
+      method_section('Statistical analysis','Additive ANOVA and system-stratified bootstrap intervals, when supported.',
+        p('Primary: V2 versus V4. missed_percentage ~ skill_version + system. Preserve equal-system weights. At least two independent runs per cell are required for intervals; four planned runs still limit precision.')),
+      method_section('Limitations','No V4 improvement claim before comparable accepted evaluations.',
+        p('Report-derived aggregates cannot support run-level inference. Sigma uses inverse-normal yield plus the conventional 1.5 shift. Ratings require engineering review. Canonical package 0.3 remains a separate workflow.')))),
+  nav_panel('Presentation Mode',value='Presentation mode',
+    div(class='presentation-actions',actionButton('presentation_toggle','Present fullscreen'),downloadButton('poster_pdf','Export poster PDF'),tags$details(tags$summary('Presenter notes'),p('Research question: does structured coverage reduce misses? Describe the independent judge and five-system design. Report the historical baseline separately. V4 results and improvement intervals remain pending until evaluated.'))),
     div(class = 'poster',
-      div(class = 'poster-title',p(class = 'presentation-context','SYSEN 5300 / Six Sigma Research'),
+      div(class = 'poster-title',
           h1('Can structured engineering coverage reduce missed failure modes?'),
           p('A controlled comparison of AI-generated FMEAs across five engineering systems.')),
-      div(class = 'poster-evidence',uiOutput('poster_results')),
+      div(class = 'poster-evidence',tags$h2('Results'),uiOutput('poster_results')),
       layout_columns(plotOutput('coverage',height = '300px'),plotOutput('pareto',height = '300px'),col_widths = c(6,6)),
       div(class = 'poster-narrative',
           tags$section(h2('Data'),textOutput('baseline_caption'),p('Report aggregates and validated run-level observations remain separate.')),
           tags$section(h2('Method'),p('DMAIC Improve / Control. Independent input inventory, deterministic structural audit, unchanged external AI judge, sampled engineering review.'),p('Python computes additive ANOVA and system-stratified bootstrap 95% intervals.')),
-          tags$section(h2('Discussion / implications'),p('Higher output volume is not proof of engineering quality. Track extra rows, correctness and provisional ratings alongside coverage.'),p('No improvement claim until comparable evaluated observations support it.'))),
-      h2('V4 success criteria'),uiOutput('poster_criteria'),
+          tags$section(h2('Discussion'),p('Higher output volume is not proof of engineering quality. Track extra rows, correctness and provisional ratings alongside coverage.'),p('No improvement claim until comparable evaluated observations support it.'))),
+      tags$details(class='poster-checks',tags$summary('V4 acceptance criteria'),uiOutput('poster_criteria')),
       p(class = 'caption','AI-assisted presentation draft. Students must verify findings, interpret evidence and write their own submitted prose.'))),
   footer=div(class='footer',textOutput('snapshot_status'))
 )
@@ -114,13 +126,19 @@ server <- function(input,output,session) {
     width <- width_for(id)()
     # Publication titles live in export figures; the web poster supplies its context.
     plot <- plot + labs(title=NULL,subtitle=NULL,caption=NULL) + research_theme(if(width<600) 8 else 11)
-    if(width<600) plot <- plot + theme(legend.position='none',axis.title=element_blank(),
-      axis.text.x=element_text(size=6),plot.margin=margin(6,8,6,8))
+    if(id=='coverage' && !nrow(as_table(data()$runs)))
+      plot$layers <- Filter(function(layer) !inherits(layer$geom,'GeomText'),plot$layers)
+    if(width<600) {
+      plot <- plot + research_theme(9) + theme(legend.position='none',axis.title=element_blank(),
+        axis.text=element_text(size=8),plot.margin=margin(4,6,4,6))
+      if(id=='pareto') plot <- plot + scale_x_discrete(labels=function(x) vapply(x,function(label) paste(strwrap(label,width=10),collapse='\n'),character(1))) +
+        theme(axis.text.x=element_text(size=8,angle=0,hjust=.5))
+    }
     plot
   }
-  output$coverage <- renderPlot(responsive_plot(coverage_plot(data()),'coverage'),res=96,width=width_for('coverage'),height=300,
+  output$coverage <- renderPlot(responsive_plot(coverage_plot(data()),'coverage'),res=96,width=width_for('coverage'),height=function() {h<-session$clientData$output_coverage_height; if(is.null(h)||h<1) 250 else h},
     alt='Academic coverage figure. Historical V2 aggregate and accepted run observations remain separate.')
-  output$pareto <- renderPlot(responsive_plot(pareto_plot(data()),'pareto'),res=96,width=width_for('pareto'),height=300,
+  output$pareto <- renderPlot(responsive_plot(pareto_plot(data()),'pareto'),res=96,width=width_for('pareto'),height=function() {h<-session$clientData$output_pareto_height; if(is.null(h)||h<1) 250 else h},
     alt='Academic Pareto of missed reference failure modes, using validated category counts.')
   output$pareto_detail <- renderUI(dashboard_pareto(data()))
   output$criteria <- renderUI({criteria <- data()$statistics$criteria; div(class='criteria-grid',lapply(names(criteria),function(k) div(strong(criteria[[k]]),span(gsub('_',' ',k)))))})
@@ -178,24 +196,27 @@ server <- function(input,output,session) {
   # Operational records and judged observations remain separate reactive tables.
   number_text <- function(x,prefix='',digits=0) if(is.null(x) || !length(x) || is.na(x)) 'Unavailable' else paste0(prefix,format(round(x,digits),big.mark=',',trim=TRUE))
   kpi <- function(value,label,detail='') div(class='kpi',strong(value),span(label),tags$small(detail))
-  current_quality <- reactive({
-    versions <- as_table(data()$per_version)
-    if(nrow(versions)) {
-      order <- match(versions$skill_version,c('v2.0','v3.0','v3.0-audit','v4.0'))
-      row <- versions[which.max(order),,drop=FALSE]
-      return(list(missed=row$pooled_missed_percentage,sigma=row$sigma_1_5_shift,basis=paste(row$skill_version,'selected evaluations; pooled opportunities')))
-    }
-    list(missed=data()$baseline$pooled_missed_percentage_reported,sigma=data()$baseline$sigma_reported_approximate,basis='V2 historical report aggregate; not current V4 performance')
+  active_plan <- reactive({refresh_key(); read_workspace_plan(plan_path)})
+  output$workspace_status <- renderUI({
+    sync <- data()$operations$sync
+    div(class='workspace-context',span('Round 2 / V4.0',class='experiment-label'),
+      span(paste('Last sync:',if(is.null(sync$last_successful_sync)) 'not yet completed' else sync$last_successful_sync)),
+      span(if(grepl('retaining',refresh_key()$status)) 'Source: cached snapshot' else 'Source: validated local snapshot'),
+      span(if(is.null(sync$status)) 'Offline' else gsub('_',' ',tolower(sync$status))))
   })
+  output$experiment_progress <- renderUI(workspace_progress(data(),active_plan()))
+  output$historical_reference <- renderUI({b <- data()$baseline; p(paste('Historical V2 report:',b$total_runs,'evaluated FMEAs;',b$pooled_missed_percentage_reported,'% pooled missed. Separate from the current experiment.'))})
   output$mission_kpis <- renderUI({
-    ops <- data()$operations; q <- current_quality(); finance <- data()$financial
+    ops <- data()$operations; runs <- as_table(data()$runs); versions <- as_table(data()$per_version)
+    current <- if(nrow(versions)) versions[versions$skill_version=='v4.0',,drop=FALSE] else versions
+    v4 <- if(nrow(runs)) runs[runs$skill_version=='v4.0',,drop=FALSE] else runs
+    exact_cohort <- nrow(v4)>0 && all(v4$run_id %in% active_plan()$runs$run_id)
+    missed <- if(exact_cohort && nrow(current)) paste0(number_text(current$pooled_missed_percentage[1],digits=1),'%') else 'Pending'
     div(class='kpi-row',
-      kpi(number_text(ops$total_generated),'FMEAs generated','Successful generation receipts'),
-      kpi(number_text(ops$evaluated_fmeas),'Evaluated FMEAs','One selected evaluation per FMEA'),
-      kpi(number_text(ops$awaiting_judge),'Awaiting judge','Successful, independently unevaluated'),
-      kpi(paste0(number_text(q$missed,digits=1),'%'),'Pooled missed percentage',q$basis),
-      kpi(number_text(q$sigma,digits=2),'Sigma level','Conventional +1.5 shift; report value approximate'),
-      kpi(number_text(finance$measured$estimated_api_spending,'$',2),'Estimated research API cost','Missing pricing remains unknown'))
+      kpi(number_text(ops$total_generated),'Total generations','Successful receipts / all versions'),
+      kpi(number_text(ops$awaiting_judge),'Awaiting evaluation','All registered versions'),
+      kpi(number_text(ops$evaluated_fmeas),'Evaluated FMEAs','Selected accepted evaluations / all versions'),
+      kpi(missed,'Current missed rate','Round 2 / V4.0 / pooled opportunities'))
   })
   output$sync_summary <- renderText({ops <- data()$operations; if(is.null(ops)) return('Legacy snapshot: registry synchronization pending')
     paste('Last successful synchronization:',if(is.null(ops$sync$last_successful_sync)) 'Not yet synchronized' else ops$sync$last_successful_sync,
@@ -223,19 +244,30 @@ server <- function(input,output,session) {
     }
     x[which(keep),,drop=FALSE]
   })
-  generation_table <- function(x) {
-    if(!nrow(x)) return(p('No registered generations match this view. Synchronize receipts; no FMEAs are inferred from workflow success.'))
-    columns <- intersect(c('system','skill_version','run_id','parent_workflow_run_id','replicate','generated_rows','generation_seconds','state','evaluation_label','missed_percentage','generation_timestamp'),names(x))
-    table <- tags$table(class='table',tags$thead(tags$tr(lapply(columns,tags$th))),
-      tags$tbody(lapply(seq_len(min(200,nrow(x))),function(i) {
-        gid <- if('generation_id' %in% names(x)) x$generation_id[i] else x$run_id[i]
-        tags$tr(class='clickable-run',tabindex=0,onclick=paste0("Shiny.setInputValue('detail_run',",jsonlite::toJSON(gid,auto_unbox=TRUE),",{priority:'event'})"),
-          lapply(columns,function(k) tags$td(title=as.character(x[[k]][i]),if(is.na(x[[k]][i])) 'Unavailable' else as.character(x[[k]][i]))))
-      })))
-    div(class='table-responsive',table)
+  generation_table <- function(x,page=1,size=10) {
+    if(!nrow(x)) return(chart_empty('No matching generations','Adjust filters or synchronize generation receipts.'))
+    columns <- c(run_id='Run ID',system='System',skill_version='Skill',generation_status='Generation',evaluation_status='Judge',missed_percentage='Missed',generation_timestamp='Timestamp (UTC)')
+    page <- max(1,min(ceiling(nrow(x)/size),if(is.null(page)) 1 else as.integer(page)))
+    indexes <- seq.int((page-1)*size+1,min(page*size,nrow(x)))
+    format_cell <- function(k,i) {
+      v <- if(k %in% names(x)) x[[k]][i] else NA
+      if(is.na(v)) return(if(k=='missed_percentage') 'Pending' else 'Unknown')
+      if(k=='run_id') { v <- sub('^.*:','',v); return(if(nchar(v)>32) paste0(substr(v,1,29),'...') else v) }
+      if(k=='missed_percentage') return(paste0(round(as.numeric(v),1),'%'))
+      if(k=='generation_timestamp') return(format(as.POSIXct(v,format='%Y-%m-%dT%H:%M:%S',tz='UTC'),'%b %d, %H:%M',tz='UTC'))
+      if(k=='generation_status') return(switch(v,success='Generated',failed='Failed',tools::toTitleCase(gsub('_',' ',v))))
+      if(k=='evaluation_status') return(switch(v,awaiting_evaluation='Awaiting judge',not_evaluated='Not evaluated',evaluated='Evaluated',tools::toTitleCase(gsub('_',' ',v))))
+      v
+    }
+    html <- tags$table(class='run-table',tags$thead(tags$tr(lapply(unname(columns),tags$th))),tags$tbody(lapply(indexes,function(i) {
+      gid <- if('generation_id' %in% names(x)) x$generation_id[i] else x$run_id[i]
+      tags$tr(class='clickable-run',tabindex=0,role='button',`data-generation`=gid,
+        lapply(names(columns),function(k) tags$td(`data-label`=columns[[k]],title=if(k %in% names(x)) as.character(x[[k]][i]) else '',format_cell(k,i))))
+    })))
+    tagList(div(class='run-table-wrap',html),p(class='chart-note',paste('Showing',min(indexes),'-',max(indexes),'of',nrow(x),'records. Select a row for full metadata.')))
   }
-  output$explorer_table <- renderUI(generation_table(generations()))
-  output$recent_activity <- renderUI({x <- as_table(data()$registry); if(nrow(x) && 'generation_timestamp' %in% names(x)) x <- x[order(x$generation_timestamp,decreasing=TRUE,na.last=TRUE),,drop=FALSE]; generation_table(head(x,6))})
+  output$explorer_table <- renderUI(generation_table(generations(),input$run_page))
+  output$recent_activity <- renderUI({x <- as_table(data()$registry); if(nrow(x) && 'generation_timestamp' %in% names(x)) x <- x[order(x$generation_timestamp,decreasing=TRUE,na.last=TRUE),,drop=FALSE]; generation_table(head(x,5))})
   output$generation_detail <- renderUI({
     x <- as_table(data()$registry)
     if(!nrow(x)) return(p('Choose a registered generation to inspect its lifecycle and provenance.'))
@@ -280,9 +312,10 @@ server <- function(input,output,session) {
   output$financial_status <- renderText(financial_result()$status)
   output$financial_metrics <- renderUI({f <- financial(); if(is.null(f)) return(p('Scenario calculation pending'))
     div(class='finance-outcomes',
-      kpi(number_text(f$modeled$first_year_net_savings,'$',0),'Modeled first-year savings','Includes implementation and maintenance'),
-      kpi(number_text(f$modeled$break_even_fmeas),'Break-even FMEAs','Unknown if unit savings are nonpositive'),
-      kpi(number_text(f$modeled$review_cost_per_fmea,'$',0),'Modeled review / FMEA',f$basis))
+      kpi(number_text(f$modeled$annual_operating_savings,'$',0),'Modeled annual savings','Before implementation cost'),
+      kpi(if(is.null(f$measured$actual_api_spending)) 'Unknown' else number_text(f$measured$actual_api_spending,'$',2),'Actual API spending','Unknown until invoices are complete'),
+      kpi(number_text(f$modeled$review_cost_per_fmea,'$',0),'Estimated review / FMEA','Modeled engineering labor'),
+      kpi(number_text(f$modeled$break_even_fmeas),'Break-even workload','FMEAs / modeled threshold'))
   })
   output$finance_cost <- renderUI(dashboard_finance(financial(),'comparison'))
   output$finance_distribution <- renderUI(dashboard_finance(financial(),'simulation'))

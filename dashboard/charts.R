@@ -43,7 +43,10 @@ dashboard_activity <- function(d) {
   rows <- as_table(d$operations$generation_activity)
   registry <- as_table(d$registry)
   if(!nrow(rows)) return(chart_empty('No generation activity registered','Workflow success alone does not establish a generated FMEA.'))
-  dates <- sort(unique(rows$date)); maxv <- max(1,rows$count); n <- length(dates)
+  evaluations <- as_table(d$evaluations)
+  if(nrow(evaluations)) evaluations <- evaluations[evaluations$selected %in% TRUE,,drop=FALSE]
+  evaluation_dates <- if(nrow(evaluations)) substr(evaluations$accepted_at,1,10) else character()
+  dates <- sort(unique(c(rows$date,evaluation_dates[!is.na(evaluation_dates)]))); maxv <- max(1,rows$count); n <- length(dates)
   colors <- c(success=chart_tokens$accent,failed=chart_tokens$failure,running=chart_tokens$warning,queued=chart_tokens$muted,planned=chart_tokens$muted)
   body <- c('<line x1="10" x2="390" y1="130" y2="130" class="chart-grid"/>')
   # Display distinct statuses side by side, never sum workflow executions as FMEAs.
@@ -61,7 +64,12 @@ dashboard_activity <- function(d) {
     if(!is.na(day)) body <- c(body,mark('circle',sprintf('cx="%f" cy="14" r="3" fill="%s"',20+(day-1)*360/n+(i%%7)*5,chart_tokens$warning),
       paste(pending$run_id[i],'awaiting independent evaluation')))
   }
-  htmltools::tagList(htmltools::div(class='chart-key',htmltools::span('Successful',class='key-success'),htmltools::span('Failed',class='key-failed'),htmltools::span('Awaiting judge (dots)',class='key-pending')),
+  if(nrow(evaluations)) for(i in seq_len(nrow(evaluations))) {
+    day <- match(evaluation_dates[i],dates)
+    if(!is.na(day)) body <- c(body,mark('circle',sprintf('cx="%f" cy="26" r="3" fill="none" stroke="%s"',20+(day-1)*360/n+(i%%7)*5,chart_tokens$accent),
+      paste(evaluations$generation_id[i],evaluations$accepted_at[i],'selected independent evaluation accepted')))
+  }
+  htmltools::tagList(htmltools::div(class='chart-key',htmltools::span('Successful',class='key-success'),htmltools::span('Failed',class='key-failed'),htmltools::span('Awaiting judge',class='key-pending'),htmltools::span('Evaluated',class='key-evaluated')),
     svg_chart(body,'Registered FMEA generation attempts by date and status'),
     htmltools::tags$p(class='chart-note',paste(fmt(d$operations$awaiting_judge),'awaiting independent evaluation. Generation receipts, not workflow execution totals.')),
     chart_details(rows,'Activity counts and source dates'))

@@ -35,6 +35,34 @@ test_that('poster export and both ggplots produce standalone artifacts', {
 cat('Dashboard R checks completed\n')
 
 source('dashboard/charts.R')
+source('dashboard/workspace.R')
+test_that('manifest progress excludes historical aliases and duplicate attempts', {
+  d <- list(registry=data.frame(run_id=c('old','planned-A','planned-A'),system='A',skill_version='v4.0',
+    generation_status='success',evaluation_status=c('not_evaluated','evaluated','evaluated')))
+  plan <- list(runs=data.frame(run_id=c('planned-A','planned-B'),system=c('A','B'),skill_version='v4.0'),status='SYNTHETIC TEST PLAN')
+  html <- as.character(workspace_progress(d,plan))
+  expect_match(html,'SYNTHETIC TEST PLAN'); expect_match(html,'Exact manifest run IDs only')
+  expect_false(grepl('>2</span>',html,fixed=TRUE))
+  expect_equal(nrow(read_workspace_plan(tempfile())$runs),0)
+})
+
+test_that('accepted synthetic snapshot refresh updates charts and corruption retains last good', {
+  d <- read_snapshot('dashboard/data/baseline.json'); path <- tempfile(fileext='.json')
+  save <- function(value) jsonlite::write_json(value,path,auto_unbox=TRUE,dataframe='rows',null='null')
+  save(d); previous <- getwd(); setwd('dashboard'); on.exit(setwd(previous),add=TRUE)
+  env <- new.env(parent=globalenv()); sys.source('app.R',envir=env); env$source_path <- path
+  shiny::testServer(env$server, {
+    session$setInputs(refresh=1,versions='v4.0',systems='A',eval_status='All',dates=c('2026-01-01','2026-12-31'))
+    session$flushReact(); expect_match(output$run_plot$html,'Awaiting independent evaluation')
+    d$runs <- data.frame(run_id='SYNTHETIC-REFRESH',system='A',skill_version='v4.0',missed_percentage=17,
+      generated_rows=30,found=20,missed=4,extra_unmatched_rows=1)
+    d$last_updated <- '2026-11-17T00:00:00+00:00'; save(d)
+    session$setInputs(refresh=2); session$elapse(30010); session$flushReact()
+    expect_equal(nrow(data()$runs),1); expect_match(output$run_plot$html,'SYNTHETIC-REFRESH')
+    writeLines('{broken',path); session$setInputs(refresh=3); session$elapse(30010); session$flushReact()
+    expect_match(output$run_plot$html,'SYNTHETIC-REFRESH')
+  })
+})
 test_that('dashboard components preserve validated data and separate pending evidence', {
   d <- read_snapshot('dashboard/data/baseline.json'); original <- serialize(d,NULL)
   pending <- as.character(dashboard_versions(d))
@@ -108,6 +136,8 @@ test_that('Shiny server starts and renders baseline-only outputs without keys', 
     expect_equal(nrow(filtered()),0)
     expect_match(output$poster_results$html,'Pending Evaluation')
     expect_match(output$mission_quality$html,'Historical V2 baseline')
+    expect_match(output$mission_kpis$html,'Pending')
+    expect_false(grepl('31.4',output$mission_kpis$html,fixed=TRUE))
     expect_match(output$run_plot$html,'Awaiting independent evaluation')
     expect_match(output$quality_accuracy$html,'within 25%')
     expect_match(output$pareto_detail$html,'114')
