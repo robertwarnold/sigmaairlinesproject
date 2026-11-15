@@ -249,3 +249,18 @@ Final V4 validation: 193 Python tests passed (results/v4-release-tests.log); 16 
 - Runbook/architecture: docs/v41-research-dashboard.md; metric dictionary: docs/v41-metrics.md.
 
 V4.1 final verification: 209 Python tests and 26 R assertions; live API metadata sync was partial/rate-limited, historical receipt migration succeeded, all six views have private previews. Detailed security/data-quality record: docs/v41-validation.md. No paid calls or publication.
+
+## V4.2 visualization refactor — 2026-11-15
+
+- Completed source/rendered audit and separated native dashboard HTML/SVG components
+  from retained academic ggplot/export constructors; shared semantic theme tokens.
+- Refined activity, run selection, version comparisons, Pareto, conditional agreement,
+  financial histogram/cost drivers/sensitivity and missing-cost states.
+- Preserved Python metrics, financial assumptions, judge ingestion, historical data,
+  generation versions and academic PNG/PDF/poster exports.
+- Financial assumptions use an inline disclosure; detailed research tables remain
+  available without dominating the primary charts.
+- Offline tests, same-snapshot desktop/laptop/mobile previews and construction
+  benchmark documented in docs/v42-visualization-refactor.md; artifacts stay ignored.
+- No paid calls, push, merge or deployment. Real V4 evaluation, invoices and accepted
+  engineering labor evidence remain pending; Explorer table refinements remain backlog.

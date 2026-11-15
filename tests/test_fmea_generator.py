@@ -178,7 +178,12 @@ class FMEATests(unittest.TestCase):
         out, error = self._generate("MAX_TOKENS", '[{"component": "x"')
         self.assertRegex(str(error), "truncated at the 100-token limit")
         self.assertEqual({p.name for p in out.iterdir()},
-                         {"case_v2.0_run01_raw.txt", "case_v2.0_run01_execution.json"})
+                         {"case_v2.0_run01_raw.txt", "case_v2.0_run01_execution.json",
+                          "case_v2.0_run01_reporting.json", "experiment_metrics"})
+        receipt = json.loads((out / "case_v2.0_run01_execution.json").read_text(encoding="utf-8"))
+        self.assertEqual(receipt["status"], "failed")
+        self.assertEqual(receipt["failure_classification"], "truncation")
+        self.assertFalse(any(p.suffix == ".csv" for p in out.iterdir()))
 
     def test_other_finish_reason_fails(self):
         out, error = self._generate("SAFETY", "")

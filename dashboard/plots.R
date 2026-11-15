@@ -1,31 +1,31 @@
 # Presentation figures only display Python-computed quantities and intervals.
 library(ggplot2)
-palette <- c('v2.0' = '#a5b1bd', 'v3.0' = '#b9a1e1', 'v3.0-audit' = '#d4b774', 'v4.0' = '#6ac9df')
+source(file.path(if(file.exists('dashboard/theme.R')) 'dashboard' else '.', 'theme.R'))
 research_theme <- function(size = 15) {
   theme_minimal(base_size = size) + theme(
-    plot.background = element_rect(fill = '#111820', colour = NA),
-    panel.background = element_rect(fill = '#111820', colour = NA),
+    plot.background = element_rect(fill = chart_tokens$surface, colour = NA),
+    panel.background = element_rect(fill = chart_tokens$surface, colour = NA),
     panel.grid.minor = element_blank(), panel.grid.major.x = element_blank(),
-    panel.grid.major.y = element_line(colour='#29333e',linewidth=.25), text=element_text(colour='#bcc9d5'), legend.text=element_text(colour='#bcc9d5'), legend.title=element_text(colour='#bcc9d5'),
-    plot.title = element_text(face = 'bold', colour = '#edf3f8'),
-    plot.subtitle = element_text(colour = '#b7c4d0'), legend.position = 'bottom',
-    axis.text = element_text(colour = '#bcc9d5'))
+    panel.grid.major.y = element_line(colour=chart_tokens$grid,linewidth=.25), text=element_text(colour=chart_tokens$muted), legend.text=element_text(colour=chart_tokens$muted), legend.title=element_text(colour=chart_tokens$muted),
+    plot.title = element_text(face = 'bold', colour = chart_tokens$ink),
+    plot.subtitle = element_text(colour = chart_tokens$muted), legend.position = 'bottom', strip.text=element_text(colour=chart_tokens$muted),
+    axis.text = element_text(colour = chart_tokens$muted))
 }
 coverage_plot <- function(data, selected = NULL) {
   runs <- if (is.null(selected)) as_table(data$runs) else selected
-  if (!nrow(runs) && !is.null(selected)) return(ggplot() + annotate('text',x=0,y=0,label='No evaluated observations match the filters',size=6) + theme_void())
+  if (!nrow(runs) && !is.null(selected)) return(ggplot() + annotate('text',x=0,y=0,label='No evaluated observations match the filters',size=5,colour=chart_tokens$muted) + research_theme() + theme(axis.text=element_blank(),axis.title=element_blank(),panel.grid=element_blank()))
   if (!nrow(runs)) {
     # A single aggregate report point is never portrayed as run-level evidence.
     return(ggplot(data.frame(version = 'V2 report aggregate', missed = data$baseline$pooled_missed_percentage_reported), aes(version, missed)) +
-      geom_hline(yintercept = 20, linetype = 'dashed', colour = '#d4b774') +
+      geom_hline(yintercept = 20, linetype = 'dashed', colour = chart_tokens$warning) +
       geom_point(size = 5, colour = palette[['v2.0']]) +
-      annotate('text', x = 1, y = 65, label = 'V3 and V4: Pending Evaluation\nRun-level confidence intervals unavailable', size = 5) +
+      annotate('text', x = 1, y = 65, label = 'V3 and V4: Pending Evaluation\nRun-level confidence intervals unavailable', size = 5, colour=chart_tokens$muted) +
       scale_y_continuous(limits = c(0,100)) + labs(title = 'Failure-mode coverage comparison', subtitle = 'Report-derived V2 pooled rate; no evaluated V4 observations', x = NULL, y = 'Missed failure modes (%)', caption = 'Dashed line: V4 target below 20%. Aggregate point has no inferred CI.') + research_theme())
   }
   means <- as_table(data$per_system)
   if (nrow(means)) means <- means[paste(means$skill_version,means$system) %in% paste(runs$skill_version,runs$system),,drop=FALSE]
   p <- ggplot(runs, aes(skill_version, missed_percentage, colour = skill_version)) +
-    geom_hline(yintercept = 20, linetype = 'dashed', colour = '#d4b774') +
+    geom_hline(yintercept = 20, linetype = 'dashed', colour = chart_tokens$warning) +
     geom_point(position = position_jitter(width = .08, seed = 5300), alpha = .7, size = 2.6) +
     facet_wrap(~system, nrow = 1) + scale_colour_manual(values = palette, drop = FALSE) +
     coord_cartesian(ylim = c(0,100)) + labs(title = 'Failure-mode coverage comparison',
@@ -52,9 +52,9 @@ pareto_plot <- function(data) {
   rows$label <- paste0(rows$miss_category, '\n', sprintf('%.1f%%', rows$percentage))
   rows$label <- factor(rows$label, levels = unique(rows$label))
   max_count <- max(c(1,rows$count))
-  ggplot(rows, aes(label, count)) + geom_col(fill = '#6ac9df', width = .65) +
-    geom_line(aes(y = cumulative_percentage * max_count/100, group = skill_version), colour = '#d4b774', linewidth = .8) +
-    geom_point(aes(y = cumulative_percentage * max_count/100), colour = '#d4b774', size = 2) +
+  ggplot(rows, aes(label, count)) + geom_col(fill = chart_tokens$accent, width = .65) +
+    geom_line(aes(y = cumulative_percentage * max_count/100, group = skill_version), colour = chart_tokens$warning, linewidth = .8) +
+    geom_point(aes(y = cumulative_percentage * max_count/100), colour = chart_tokens$warning, size = 2) +
     facet_wrap(~skill_version,scales = 'free_x') + scale_y_continuous(sec.axis = sec_axis(~ . * 100/max_count, name = 'Cumulative missed modes (%)')) +
     labs(title = 'Pareto: where failure modes were missed', subtitle = if (reported) 'V2 report-derived category totals; V3/V4 pending' else 'Validated item-level classifications; unclassified cases remain visible',
          x = NULL, y = 'Missed opportunities', caption = 'Categories are mutually exclusive. Counts and percentages come from Python.') +
@@ -64,13 +64,13 @@ overall_plot <- function(data) {
   rows <- as_table(data$per_version)
   if (!nrow(rows)) return(coverage_plot(data))
   ggplot(rows,aes(skill_version, system_weighted_mean, colour = skill_version)) +
-    geom_hline(yintercept = 20,linetype = 'dashed',colour = '#d4b774') + geom_point(size = 4) +
+    geom_hline(yintercept = 20,linetype = 'dashed',colour = chart_tokens$warning) + geom_point(size = 4) +
     geom_errorbar(aes(ymin = ci_low,ymax = ci_high),width = .12,na.rm = TRUE) +
     scale_colour_manual(values = palette) + labs(title = 'Overall missed percentage', subtitle = 'Equal-system mean and system-stratified 95% interval; run mean shown separately', x = NULL,y = 'Missed (%)') + research_theme()
 }
 # Additional views reuse validated snapshot tables; no research statistics computed here.
 empty_plot <- function(title,message='Pending Evaluation - no validated observations') ggplot() +
-  annotate('text',x=0,y=0,label=message,colour='#bcc9d5',size=5) + labs(title=title) + research_theme() +
+  annotate('text',x=0,y=0,label=message,colour=chart_tokens$muted,size=5) + labs(title=title) + research_theme() +
   theme(axis.text=element_blank(),axis.title=element_blank(),panel.grid=element_blank())
 field_accuracy_plot <- function(data) {
   rows <- as_table(data$field_accuracy)
@@ -90,7 +90,7 @@ activity_plot <- function(data) {
   rows <- as_table(data$operations$generation_activity)
   if (!nrow(rows)) return(empty_plot('Generation activity','No registered generation timestamps'))
   ggplot(rows,aes(as.Date(date),count,fill=generation_status)) +
-    geom_col() + scale_fill_manual(values=c(success='#6ac9df',failed='#df9492',running='#d4b774',planned='#7d8c9b',queued='#b9a1e1')) +
+    geom_col() + scale_fill_manual(values=c(success=chart_tokens$accent,failed=chart_tokens$failure,running=chart_tokens$warning,planned='#7d8c9b',queued='#b9a1e1')) +
     labs(title='Generation activity',subtitle='Python-counted actual receipts, not workflow execution counts',x='Generation start date',y='FMEA generation attempts',fill='Generation status') + research_theme(13)
 }
 
@@ -105,24 +105,24 @@ financial_plot <- function(finance,kind='simulation') {
   if(is.null(finance)) return(empty_plot('Financial analysis','Scenario pending Python calculation'))
   if(kind=='simulation') {
     rows <- as_table(finance$simulation$histogram)
-    return(ggplot(rows,aes(midpoint,count)) + geom_col(fill='#6ac9df') + geom_vline(xintercept=0,colour='#df9492',linetype='dashed') +
-      geom_vline(xintercept=finance$simulation$median_annual_net_savings,colour='#d4b774') +
+    return(ggplot(rows,aes(midpoint,count)) + geom_col(fill=chart_tokens$accent) + geom_vline(xintercept=0,colour=chart_tokens$failure,linetype='dashed') +
+      geom_vline(xintercept=finance$simulation$median_annual_net_savings,colour=chart_tokens$warning) +
       labs(title='Modeled first-year net savings',subtitle=sprintf('10,000 assumption-driven draws\n95%% simulation interval $%.0f to $%.0f',finance$simulation$interval95_annual_usd[1],finance$simulation$interval95_annual_usd[2]),
            x='Annual net savings (USD; negative values retained)',y='Simulation draws') + research_theme(13))
   }
   if(kind=='comparison') {
     rows <- data.frame(method=c('Manual','AI-assisted'),annual_cost=c(finance$modeled$manual_annual_cost,finance$modeled$ai_annual_operating_cost))
-    return(ggplot(rows,aes(method,annual_cost)) + geom_col(fill='#6ac9df',width=.55) + labs(title='Modeled annual operating cost',subtitle='Scenario estimates, not verified savings',x=NULL,y='Annual USD') + research_theme(13))
+    return(ggplot(rows,aes(method,annual_cost)) + geom_col(fill=chart_tokens$accent,width=.55) + labs(title='Modeled annual operating cost',subtitle='Scenario estimates, not verified savings',x=NULL,y='Annual USD') + research_theme(13))
   }
-  if(kind=='breakdown') return(ggplot(as_table(finance$activities),aes(reorder(activity,cost_per_fmea),cost_per_fmea)) + geom_col(fill='#6ac9df') + coord_flip() + labs(title='Modeled cost by activity',x=NULL,y='USD per FMEA') + research_theme(13))
-  if(kind=='sensitivity') return(ggplot(as_table(finance$sensitivity),aes(reorder(assumption,high-low),ymin=low,ymax=high)) + geom_linerange(linewidth=6,colour='#6ac9df') + coord_flip() + labs(title='Scenario sensitivity',subtitle='Each assumption varied +/-20%; others held fixed',x=NULL,y='First-year net savings (USD)') + research_theme(13))
+  if(kind=='breakdown') return(ggplot(as_table(finance$activities),aes(reorder(activity,cost_per_fmea),cost_per_fmea)) + geom_col(fill=chart_tokens$accent) + coord_flip() + labs(title='Modeled cost by activity',x=NULL,y='USD per FMEA') + research_theme(13))
+  if(kind=='sensitivity') return(ggplot(as_table(finance$sensitivity),aes(reorder(assumption,high-low),ymin=low,ymax=high)) + geom_linerange(linewidth=6,colour=chart_tokens$accent) + coord_flip() + labs(title='Scenario sensitivity',subtitle='Each assumption varied +/-20%; others held fixed',x=NULL,y='First-year net savings (USD)') + research_theme(13))
 }
 spending_plot <- function(finance) {
   rows <- as_table(finance$observed_spending)
   if(!nrow(rows) || !any(!is.na(rows$generation_timestamp)) || !any(!is.na(rows$known_billed_subtotal))) return(empty_plot('Observed cumulative API spending','No recorded invoices; actual spending is unknown'))
   rows <- rows[!is.na(rows$generation_timestamp),,drop=FALSE]
   ggplot(rows,aes(as.POSIXct(generation_timestamp,format='%Y-%m-%dT%H:%M:%S'),known_billed_subtotal)) +
-    geom_step(colour='#6ac9df',linewidth=.8) + labs(title='Known billed API subtotal',subtitle='Incomplete invoices: subtotal may be below total actual spending',x='Generation timestamp',y='Known invoice USD') + research_theme(13)
+    geom_step(colour=chart_tokens$accent,linewidth=.8) + labs(title='Known billed API subtotal',subtitle='Incomplete invoices: subtotal may be below total actual spending',x='Generation timestamp',y='Known invoice USD') + research_theme(13)
 }
 review_cost_plot <- function(finance) {
   rows <- as_table(finance$version_review_costs)

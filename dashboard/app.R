@@ -1,6 +1,6 @@
 # Sigma Airlines: no API clients or private row data are loaded in this app.
 source('bootstrap.R')
-source('data.R'); source('plots.R'); source('poster.R')
+source('data.R'); source('plots.R'); source('poster.R'); source('charts.R')
 library(shiny); library(bslib)
 source_path <- Sys.getenv('SIGMA_DASHBOARD_DATA', file.path(project_root,'results','research','current.json'))
 fallback <- 'data/baseline.json'
@@ -8,14 +8,14 @@ financial_defaults <- jsonlite::fromJSON('data/financial-defaults.json')
 ui <- page_navbar(
   title = 'Sigma Airlines', id = 'view', selected = 'Mission control', fillable=FALSE,
   theme = bs_theme(version=5,bg='#0c1118',fg='#e9f0f6',primary='#6ac9df',base_font='sans-serif'),
-  header = tagList(tags$head(tags$link(rel='stylesheet',type='text/css',href='research.css'),tags$script(src='presentation.js')),
+  header = tagList(tags$head(chart_css_tokens(),tags$link(rel='stylesheet',type='text/css',href='research.css'),tags$script(src='presentation.js'),tags$script(src='charts.js')),
     div(class='evidence-strip',textOutput('evidence_status'),actionButton('refresh','Refresh data'),
         actionButton('presentation_toggle','Focus presentation'),downloadButton('poster_pdf','Export poster PDF'))),
   nav_panel('Mission control',
     div(class='page-intro',h1('Research mission control'),p('Generation is an operational outcome. Quality requires independent evaluation.')),
     uiOutput('mission_kpis'),
-    layout_columns(div(class='research-panel',plotOutput('mission_activity',height='290px')),
-      div(class='research-panel',plotOutput('mission_quality',height='290px')),col_widths=c(6,6)),
+    div(class='chart-grid-layout',chart_panel('Generation activity',uiOutput('mission_activity')),
+      chart_panel('Skill version comparison',uiOutput('mission_quality'))),
     div(class='research-panel',h2('Recent activity'),uiOutput('recent_activity')),
     layout_columns(div(class='research-panel',h2('Research target progress'),uiOutput('criteria')),
       div(class='research-panel',h2('Synchronization'),textOutput('sync_summary'),tableOutput('workflow_table')),col_widths=c(6,6))),
@@ -32,16 +32,20 @@ ui <- page_navbar(
       h2('Lifecycle history'),tableOutput('event_table'))),
   nav_panel('Engineering quality',
     div(class='page-intro',h1('Coverage supported by evidence'),uiOutput('pending_versions')),
-    layout_columns(div(class='research-panel',plotOutput('run_plot',height='350px')),
-      div(class='research-panel',plotOutput('quality_accuracy',height='350px')),col_widths=c(7,5)),
-    layout_columns(div(class='research-panel',plotOutput('pareto_detail',height='330px')),
-      div(class='research-panel',plotOutput('quality_completeness',height='330px')),col_widths=c(6,6)),
-    h2('Version summary'),tableOutput('version_summary'),h2('System summary'),tableOutput('system_summary'),
-    h2('Component coverage'),tableOutput('coverage_table'),h2('Unmatched rows (not adjudicated false positives)'),tableOutput('extras'),
-    h2('Inference and acceptance criteria'),verbatimTextOutput('statistics'),h2('Human review'),tableOutput('review')),
+    chart_panel('Missed failure modes by run',uiOutput('run_plot'), 'Accepted evaluations only | missed reference opportunities (%) | target below 20%'),
+    uiOutput('selected_chart_run'),
+    div(class='chart-grid-layout',chart_panel('Miss categories',uiOutput('pareto_detail')),
+      chart_panel('Field-level agreement',uiOutput('quality_accuracy'))),
+    tags$details(class='analysis-details',tags$summary('Output completeness and supporting research tables'),
+      chart_panel('Generated rows and missed percentage',uiOutput('quality_completeness')),
+      h2('Version summary'),tableOutput('version_summary'),h2('System summary'),tableOutput('system_summary'),
+      h2('Component coverage'),tableOutput('coverage_table'),h2('Unmatched rows (not adjudicated false positives)'),tableOutput('extras')),
+    tags$details(class='analysis-details',tags$summary('Inference, acceptance criteria and human review'),
+      verbatimTextOutput('statistics'),tableOutput('review'))),
   nav_panel('Financial analysis',
     div(class='page-intro',h1('What does better coverage cost?'),p('Measured spending and modeled savings are distinct. Missing invoices remain unknown.')),
-    layout_sidebar(sidebar=sidebar(title='Planning assumptions',
+    tags$div(class='financial-workspace',
+      tags$details(class='finance-assumptions',tags$summary('Edit scenario assumptions'),div(class='assumption-grid',
       numericInput('fin_annual_volume','Annual FMEAs',50,min=1),numericInput('fin_labor_rate','Loaded rate (USD/hour)',92.71,min=0),
       numericInput('fin_manual_hours','Manual hours/FMEA',financial_defaults$manual_hours,min=0),
       numericInput('fin_setup_hours','AI setup hours',.5,min=0),numericInput('fin_matched_review_minutes','Matched-item review minutes',3,min=0),
@@ -50,13 +54,18 @@ ui <- page_navbar(
       numericInput('fin_development_usd','Implementation cost (USD)',3500,min=0),numericInput('fin_maintenance_usd','Annual maintenance (USD)',0,min=0),
       numericInput('fin_api_usd_per_attempt','Assumed API USD/attempt',1,min=0),numericInput('fin_success_probability','Assumed success probability',.8,min=.01,max=1),
       sliderInput('fin_uncertainty_fraction','Scenario uncertainty +/- fraction',min=0,max=.6,value=.2,step=.05),
-      actionButton('reset_finance','Reset to baseline assumptions')),
-      textOutput('financial_status'),uiOutput('financial_metrics'),
-      layout_columns(plotOutput('finance_cost',height='300px'),plotOutput('finance_distribution',height='300px'),col_widths=c(6,6)),
-      layout_columns(plotOutput('finance_breakdown',height='300px'),plotOutput('finance_sensitivity',height='300px'),col_widths=c(6,6)),
-      layout_columns(plotOutput('finance_spending',height='280px'),plotOutput('finance_versions',height='280px'),col_widths=c(6,6)),
-      h2('Observed billing completeness'),tableOutput('observed_costs'),h2('Modeled review cost by system and version'),tableOutput('review_costs'),
-      h2('Historical scenario (preserved)'),tableOutput('historical_finance'))),
+      actionButton('reset_finance','Reset to baseline assumptions'))),
+      tags$p(class='chart-note',textOutput('financial_status')),uiOutput('financial_metrics'),
+      div(class='chart-grid-layout',chart_panel('Annual operating cost',uiOutput('finance_cost'),'Modeled USD | same annual workload'),
+        chart_panel('First-year net savings',uiOutput('finance_distribution'),'Modeled scenario, not verified savings')),
+      tags$details(class='analysis-details',tags$summary('Cost drivers and sensitivity'),
+        div(class='chart-grid-layout',chart_panel('Cost per FMEA',uiOutput('finance_breakdown')),
+          chart_panel('Sensitivity to assumptions',uiOutput('finance_sensitivity')))),
+      chart_panel('Measured API spending',uiOutput('finance_spending')),
+      tags$details(class='analysis-details',tags$summary('Version review costs and billing records'),
+        chart_panel('Modeled review cost by version',uiOutput('finance_versions')),
+        tableOutput('observed_costs'),tableOutput('review_costs')),
+      tags$details(class='analysis-details',tags$summary('Preserved historical planning scenario'),tableOutput('historical_finance')))),
   nav_panel('Research methodology',h1('Research method'),h2('Historical Round 1 report aggregates'),p('Report-derived values only. They are separate from the normalized generation registry and have no reconstructed item records or confidence intervals.'),tableOutput('historical_baseline'),
     h2('Define / Measure / Analyze'),p('Quantity of interest: missed failure-mode opportunities per evaluated run, with separate pooled counts. The V2 report establishes a pooled historical baseline; it cannot reconstruct independent run observations.'),
     h2('Improve'),p('Remote V3 introduced prompt-based unit and failure-type checks. The complementary local V3 audit emitted structured links. V4 adds an independent input inventory, deterministic gap audit and targeted remediation preparation.'),
@@ -99,19 +108,21 @@ server <- function(input,output,session) {
   output$baseline_caption <- renderText(sprintf('V2 report: %d runs, %d opportunities and %d misses across A-E. V4 plan: %d independent generations in randomized order.',data()$baseline$total_runs,data()$baseline$opportunities,data()$baseline$missed,data()$statistics$planned_v4_runs))
   width_for <- function(id) function() {
     value <- session$clientData[[paste0('output_',id,'_width')]]
-    if (is.null(value) || !is.finite(value) || value < 1) 900 else max(300,value)
+    if (is.null(value) || !is.finite(value) || value < 1) 900 else max(80,value)
   }
   responsive_plot <- function(plot,id) {
-    if (width_for(id)() < 600) {
-      wrap <- function(x) paste(strwrap(x,width=36),collapse='\n')
-      plot <- plot + labs(title=wrap(plot$labels$title),subtitle=wrap(plot$labels$subtitle),caption=wrap(plot$labels$caption)) + research_theme(11)
-    }
+    width <- width_for(id)()
+    # Publication titles live in export figures; the web poster supplies its context.
+    plot <- plot + labs(title=NULL,subtitle=NULL,caption=NULL) + research_theme(if(width<600) 8 else 11)
+    if(width<600) plot <- plot + theme(legend.position='none',axis.title=element_blank(),
+      axis.text.x=element_text(size=6),plot.margin=margin(6,8,6,8))
     plot
   }
-  output$coverage <- renderPlot(responsive_plot(coverage_plot(data()),'coverage'),res=120,width=width_for('coverage'),height=300)
-  output$pareto <- renderPlot(responsive_plot(pareto_plot(data()),'pareto'),res=120,width=width_for('pareto'),height=300)
-  output$pareto_detail <- renderPlot(responsive_plot(pareto_plot(data()),'pareto_detail'),res=120,width=width_for('pareto_detail'),height=300)
-  output$overall <- renderPlot(responsive_plot(overall_plot(data()),'overall'),res=120,width=width_for('overall'),height=300)
+  output$coverage <- renderPlot(responsive_plot(coverage_plot(data()),'coverage'),res=96,width=width_for('coverage'),height=300,
+    alt='Academic coverage figure. Historical V2 aggregate and accepted run observations remain separate.')
+  output$pareto <- renderPlot(responsive_plot(pareto_plot(data()),'pareto'),res=96,width=width_for('pareto'),height=300,
+    alt='Academic Pareto of missed reference failure modes, using validated category counts.')
+  output$pareto_detail <- renderUI(dashboard_pareto(data()))
   output$criteria <- renderUI({criteria <- data()$statistics$criteria; div(class='criteria-grid',lapply(names(criteria),function(k) div(strong(criteria[[k]]),span(gsub('_',' ',k)))))})
   output$pending_versions <- renderUI({
     available <- unique(as_table(data()$runs)$skill_version)
@@ -129,7 +140,13 @@ server <- function(input,output,session) {
     }
     runs[which(keep),,drop=FALSE]
   })
-  output$run_plot <- renderPlot({if(nrow(filtered())) coverage_plot(data(),filtered()) else coverage_plot(data(),data.frame())},res=120,width=width_for('run_plot'),height=300)
+  output$run_plot <- renderUI(dashboard_runs(data(),filtered()))
+  output$selected_chart_run <- renderUI({
+    r <- as_table(data()$runs); if(is.null(input$chart_run) || !nrow(r)) return(NULL)
+    r <- r[r$run_id==input$chart_run,,drop=FALSE]
+    if(!nrow(r)) return(NULL)
+    chart_panel('Selected evaluated FMEA',chart_details(r,'Run metadata'))
+  })
   output$version_summary <- renderTable(as_table(data()$per_version),digits=2)
   output$system_summary <- renderTable(as_table(data()$per_system),digits=2)
   output$run_table <- renderTable(filtered(),digits=2)
@@ -183,10 +200,10 @@ server <- function(input,output,session) {
   output$sync_summary <- renderText({ops <- data()$operations; if(is.null(ops)) return('Legacy snapshot: registry synchronization pending')
     paste('Last successful synchronization:',if(is.null(ops$sync$last_successful_sync)) 'Not yet synchronized' else ops$sync$last_successful_sync,
       '| Polling status:',ops$sync$status,'| Registered generations:',ops$registered_generations)})
-  output$mission_activity <- renderPlot(activity_plot(data()),res=120,width=width_for('mission_activity'),height=290)
-  output$mission_quality <- renderPlot(overall_plot(data()),res=120,width=width_for('mission_quality'),height=290)
-  output$quality_accuracy <- renderPlot(field_accuracy_plot(data()),res=120,width=width_for('quality_accuracy'),height=350)
-  output$quality_completeness <- renderPlot(completeness_plot(data()),res=120,width=width_for('quality_completeness'),height=330)
+  output$mission_activity <- renderUI(dashboard_activity(data()))
+  output$mission_quality <- renderUI(dashboard_versions(data()))
+  output$quality_accuracy <- renderUI(dashboard_agreement(data()))
+  output$quality_completeness <- renderUI(dashboard_runs(data(),filtered(),scatter=TRUE))
   output$poster_criteria <- renderUI({criteria <- data()$statistics$criteria; div(class='criteria-grid',lapply(names(criteria),function(k) div(strong(criteria[[k]]),span(gsub('_',' ',k)))))})
   output$workflow_table <- renderTable({x <- as_table(data()$workflow_executions); if(!nrow(x)) return(data.frame(Status='No GitHub executions synchronized'))
     tail(x[,intersect(c('workflow_run_id','run_attempt','status','conclusion','created_at'),names(x)),drop=FALSE],5)})
@@ -262,19 +279,17 @@ server <- function(input,output,session) {
   financial <- reactive(financial_result()$data)
   output$financial_status <- renderText(financial_result()$status)
   output$financial_metrics <- renderUI({f <- financial(); if(is.null(f)) return(p('Scenario calculation pending'))
-    div(class='kpi-row',kpi(number_text(f$measured$actual_api_spending,'$',2),'Observed API spending','Complete invoices required'),
-      kpi(number_text(f$measured$api_cost_per_success,'$',2),'API cost / generated FMEA','All attempts allocated to successes'),
-      kpi(number_text(f$measured$api_cost_per_evaluated,'$',2),'API cost / evaluated FMEA','All observed attempts allocated'),
-      kpi(number_text(f$modeled$review_cost_per_fmea,'$',0),'Modeled review / FMEA',f$basis),
-      kpi(number_text(f$modeled$first_year_net_savings,'$',0),'Modeled first-year net savings','Includes implementation and maintenance'),
-      kpi(number_text(f$modeled$break_even_fmeas),'Break-even FMEAs','Unavailable when unit savings nonpositive'))
+    div(class='finance-outcomes',
+      kpi(number_text(f$modeled$first_year_net_savings,'$',0),'Modeled first-year savings','Includes implementation and maintenance'),
+      kpi(number_text(f$modeled$break_even_fmeas),'Break-even FMEAs','Unknown if unit savings are nonpositive'),
+      kpi(number_text(f$modeled$review_cost_per_fmea,'$',0),'Modeled review / FMEA',f$basis))
   })
-  output$finance_cost <- renderPlot(financial_plot(financial(),'comparison'),width=width_for('finance_cost'),height=300,res=120)
-  output$finance_distribution <- renderPlot(financial_plot(financial(),'simulation'),width=width_for('finance_distribution'),height=300,res=120)
-  output$finance_breakdown <- renderPlot(financial_plot(financial(),'breakdown'),width=width_for('finance_breakdown'),height=300,res=120)
-  output$finance_sensitivity <- renderPlot(financial_plot(financial(),'sensitivity'),width=width_for('finance_sensitivity'),height=300,res=120)
-  output$finance_spending <- renderPlot(spending_plot(financial()),width=width_for('finance_spending'),height=280,res=120)
-  output$finance_versions <- renderPlot(review_cost_plot(financial()),width=width_for('finance_versions'),height=280,res=120)
+  output$finance_cost <- renderUI(dashboard_finance(financial(),'comparison'))
+  output$finance_distribution <- renderUI(dashboard_finance(financial(),'simulation'))
+  output$finance_breakdown <- renderUI(dashboard_finance(financial(),'breakdown'))
+  output$finance_sensitivity <- renderUI(dashboard_finance(financial(),'sensitivity'))
+  output$finance_spending <- renderUI(dashboard_finance(financial(),'spending'))
+  output$finance_versions <- renderUI(dashboard_finance(financial(),'versions'))
   output$observed_costs <- renderTable({f <- financial(); if(is.null(f)) return(data.frame(Status='Unavailable')); data.frame(Metric=names(f$measured),Value=vapply(f$measured,function(x) if(is.null(x)) 'Unavailable' else as.character(x),character(1)))})
   output$review_costs <- renderTable(as_table(financial()$quality_review_estimates),digits=2)
   output$historical_finance <- renderTable({h <- financial()$historical_scenario; if(is.null(h)) return(data.frame(Status='Pending')); data.frame(Metric=names(h),Value=vapply(h,function(x) paste(x,collapse=' to '),character(1)))})

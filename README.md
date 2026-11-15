@@ -365,3 +365,10 @@ Shiny reads the resulting sanitized `results/research/current.json` every 30 sec
 Authenticated artifact backfill needs a server-side Actions-read token. Public deployment
 and publication remain approval gates. Historical baseline aggregates are not fabricated
 into run observations, and unevaluated generations receive no quality scores.
+
+## V4.2 visualization architecture
+
+Dashboard charts now use compact HTML/SVG components while academic ggplot2 figures
+remain available through the existing export command. Both consume the same validated
+Python snapshot. See [visualization refactor](docs/v42-visualization-refactor.md) for
+rendering tests, before/after previews, benchmark commands and retained data boundaries.
