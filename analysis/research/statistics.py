@@ -3,7 +3,7 @@ from statistics import mean, stdev
 import numpy as np
 from scipy import stats
 
-VERSIONS=('v2.0','v3.0','v4.0')
+VERSIONS=('v2.0','v3.0','v3.0-audit','v4.0')
 SYSTEMS=tuple('ABCDE')
 
 
@@ -84,6 +84,6 @@ def compare(runs):
             criteria['four_systems_improve']=criteria['no_system_worsens_over_5pp']='INSUFFICIENT_DATA'
     return {'primary_comparison':'v2.0 vs v4.0','anova':primary,'confidence_intervals':ci,'criteria':criteria,
             'secondary_v3_vs_v4':{'anova':anova(runs,('v3.0','v4.0')),'confidence_intervals':bootstrap(runs,('v3.0','v4.0'))},
-            'exploratory_three_version':anova(runs,VERSIONS),'planned_v4_runs':20,'evaluated_v4_runs':len(v4),
+            'exploratory_three_version':anova(runs,('v2.0','v3.0','v4.0')),'exploratory_four_version':anova(runs,VERSIONS),'planned_v4_runs':20,'evaluated_v4_runs':len(v4),
             'research_status':'PENDING_LIVE_EVALUATION' if not v4 else 'EVALUATED_DATA_AVAILABLE',
             'limitations':'Report-derived pooled V2 baseline cannot support run means, CIs or ANOVA. Bootstrap is exploratory with four runs/cell; no item-independence claim. Engineering review remains required.'}

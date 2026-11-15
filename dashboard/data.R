@@ -4,6 +4,21 @@ validate_snapshot <- function(x) {
   required <- c('schema','data_version','last_updated','validation_status','research_status',
                 'baseline','runs','registry','per_system','per_version','pareto','statistics',
                 'review_summary','coverage_summary')
+  if (identical(x$schema,'sigma-dashboard-4.1')) {
+    stopifnot(setequal(names(x),c(required,'workflow_executions','evaluations','operations','lifecycle_events','financial','field_accuracy')))
+    check <- x; check$schema <- 'sigma-dashboard-4'; check <- check[required]
+    check$registry <- list()
+    validate_snapshot(check)
+    stopifnot(is.list(x$operations),is.numeric(x$operations$evaluated_fmeas),x$operations$evaluated_fmeas==nrow(as_table(x$runs)),
+      is.list(x$financial),identical(x$financial$status,'MODELED_NOT_MEASURED'),is.list(x$financial$measured))
+    registry <- as_table(x$registry)
+    if(nrow(registry)) stopifnot(all(c('generation_id','system','skill_version','generation_status','evaluation_status','missed_percentage') %in% names(registry)),
+      !anyDuplicated(registry$generation_id),all(registry$system %in% LETTERS[1:5]),
+      all(registry$skill_version %in% c('v2.0','v3.0','v3.0-audit','v4.0')),
+      !any(c('judge_notes','ground_truth_text','receipt_path','configuration','token_usage') %in% names(registry)),
+      all(is.na(registry$missed_percentage[registry$evaluation_status!='evaluated'])))
+    return(x)
+  }
   stopifnot(is.list(x), setequal(names(x), required), identical(x$schema, 'sigma-dashboard-4'),
             identical(x$validation_status, 'VALIDATED'),
             is.character(x$data_version), grepl('^[a-f0-9]{64}$', x$data_version),
@@ -15,7 +30,7 @@ validate_snapshot <- function(x) {
             all(unlist(x$statistics$criteria) %in% c('PASS','FAIL','PENDING','INSUFFICIENT_DATA')))
   for (name in c('per_system','per_version')) {
     table <- as_table(x[[name]])
-    if (nrow(table)) stopifnot(all(table$skill_version %in% c('v2.0','v3.0','v4.0')),
+    if (nrow(table)) stopifnot(all(table$skill_version %in% c('v2.0','v3.0','v3.0-audit','v4.0')),
       all(is.finite(table$mean_run_missed_percentage)),
       all(table$mean_run_missed_percentage >= 0 & table$mean_run_missed_percentage <= 100))
   }
@@ -28,7 +43,7 @@ validate_snapshot <- function(x) {
   if (nrow(runs)) {
     stopifnot(all(c('run_id','system','skill_version','missed_percentage') %in% names(runs)),
               !anyDuplicated(runs$run_id), all(runs$system %in% LETTERS[1:5]),
-              all(runs$skill_version %in% c('v2.0','v3.0','v4.0')),
+              all(runs$skill_version %in% c('v2.0','v3.0','v3.0-audit','v4.0')),
               all(is.finite(runs$missed_percentage)),
               all(runs$missed_percentage >= 0 & runs$missed_percentage <= 100))
   }

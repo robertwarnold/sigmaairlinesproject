@@ -55,6 +55,9 @@ def safe_run(run):
 
 
 def validate_snapshot(data):
+    if data.get("schema")=="sigma-dashboard-4.1":
+        from .platform import validate_extended
+        return validate_extended(data)
     required={'schema','data_version','last_updated','validation_status','research_status','baseline','runs','registry','per_system','per_version','pareto','statistics','review_summary','coverage_summary'}
     if set(data)!=required or data['schema']!=SCHEMA or data['validation_status']!='VALIDATED': raise ValueError('Invalid dashboard envelope')
     if not re.fullmatch('[0-9a-f]{64}',data['data_version']): raise ValueError('Invalid data version')
@@ -288,6 +291,14 @@ def plan(output, model, seed=5300):
 def register(receipt_path, output):
     """Generation event updates progress only; existing judged metrics are retained."""
     output=private(output)
+    if output.exists() and read(output).get('schema')=='sigma-dashboard-4.1':
+        from .registry import Registry
+        from .platform import snapshot
+        registry=Registry(output.parent/'registry.sqlite')
+        try:
+            with registry.transaction(): registry.receipt(receipt_path)
+            return snapshot(registry,output,render=False)
+        finally: registry.close()
     # Use exclusive process lock to prevent lost updates; caller can retry OFFLINE.
     lock=output.with_suffix('.lock'); lock.parent.mkdir(parents=True,exist_ok=True)
     lock.open('x').close()
@@ -334,6 +345,10 @@ def review_sample(paths, output, seed=5300):
 
 
 def main():
+    import sys
+    if any(command in sys.argv[1:2] for command in ("sync","register-generation","register-plan","preview-judge","accept-judge","select-evaluation","reconcile","refresh","watch","finance","record-review","migrate")) or "--database" in sys.argv:
+        from .platform import main as platform_main
+        return platform_main()
     parser=argparse.ArgumentParser(description=__doc__); sub=parser.add_subparsers(dest='command',required=True)
     p=sub.add_parser('plan'); p.add_argument('--output',required=True); p.add_argument('--model',required=True); p.add_argument('--seed',type=int,default=5300)
     b=sub.add_parser('build'); b.add_argument('--judge',action='append',default=[]); b.add_argument('--receipt',action='append',default=[]); b.add_argument('--review',action='append',default=[]); b.add_argument('--output',required=True); b.add_argument('--no-render',action='store_true')

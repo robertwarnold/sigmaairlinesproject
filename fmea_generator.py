@@ -284,7 +284,7 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
             automatic_report(metadata_path)
         except Exception as reporting_error:
             print(f"[REPORTING] {type(reporting_error).__name__}; generation outcome preserved", flush=True)
-        if version == "v4.0":
+        if version == "v4.0" and not os.getenv("SIGMA_RESEARCH_DATABASE"):
             try:
                 from analysis.research.__main__ import register
                 register(metadata_path, ROOT / "results/research/current.json")

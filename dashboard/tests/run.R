@@ -47,3 +47,39 @@ test_that('Shiny server starts and renders baseline-only outputs without keys', 
     expect_match(output$poster_results$html,'Pending Evaluation')
   })
 })
+test_that('financial scenarios use Python, retain negative savings and reset defaults', {
+  previous <- getwd(); setwd('dashboard'); on.exit(setwd(previous),add=TRUE)
+  env <- new.env(parent=globalenv()); sys.source('app.R',envir=env)
+  env$source_path <- normalizePath('data/baseline.json')
+  shiny::testServer(env$server, {
+    session$setInputs(refresh=1,versions=c('v2.0','v3.0','v3.0-audit','v4.0'),systems=LETTERS[1:5],run='All',eval_status='All',dates=c('2026-01-01','2026-12-31'))
+    session$flushReact(); session$elapse(1000)
+    base <- financial_result()$data
+    expect_equal(base$status,'MODELED_NOT_MEASURED')
+    expect_null(base$measured$actual_api_spending)
+    session$setInputs(fin_missed_reconstruction_minutes=300); session$elapse(1000); session$flushReact()
+    loss <- financial_result()$data
+    expect_lt(loss$modeled$first_year_net_savings,0)
+    session$setInputs(fin_missed_reconstruction_minutes=env$financial_defaults$missed_reconstruction_minutes,reset_finance=1)
+    session$elapse(1000); session$flushReact()
+    expect_equal(financial_result()$data$modeled$first_year_net_savings,base$modeled$first_year_net_savings)
+    expect_equal(nrow(as_table(data()$runs)),0)
+  })
+})
+test_that('4.1 reader rejects premature quality and figures handle synthetic evaluated data', {
+  d <- read_snapshot('dashboard/data/baseline.json')
+  d$schema <- 'sigma-dashboard-4.1'
+  for(name in c('workflow_executions','evaluations','lifecycle_events','financial','field_accuracy')) d[[name]] <- list()
+  d$operations <- list(evaluated_fmeas=0)
+  d$financial <- list(status='MODELED_NOT_MEASURED',measured=list())
+  d$registry <- data.frame(generation_id='synthetic-only',system='A',skill_version='v4.0',generation_status='success',evaluation_status='awaiting_evaluation',missed_percentage=NA_real_)
+  expect_equal(validate_snapshot(d)$schema,'sigma-dashboard-4.1')
+  d$registry$missed_percentage <- 12
+  expect_error(validate_snapshot(d))
+  d <- read_snapshot('dashboard/data/baseline.json')
+  d$research_status <- 'SYNTHETIC_TEST_ONLY'
+  d$runs <- data.frame(run_id='SYNTHETIC-ONLY',system='A',skill_version='v4.0',missed_percentage=10,generated_rows=20)
+  expect_s3_class(coverage_plot(d),'ggplot')
+  expect_s3_class(completeness_plot(d),'ggplot')
+  expect_s3_class(field_accuracy_plot(d),'ggplot')
+})

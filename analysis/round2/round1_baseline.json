@@ -31,5 +31,18 @@
   "run_level_mean": null,
   "cause_correctness_reported_approximate": 0.98,
   "severity_within_one_reported_approximate": 0.58,
-  "additional_values_provenance": "User-supplied V4 master instructions; original report and item evidence unavailable"
+  "additional_values_provenance": "User-supplied V4 master instructions; original report and item evidence unavailable",
+  "conditional_quality_reported": {
+    "cause_correctness": 0.98,
+    "end_effect_correctness": 0.78,
+    "severity_within_one": 0.58,
+    "occurrence_within_one": 0.94,
+    "detection_within_one": 0.83,
+    "rpn_within_25_percent": 0.61
+  },
+  "judge_repeatability_reported": {
+    "agreement": 0.979,
+    "fleiss_kappa": 0.97
+  },
+  "pooled_coverage_percentage_reported": 68.6
 }

@@ -222,3 +222,30 @@ These are **workstreams, not person assignments**. Multiple contributors may wor
   docs/v4-research-platform.md. Students must verify/rewrite presentation prose.
 
 Final V4 validation: 193 Python tests passed (results/v4-release-tests.log); 16 R assertions passed including Shiny startup; populated synthetic-only rendering passed; desktop/mobile browser previews saved privately; all Actions YAML parsed and design detector reported no findings. No actual V3/V4 evaluations or public deployment occurred.
+
+## Research dashboard V4.1 ? November 15, 2026
+
+- Baseline verified before edits: 193 Python tests and 16 R assertions passed.
+- Added one normalized private SQLite workflow/generation/evaluation registry with
+  append-only lifecycle events, idempotent receipt backfill, ambiguous-alias detection,
+  explicit repeated-evaluation selection, and human-review completion events.
+- Added GitHub REST pagination/checkpoints, workflow-attempt/job/artifact metadata,
+  receipt-only artifact consumption, rate-limit/transport status and durable workstation
+  polling. No workflow or provider request is dispatched by synchronization.
+- Added preview/hash-confirmed private JSON/CSV/validated-workbook judge imports using
+  the existing schema; invalid batches roll back and originals remain private.
+- Reused existing Python quality/statistical and financial cost/simulation calculations.
+  Added matched-item field accuracy, measured-versus-modeled billing distinctions and
+  editable quality-linked scenarios, reset, Monte Carlo and sensitivity views.
+- Refined existing Shiny components into six dark views; shared figures/poster export,
+  presentation focus, safe metadata drill-down, polling and last-good caching retained.
+- Real-data smoke: 30 public workflow execution records fetched before unauthenticated
+  API limit; normalized 14 preexisting local receipts (8 success, 6 failed, 0 evaluated).
+  These are operational records, not reconstructed Round 1 judged observations.
+- No raw FMEA/reference worksheet read, no paid calls, no push/merge/public deployment.
+- Remaining: Actions-read credential for full artifact backfill; publish branch and
+  configure authorized persistent watcher/host; unchanged private judge results;
+  actual comparable V4 evaluation and measured accepted labor/billing for verified savings.
+- Runbook/architecture: docs/v41-research-dashboard.md; metric dictionary: docs/v41-metrics.md.
+
+V4.1 final verification: 209 Python tests and 26 R assertions; live API metadata sync was partial/rate-limited, historical receipt migration succeeded, all six views have private previews. Detailed security/data-quality record: docs/v41-validation.md. No paid calls or publication.

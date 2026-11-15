@@ -1,0 +1,15 @@
+{
+  "annual_volume": 50,
+  "labor_rate": 92.71,
+  "manual_hours": 9.459820947039155,
+  "setup_hours": 0.5,
+  "matched_review_minutes": 3,
+  "missed_reconstruction_minutes": 20,
+  "extra_review_minutes": 5,
+  "approval_hours": 1,
+  "development_usd": 3500,
+  "maintenance_usd": 0,
+  "api_usd_per_attempt": 1,
+  "success_probability": 0.8,
+  "uncertainty_fraction": 0.2
+}

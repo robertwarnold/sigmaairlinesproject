@@ -13,7 +13,7 @@ dependencies = []
 analysis = ["matplotlib>=3.8"]
 financial = ["pandas>=2.2", "numpy>=1.26", "scipy>=1.12", "matplotlib>=3.8"]
 
-round2 = ["pandas>=2.2", "numpy>=1.26", "scipy>=1.12", "matplotlib>=3.8", "xlsxwriter>=3.2"]
+round2 = ["pandas>=2.2", "numpy>=1.26", "scipy>=1.12", "matplotlib>=3.8", "xlsxwriter>=3.2", "openpyxl>=3.1"]
 
 [project.scripts]
 sigma-fmea = "sigma_fmea.cli:main"

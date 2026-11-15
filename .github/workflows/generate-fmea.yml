@@ -83,6 +83,8 @@ jobs:
   generate:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      SIGMA_RESEARCH_DATABASE: results/research/registry.sqlite
     steps:
       - uses: actions/checkout@v4
         with:

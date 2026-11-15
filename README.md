@@ -346,3 +346,22 @@ Rscript -e ".libPaths(c('.venv/r-library',.libPaths())); shiny::runApp('dashboar
 
 The offline dashboard contains report-derived V2 aggregates. V3/V4 evaluated performance
 is pending; no model calls, public deployment or statistical efficacy claims are implied.
+
+## Research dashboard V4.1
+
+[The V4.1 runbook](docs/v41-research-dashboard.md) extends the existing Shiny app with
+one private workflow/FMEA/evaluation registry, read-only GitHub synchronization,
+previewed independent judge imports, six dark dashboard views and editable quality-linked
+financial scenarios. [Metric definitions](docs/v41-metrics.md) distinguish operational,
+judged, measured and modeled quantities. No paid model request is needed to monitor data.
+
+```powershell
+python -m analysis.research sync --metadata-only
+python -m analysis.research preview-judge --file results/imports/judge_export.json
+python -m analysis.research watch --interval 60
+```
+
+Shiny reads the resulting sanitized `results/research/current.json` every 30 seconds.
+Authenticated artifact backfill needs a server-side Actions-read token. Public deployment
+and publication remain approval gates. Historical baseline aggregates are not fabricated
+into run observations, and unevaluated generations receive no quality scores.

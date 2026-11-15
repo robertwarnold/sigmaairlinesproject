@@ -2,12 +2,24 @@
   "baseline": {
     "additional_values_provenance": "User-supplied V4 master instructions; original report and item evidence unavailable",
     "cause_correctness_reported_approximate": 0.98,
+    "conditional_quality_reported": {
+      "cause_correctness": 0.98,
+      "detection_within_one": 0.83,
+      "end_effect_correctness": 0.78,
+      "occurrence_within_one": 0.94,
+      "rpn_within_25_percent": 0.61,
+      "severity_within_one": 0.58
+    },
     "dpmo_recalculated": 314363.1436314363,
     "extra_per_run_recalculated": 2.388888888888889,
     "extra_per_run_reported_approximate": 2.4,
     "extra_unmatched_rows": 43,
     "generator": "Gemini",
     "judge_model": "Claude Sonnet 5.5",
+    "judge_repeatability_reported": {
+      "agreement": 0.979,
+      "fleiss_kappa": 0.97
+    },
     "judge_skill_version": "v1.2",
     "miss_categories": {
       "Part never covered": 51,
@@ -30,6 +42,7 @@
     "missed": 232,
     "opportunities": 738,
     "per_system_denominators": null,
+    "pooled_coverage_percentage_reported": 68.6,
     "pooled_missed_percentage_recalculated": 31.43631436314363,
     "pooled_missed_percentage_reported": 31.4,
     "provenance": "User-supplied November 14, 2026 report aggregates; not reconstructed item-level data",
@@ -47,7 +60,7 @@
     "total_runs": 18
   },
   "coverage_summary": [],
-  "data_version": "feb433f641f4dfd96f2e3f378a2d8c7c6bb36dd4e9c6fde0b2c655ce712f393b",
+  "data_version": "85bd711737a3002cd65aba61f4bb380a9c3fedea8441608d0ddc9c002e61b907",
   "last_updated": "2026-11-15T15:32:16.569283+00:00",
   "pareto": [],
   "per_system": [],

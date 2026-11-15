@@ -2,7 +2,7 @@ name: Refresh sanitized research dashboard
 on:
   workflow_run:
     workflows: [Generate FMEA with shared Gemini key]
-    types: [completed]
+    types: [requested, in_progress, completed]
   workflow_dispatch:
     inputs:
       source_run_id:
@@ -29,21 +29,19 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
       - run: python -m pip install -e '.[round2]'
       - run: Rscript -e 'install.packages(c("ggplot2", "jsonlite"), repos="https://cloud.r-project.org")'
-      - name: Download existing evidence (no models)
+      - name: Synchronize source execution without generating
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN: ${{ inputs.source_run_id || github.event.workflow_run.id }}
         run: |
           [[ "$SOURCE_RUN" =~ ^[0-9]+$ ]] || exit 1
-          gh run download "$SOURCE_RUN" --dir results/incoming
-      - name: Validate, analyze and render offline
-        run: python scripts/refresh_research.py --incoming results/incoming --output results/research/build-${{ github.run_id }}
+          python -m analysis.research sync --run-id "$SOURCE_RUN"
       - uses: actions/upload-artifact@v4
         with:
           name: sanitized-research-review-${{ github.run_id }}
           path: |
-            results/research/build-${{ github.run_id }}/dashboard.json
-            results/research/build-${{ github.run_id }}/presentation/
+            results/research/current.json
+            results/research/exports/
           retention-days: 14
       # Publication is deliberately separate: no write permission or deploy action.
       # Copy approved sanitized snapshots to permanent storage/Pages only after review.

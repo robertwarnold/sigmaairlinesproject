@@ -74,7 +74,7 @@ def ingest(paths):
             if not isinstance(rid, str) or not rid.strip() or rid in seen:
                 raise ValueError('Duplicate or empty run ID')
             seen.add(rid)
-            if run['system'] not in list('ABCDE') or run['skill_version'] not in ('v2.0', 'v3.0', 'v4.0'):
+            if run['system'] not in list('ABCDE') or run['skill_version'] not in ('v2.0', 'v3.0', 'v3.0-audit', 'v4.0'):
                 raise ValueError('Unknown system/version')
             if any(run.get(k) in (None, '', {}) for k in CONDITIONS):
                 raise ValueError('Missing experimental conditions')
