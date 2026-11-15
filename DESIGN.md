@@ -1,59 +1,43 @@
-# Research workspace design
+# Sigma Airlines analytics design system
 
-V4.2 premium refinement; Operate mode for the five research views and Read mode for
-Presentation. This supersedes the earlier paper and V4.1 visual directions.
+## Surface and reference
 
-## Identity and tokens
+Mode: Operate. One continuously scrollable engineering analytics report. The supplied
+Engineering Team Dashboard screenshot is the approved reference: compact Metabase-style
+white cards on a neutral gray canvas. This replaces the former dark six-view shell.
 
-Retain the existing Shiny application, native HTML/SVG charts and academic ggplots.
-Mission Control opens first. Compact six-destination navigation uses a thin active
-underline. Two-line brand: SIGMA AIRLINES / FMEA RESEARCH PLATFORM.
+## Tokens
 
-Colors live in dashboard/theme.R and become CSS variables: background #0B1016,
-surface #121A23, elevated #18232E, text #EAF0F4, muted #A3B2BF, accent #62C5D1,
-divider #26323E. The muted tone is deliberately brighter than the initial suggested
-palette for readable small labels. Amber/failure tones indicate meaningful states.
-No gradients, neon, ornamental icons, large colored metric tiles or remote fonts.
+Canvas #f7f8fa; surface #ffffff; raised #eef2f5; headings #33414c; secondary text
+#65737e; primary blue #387fb5; border #e0e5e9. Semantic rose #d77982 marks high
+severity/failure; neutral gray marks unrated records. Do not equate color with formal
+risk acceptance. Standard Segoe UI/Arial typography, 13px body, 23px page title,
+19px section headings, 12px chart headings. Cards use thin borders, 5px radius,
+13-15px padding, and no decorative shadows.
 
-Typography uses Segoe UI/Arial for application tasks, 28px page titles, 14-15px
-section headings, 12-14px operational data and 10-11px supporting labels. Consolas
-is reserved for identifiers. A 4/8/12/16/24/32px spacing scale and 6px control radius
-keep controls consistent. Prefer grouping with space over repeated card outlines.
+## Composition
 
-## Information hierarchy
+Compact title and actions, global filters, dataset provenance, six desktop KPIs,
+attention summary, two-column risk charts, paired/triple AI charts, full-width FMEA
+register. Use a responsive 12-column chart grid with 10px gaps. KPIs become three
+columns at laptop widths and two on small screens. Technical tables scroll within
+their own container. Details/reviews remain inline; no primary sidebar or tab routes.
+Financial assumptions and study-level academic context use ordinary disclosures.
 
-Mission: four registry/current-experiment KPIs; activity and exact-manifest progress;
-recent runs. Historical aggregates and synchronization diagnostics are disclosure-only.
-Registry totals span all versions; Round 2 progress matches exact manifest run IDs.
-No accepted matching V4 cohort means Pending, never the historical 31.4% fallback.
+## Charts and evidence
 
-Explorer: seven readable columns, ten records per page, inline filter disclosure,
-selected-run detail with lifecycle history. Full IDs and metadata remain available;
-mobile records reflow into a labeled list rather than a horizontally clipped table.
+Python calculates selected counts/rates; SVG/HTML place marks only. Use common scales,
+subtle grids, readable units and native hover titles. Unknown is not zero. Citation
+presence is not verified support. Structural validation is not engineering approval.
+Historical report aggregates never masquerade as individual observations. Synthetic
+fixtures carry explicit labels and never populate production snapshots automatically.
+Academic ggplot exports retain separate constructors and study-level context.
 
-Quality: primary evaluated runs; secondary version comparison; expandable Pareto,
-field agreement, completeness, research tables and inference details.
+## Interaction
 
-Finance: four clearly labeled modeled/measured outcomes and Cost comparison,
-Monte Carlo, Sensitivity and Assumptions tabs. Inputs do not occupy the opening view.
-Methods: seven short explanations, extended evidence and definitions on demand.
-Presentation: dedicated 16:9 canvas, two ggplots, five academic content sections,
-optional criteria and notes. Fullscreen hides navigation; Escape restores the workspace.
-Mobile uses a reading layout rather than forcing the desktop aspect ratio.
-
-## Interaction and integrity
-
-Use native hover/focus, keyboard run selection and ordinary details/tab transitions.
-Respect reduced motion. Preserve manual/30-second refresh and last-known-good cache.
-Validated Python calculations remain authoritative. Layout, formatting, manifest-ID
-selection and visual mark placement do not create or change research statistics.
-Keep private records and API keys out of public/browser presentation datasets.
-
-## Private engineering workspace
-
-Keep row-level engineering work inside Explorer, with detailed risk counts in the
-existing Quality view. Use the same tokens, compact controls and ordinary details
-panels; preserve the six primary views. Label synthetic fixtures and private mode.
-Wide technical tables scroll inside their container, not the whole page. Original
-AI values, reviewed values, citation presence and human-verified support must have
-distinct labels. Do not make approval styling resemble independent judge evidence.
+Global filters, search, attention, matrix selection, register and exports share the
+same selected row IDs. Show active record filters with a clear action. Clicks/keyboard
+activation open inline record context without navigation. Preserve append-only human
+review and original values. Focus outlines, reduced motion, graceful empty/error states,
+manual refresh and 30-second polling remain required. Private row access remains
+opt-in and loopback-only; public dashboards consume sanitized aggregates only.

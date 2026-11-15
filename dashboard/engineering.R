@@ -23,12 +23,15 @@ engineering_table <- function(rows,fields) {
   if(!nrow(rows)) return(chart_empty('No matching FMEA records','Adjust the run, review, severity or text filters.'))
   header <- htmltools::tags$thead(htmltools::tags$tr(lapply(fields,function(f) htmltools::tags$th(gsub('_',' ',f)))))
   body <- htmltools::tags$tbody(lapply(seq_len(nrow(rows)),function(i) {
-    cells <- lapply(fields,function(f) htmltools::tags$td(if(is.na(rows[[f]][i])) 'Unknown' else as.character(rows[[f]][i])))
+    cells <- lapply(fields,function(f) {
+      value<-if(is.na(rows[[f]][i])) 'Unknown' else as.character(rows[[f]][i])
+      htmltools::tags$td(title=value,if(f=='record_id') substr(value,1,12) else value)
+    })
     htmltools::tags$tr(tabindex=0,class='engineering-row',`data-engineering-record`=rows$record_id[i],cells)
   }))
   htmltools::div(class='engineering-table-wrap',htmltools::tags$table(class='engineering-table',header,body))
 }
-engineering_server <- function(input,output,session) {
+engineering_server <- function(input,output,session,research=NULL) {
   allowed <- reactive(engineering_allowed(Sys.getenv('SIGMA_ENGINEERING_PRIVATE'),session$request))
   database <- Sys.getenv('SIGMA_ENGINEERING_DATABASE',file.path(project_root,'results','engineering','workspace.sqlite'))
   folder <- file.path(project_root,'results','engineering','ui',session$token)
@@ -43,6 +46,7 @@ engineering_server <- function(input,output,session) {
   }
   tick <- reactiveVal(0)
   observeEvent(input$eng_refresh,{tick(tick()+1)})
+  observeEvent(input$refresh,{tick(tick()+1)},ignoreInit=TRUE)
   state <- reactivePoll(30000,session,checkFunc=function() {
     if(!allowed()) return('disabled')
     paste(tick(),if(file.exists(database)) file.info(database)$mtime else 'missing')
@@ -51,65 +55,73 @@ engineering_server <- function(input,output,session) {
     path <- file.path(folder,'workspace.json'); command('snapshot',c('--output',shQuote(path)))
     jsonlite::fromJSON(path,simplifyDataFrame=TRUE)
   })
-  all_rows <- reactive(as_table(state()$rows))
+  all_rows <- reactive({
+    r <- as_table(state()$rows); meta <- as_table(state()$comparisons)
+    if(nrow(r)&&nrow(meta)) {
+      i <- match(r$run_id,meta$run_id)
+      for(k in c('generator_model','generation_timestamp','dataset_id')) r[[k]] <- meta[[k]][i]
+    }
+    r
+  })
+  focus_ids <- reactiveVal(NULL)
   output$engineering_body <- renderUI({
     if(!allowed()) return(engineering_notice())
     tagList(p(class='private-notice','Private workstation / generated drafts and human review. These records never enter public dashboard JSON.'),
-      textOutput('eng_origin'),uiOutput('eng_summary'),
-      div(class='engineering-controls',textInput('eng_search','Search records'),selectInput('eng_run','Run',choices='All'),
-        selectInput('eng_review_filter','Review status',choices=c('All','NEEDS_REVIEW','APPROVED','REJECTED')),
+      textOutput('eng_origin'),
+      div(class='engineering-controls',textInput('eng_search','Search FMEA records'),
         selectInput('eng_sort','Sort',choices=c('severity','RPN','component','failure_mode','review_status'))),
-      tags$details(tags$summary('Advanced filters'),div(class='engineering-controls',
-        selectInput('eng_system','System',choices='All'),selectInput('eng_subsystem','Subsystem',choices='All'),
+      tags$details(tags$summary('Column filters'),div(class='engineering-controls',
         selectInput('eng_severity','Severity',choices=c('All',1:10)),selectInput('eng_occurrence','Occurrence',choices=c('All',1:10)),
         checkboxInput('eng_descending','Descending',TRUE))),
-      div(class='engineering-exports',actionButton('eng_clear','Clear filters'),actionButton('eng_refresh','Refresh private data')),
-      tags$details(tags$summary('Visible columns'),checkboxGroupInput('eng_columns','Columns',choices=c('system','subsystem','component','function','failure_mode','cause','local_effect','system_effect','severity','occurrence','detection','RPN','evidence_status','review_status','recommended_action'),
-        selected=c('component','failure_mode','severity','occurrence','detection','RPN','evidence_status','review_status'),inline=TRUE)),
+      div(class='engineering-exports',actionButton('eng_clear','Clear record filters'),actionButton('eng_refresh','Refresh private data')),
+      tags$details(tags$summary('Visible columns'),checkboxGroupInput('eng_columns','Columns',choices=c('record_id','run_id','row_id','system','subsystem','component','function','failure_mode','cause','local_effect','system_effect','severity','occurrence','detection','RPN','evidence_status','review_status','recommended_action'),
+        selected=c('record_id','subsystem','component','function','failure_mode','cause','system_effect','severity','occurrence','detection','RPN','evidence_status','review_status','recommended_action'),inline=TRUE)),
       uiOutput('eng_table'),numericInput('eng_page','Page',1,min=1,width='6rem'),
       div(class='engineering-exports',downloadButton('eng_csv','Export filtered CSV'),downloadButton('eng_json','Export filtered JSON')),
       selectInput('eng_record','Inspect a record',choices=character()),
-      tabsetPanel(id='eng_detail',tabPanel('Assessment & evidence',uiOutput('eng_evidence')),
-        tabPanel('Engineering review',uiOutput('eng_review_form'),actionButton('eng_save','Save review event'),textOutput('eng_save_status')),
-        tabPanel('Change history',uiOutput('eng_history'))))
+      tags$details(id='engineering-record-detail',tags$summary('Selected record - evidence, AI values and review'),
+        uiOutput('eng_evidence'),tags$details(tags$summary('Engineering review and corrections'),uiOutput('eng_review_form'),
+          actionButton('eng_save','Save review event'),textOutput('eng_save_status')),
+        tags$details(tags$summary('Append-only change history'),uiOutput('eng_history'))))
   })
   output$eng_origin <- renderText({
     if(!allowed()) return('')
     r <- as_table(state()$comparisons)
     if(nrow(r) && any(grepl('synthetic|demo',r$data_origin,ignore.case=TRUE))) 'SYNTHETIC TEST DATA / NOT RESEARCH FINDINGS' else 'Imported V4 generated outputs; engineer approval is distinct from independent judge evaluation.'
   })
-  output$eng_summary <- renderUI({
-    req(allowed()); s <- state()$summary
-    if(is.null(s)) return(chart_empty('No imported engineering records','Import a hash-bound generated V4 response with the private CLI, then refresh.'))
-    div(class='kpi-row',div(class='kpi',strong(s$generated_rows),span('Imported failure-mode rows')),
-      div(class='kpi',strong(s$unique_rows_within_runs),span('Unique within runs')),
-      div(class='kpi',strong(s$high_severity_rows),span('High severity / S >= 9')),
-      div(class='kpi',strong(s$needs_review),span('Needs engineering review')),
-      tags$details(class='metric-definitions',tags$summary('Validation and evidence definitions'),
-        p(paste('Original structural pass:',fmt(s$original_structural_pass_percentage,'%'),'/ cited evidence:',fmt(s$cited_evidence_percentage,'%'))),p(s$basis)))
-  })
-  observeEvent(list(all_rows(),input$eng_sort),{
-    req(input$eng_sort); r <- all_rows(); if(!nrow(r)) return()
+  observe({
+    r <- all_rows()
+    registry <- if(is.null(research)) data.frame() else as_table(research()$registry)
     preserve <- function(id,choices) {v <- isolate(input[[id]]); if(is.null(v)||!v %in% choices) choices[1] else v}
-    for(pair in list(c('eng_run','run_id'),c('eng_system','system'),c('eng_subsystem','subsystem'))) {
-      choices <- c('All',sort(unique(r[[pair[2]]]))); updateSelectInput(session,pair[1],choices=choices,selected=preserve(pair[1],choices))
+    for(pair in list(c('g_run','run_id'),c('g_system','system'),c('g_subsystem','subsystem'),c('g_model','generator_model'),c('g_skill','skill_version'))) {
+      values <- c(if(pair[2] %in% names(r)) r[[pair[2]]] else character(),if(pair[2] %in% names(registry)) registry[[pair[2]]] else character())
+      values <- sort(unique(values[!is.na(values)]))
+      choices <- c('All',values); updateSelectInput(session,pair[1],choices=choices,selected=preserve(pair[1],choices))
     }
+  })
+  observe({
+    r <- filtered()
+    if(!nrow(r)) {updateSelectInput(session,'eng_record',choices=character()); return()}
     choices <- setNames(r$record_id,paste(r$row_id,r$component,r$failure_mode,sep=' / '))
     selected <- isolate(input$eng_record); if(is.null(selected)||!selected %in% r$record_id) selected <- r$record_id[1]
     updateSelectInput(session,'eng_record',choices=choices,selected=selected)
   })
+  observeEvent(input$global_reset,{
+    for(id in c('g_run','g_system','g_subsystem','g_model','g_skill','g_review')) updateSelectInput(session,id,selected='All')
+    updateDateRangeInput(session,'g_dates',start='2020-01-01',end=Sys.Date()); focus_ids(NULL)
+    updateTextInput(session,'eng_search',value='')
+    for(id in c('eng_severity','eng_occurrence')) updateSelectInput(session,id,selected='All')
+  })
   observeEvent(input$eng_clear,{
-    updateTextInput(session,'eng_search',value=''); for(id in c('eng_run','eng_system','eng_subsystem','eng_severity','eng_occurrence','eng_review_filter')) updateSelectInput(session,id,selected='All')
+    focus_ids(NULL); updateTextInput(session,'eng_search',value=''); for(id in c('eng_severity','eng_occurrence')) updateSelectInput(session,id,selected='All')
     updateNumericInput(session,'eng_page',value=1)
   })
   filtered <- reactive({
-    r <- all_rows(); if(!nrow(r)) return(r)
-    keep <- rep(TRUE,nrow(r))
-    for(pair in list(c('eng_run','run_id'),c('eng_system','system'),c('eng_subsystem','subsystem'),c('eng_severity','severity'),c('eng_occurrence','occurrence'),c('eng_review_filter','review_status'))) {
-      v <- input[[pair[1]]]; if(!is.null(v)&&v!='All') keep <- keep & !is.na(r[[pair[2]]]) & as.character(r[[pair[2]]])==v
-    }
-    if(!is.null(input$eng_search)&&nzchar(input$eng_search)) keep <- keep & apply(r,1,function(x) any(grepl(input$eng_search,x,fixed=TRUE),na.rm=TRUE))
-    r <- r[which(keep),,drop=FALSE]; key <- input$eng_sort
+    r <- filter_engineering_rows(all_rows(),list(run=input$g_run,system=input$g_system,subsystem=input$g_subsystem,
+      model=input$g_model,skill=input$g_skill,review=input$g_review,dates=input$g_dates,severity=input$eng_severity,occurrence=input$eng_occurrence),
+      search=input$eng_search,focus=focus_ids())
+    if(!nrow(r)) return(r)
+    key <- input$eng_sort
     if(!is.null(key)&&key %in% names(r)) r <- r[order(r[[key]],decreasing=isTRUE(input$eng_descending),na.last=TRUE),,drop=FALSE]
     r
   })
@@ -192,41 +204,11 @@ engineering_server <- function(input,output,session) {
       file.copy(stage,file,overwrite=TRUE)
     })
   })
-  output$engineering_risk <- renderUI({
-    if(!allowed()) return(engineering_notice())
-    d <- state(); if(is.null(d$risk)) return(chart_empty('No private risk data','Import generated V4 records before analyzing row-level risk.'))
-    risk <- d$risk$current; matrix <- as_table(risk$matrix); body <- character()
-    for(s in 1:10) for(o in 1:10) {
-      value <- if(nrow(matrix)) matrix$count[matrix$severity==s & matrix$occurrence==o] else numeric()
-      n <- if(length(value)) value[1] else 0
-      body <- c(body,paste0('<rect x="',25+(o-1)*34,'" y="',15+(10-s)*22,'" width="30" height="18" fill="',if(n) chart_tokens$accent else chart_tokens$raised,'" data-engineering-cell="',s,',',o,'" tabindex="0" role="button" aria-label="Severity ',s,', occurrence ',o,': ',n,' rows"><title>S ',s,' / O ',o,' / ',n,' rows</title></rect>'))
-      if(n) body <- c(body,paste0('<text x="',40+(o-1)*34,'" y="',28+(10-s)*22,'" text-anchor="middle" style="fill:#0B1016">',n,'</text>'))
-    }
-    body <- c(body,'<text x="25" y="258">Occurrence 1 to 10 (left to right)</text><text x="25" y="280">Severity 10 to 1 (top to bottom)</text>')
-    h <- as_table(risk$rpn_bins); sub <- as_table(risk$subsystems); cats <- as_table(risk$categories)
-    tagList(p(class='private-notice','Private current reviewed assessments / row counts, not physical failure frequency or formal risk acceptance.'),
-      div(class='chart-grid-layout',chart_panel('Severity versus occurrence',svg_chart(body,'Distribution of row ratings on the existing 1-10 scale. Select a cell to inspect matching records.',290)),
-        chart_panel('RPN distribution',tagList(engineering_rpn_chart(h),chart_details(h,'RPN bin counts')))),
-      p(paste(risk$missing_rpn_rows,'rows have no valid RPN. High severity requires attention even with low RPN.')),
-      tags$details(tags$summary('Subsystems, failure categories and action tracking'),
-        chart_panel('Subsystem row counts',bar_rows(sub$name,sub$count,max(1,sub$count))),
-        chart_panel('Pareto: generated row categories (not failure frequency)',bar_rows(cats$name,cats$count,max(1,cats$count))),
-        if(nrow(as_table(risk$actions))) chart_details(as_table(risk$actions),'Recorded actions') else p('No action-status records. Recommended actions do not establish completion.'),
-        p('Original versus reviewed ratings are available per record. No residual risk or mitigation effectiveness is inferred.')),
-      uiOutput('eng_comparisons'))
-  })
   observeEvent(input$eng_risk_cell,{
     pieces <- strsplit(input$eng_risk_cell,',',fixed=TRUE)[[1]]; req(length(pieces)==2,all(pieces %in% as.character(1:10)))
-    for(id in c('eng_run','eng_system','eng_subsystem','eng_review_filter')) updateSelectInput(session,id,selected='All')
+    # Global context remains selected when drilling into a rating cell.
     updateTextInput(session,'eng_search',value=''); updateSelectInput(session,'eng_severity',selected=pieces[1]); updateSelectInput(session,'eng_occurrence',selected=pieces[2])
-    updateTabsetPanel(session,'view',selected='Experiment explorer'); updateTabsetPanel(session,'explorer_mode',selected='workspace')
+    focus_ids(NULL)
   })
-  output$eng_comparisons <- renderUI({
-    req(allowed()); r <- as_table(state()$comparisons); if(!nrow(r)) return(NULL)
-    # Separate condition groups, never pool incompatible input datasets or scoring scales.
-    tags$details(tags$summary('Comparable engineering runs / metadata'),lapply(split(r,r$comparison_key),function(group) {
-      cols <- intersect(c('run_id','dataset_version','generator_model','skill_version','scoring_policy','generated_rows','duplicate_percentage','approved_rows','reviewed_rows','generation_seconds','estimated_cost'),names(group))
-      chart_details(group[,cols,drop=FALSE],paste('Compatible group',substr(group$comparison_key[1],1,12)))
-    }),p('V4.1 and V4.2 are dashboard revisions, not new FMEA skill treatments. Reference recall, precision and unsupported-assertion rates remain unavailable without independent evaluations.'))
-  })
+  engineering_analytics_server(input,output,session,allowed,state,filtered,command,folder,focus_ids,research)
 }

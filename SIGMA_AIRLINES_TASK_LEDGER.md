@@ -290,3 +290,19 @@ V4.1 final verification: 209 Python tests and 26 R assertions; live API metadata
   authenticated multi-user hosting; no paid calls, push or deployment authorized.
   Verified 223 Python tests, 82 R assertions, six-view desktop/tablet rendering,
   persistent synthetic review and private exports, and 25 academic export files.
+
+## Single-page engineering analytics - 2026-11-15
+
+- Created feat/v42-single-page-analytics from 4142fd5, preserving the engineering
+  integration above remote premium baseline 5433212. Inspected the supplied light
+  Engineering Team Dashboard reference before replacing the primary tab shell.
+- Added shared global selection, six KPIs, deterministic attention, risk/evidence/
+  validation charts and inline row review with existing private exports.
+- Python owns selected-record analytics and filtered operational receipt counts.
+  Public mode exposes no private rows; missing ratings and unreviewed quality stay
+  unknown. Existing prompts, scoring, judge methodology and research statistics intact.
+- Remaining: authorized real V4 imports, comparable independent judge observations,
+  engineer acceptance and authenticated multi-user deployment if needed.
+- Validation: 229 Python tests, 96 R assertions, academic poster/figure export and
+  actual desktop/tablet browser checks; private preview uses labeled synthetic rows.
+  No generation, paid calls, push, merge or deployment performed.

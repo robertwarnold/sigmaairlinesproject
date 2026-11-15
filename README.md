@@ -381,3 +381,12 @@ V4 artifact imports, row-level evidence inspection, append-only human review,
 rating-safe risk analysis and private CSV/JSON exports within Experiment Explorer.
 Start the opt-in loopback-only workstation with `Rscript dashboard/run_private.R`.
 It is disabled in public mode and never contributes unjudged rows to research metrics.
+
+## Single-page engineering analytics
+
+The [single-page dashboard](docs/v42-single-page-analytics.md) replaces primary tabs
+with a light analytics report: six compact KPIs, deterministic attention findings,
+risk and AI-validation charts, and an inline FMEA register. Shared global filters
+drive Python-calculated selected-record metrics and private exports. Generation,
+judge import, financial scenarios and academic exports retain their existing workflows.
+The standard Shiny and private-workstation launch commands remain unchanged.

@@ -2,6 +2,31 @@
 source('dashboard/bootstrap.R'); source('dashboard/data.R'); source('dashboard/plots.R'); source('dashboard/poster.R')
 library(testthat)
 
+test_that('single-page layout and shared global filters preserve selection semantics', {
+  library(shiny);library(bslib)
+  source('dashboard/charts.R');source('dashboard/engineering.R');source('dashboard/single_page.R');source('dashboard/analytics.R')
+  defaults<-jsonlite::fromJSON('dashboard/data/financial-defaults.json')
+  html<-as.character(analytics_ui(defaults))
+  expect_match(html,'FMEA Engineering Dashboard',fixed=TRUE)
+  expect_false(grepl('navbar|sidebar|nav_panel',html))
+  expect_match(html,'id="fmea-register"',fixed=TRUE)
+  expect_match(html,'analytics_health',fixed=TRUE)
+  rows<-data.frame(record_id=c('one','two'),run_id=c('r1','r2'),system=c('A','B'),subsystem=c('s1','s2'),
+    generator_model=c('m1','m2'),skill_version='v4.0',review_status=c('NEEDS_REVIEW','APPROVED'),severity=c(9,3),occurrence=c(1,2),
+    generation_timestamp=c('2026-11-15','2026-11-14'),component=c('Synthetic MOTOR','Synthetic valve'))
+  expect_equal(filter_engineering_rows(rows,list(system='A'))$record_id,'one')
+  expect_equal(filter_engineering_rows(rows,list(model='m2',review='APPROVED'))$record_id,'two')
+  expect_equal(nrow(filter_engineering_rows(rows,list(system='A',subsystem='s2'))),0)
+  expect_equal(filter_engineering_rows(rows,list(),search='motor')$record_id,'one')
+  expect_equal(filter_engineering_rows(rows,list(dates=as.Date(c('2026-11-15','2026-11-15'))))$record_id,'one')
+  expect_equal(filter_engineering_rows(rows,list(),focus='two')$record_id,'two')
+  expect_equal(nrow(filter_generation_rows(rows,list(review='APPROVED'))),0)
+  expect_equal(filter_generation_rows(rows,list(system='B'))$run_id,'r2')
+  matrix<-as.character(engineering_matrix_chart(data.frame(severity=9,occurrence=1,count=2)))
+  expect_match(matrix,'Severity 9, occurrence 1: 2 rows',fixed=TRUE)
+  expect_match(matrix,'not a formal risk acceptance',fixed=TRUE)
+})
+
 test_that('private RPN histogram preserves supplied bins and missing values stay outside', {
   source('dashboard/charts.R'); source('dashboard/engineering.R')
   bins <- data.frame(lower=c(1,101),upper=c(100,200),count=c(2,0))
