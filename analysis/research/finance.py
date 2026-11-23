@@ -9,6 +9,18 @@ DEFAULTS={'annual_volume':50,'labor_rate':92.71,'manual_hours':43851/(50*92.71),
           'setup_hours':.5,'matched_review_minutes':3,'missed_reconstruction_minutes':20,
           'extra_review_minutes':5,'approval_hours':1,'development_usd':3500,'maintenance_usd':0,
           'api_usd_per_attempt':1,'success_probability':.8,'uncertainty_fraction':.2}
+
+
+def scenario_comparison(generations, runs, baseline, assumptions):
+    """Standard review-effort sensitivity around the supplied assumptions."""
+    fields = ('matched_review_minutes', 'missed_reconstruction_minutes', 'extra_review_minutes')
+    scenarios = []
+    for label, factor in (('Higher review effort', 1.25), ('Selected assumptions', 1), ('Lower review effort', .75)):
+        selected = {**assumptions, **{field: assumptions[field]*factor for field in fields}}
+        result = model(generations,runs,baseline,selected)['modeled']
+        scenarios.append({'scenario':label, 'net_benefit':result['first_year_net_savings'],
+                          'cost_per_fmea':result['ai_per_fmea'], 'break_even':result['break_even_fmeas']})
+    return scenarios
 HISTORICAL={'status':'HISTORICAL_PLANNING_SCENARIO_NOT_MEASURED','annual_volume':50,'labor_rate':92.71,
             'manual_annual_usd_approximate':43851,'ai_annual_operating_usd_approximate':34800,
             'first_year_net_savings_usd_approximate':5551,'simulation_interval95_usd_reported':[-9475,21483],

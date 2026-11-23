@@ -160,6 +160,7 @@ def main():
     refresh=sub.add_parser('refresh'); refresh.add_argument('--output',default=None); refresh.add_argument('--no-render',action='store_true')
     watch=sub.add_parser('watch'); watch.add_argument('--repository',default='robertwarnold/sigmaairlinesproject'); watch.add_argument('--interval',type=int,default=60); watch.add_argument('--once',action='store_true'); watch.add_argument('--output',default='results/research/current.json')
     finance=sub.add_parser('finance'); finance.add_argument('--snapshot',required=True); finance.add_argument('--assumptions',required=True); finance.add_argument('--output',required=True)
+    finance.add_argument('--compare-scenarios',action='store_true')
     args=parser.parse_args()
     if args.command=='import-historical':
         from .historical import import_comparison
@@ -168,7 +169,11 @@ def main():
     if args.command=='finance':
         from .__main__ import atomic_json
         data=read(private(args.snapshot)); values=read(private(args.assumptions))
-        atomic_json(private(args.output),model(data.get('registry',[]),data['runs'],data['baseline'],values)); return
+        result=model(data.get('registry',[]),data['runs'],data['baseline'],values)
+        if args.compare_scenarios:
+            from .finance import scenario_comparison
+            result['scenario_comparison']=scenario_comparison(data.get('registry',[]),data['runs'],data['baseline'],values)
+        atomic_json(private(args.output),result); return
     store=Registry(args.database)
     try:
         if args.command=='sync':

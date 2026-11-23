@@ -12,7 +12,7 @@ from analysis.research.registry import Registry, workflow_key
 from analysis.research.github_sync import synchronize, RateLimited
 from analysis.research.judge_import import adapt
 from analysis.research.platform import snapshot
-from analysis.research.finance import model, DEFAULTS
+from analysis.research.finance import model, scenario_comparison, DEFAULTS
 from analysis.research.__main__ import empty_snapshot, validate_snapshot
 from test_v4 import import_data
 
@@ -244,5 +244,14 @@ class SyncAndFinanceTests(unittest.TestCase):
         measured=model([{'generation_status':'success','actual_cost':2}],[],baseline)
         self.assertEqual(measured['measured']['actual_api_spending'],2)
         self.assertEqual(measured['measured']['api_cost_per_success'],2)
+
+    def test_scenarios_reconcile_to_selected_cost_model(self):
+        baseline=empty_snapshot()['baseline']
+        result=model([],[],baseline,DEFAULTS)
+        low,selected,high=scenario_comparison([],[],baseline,DEFAULTS)
+        self.assertAlmostEqual(sum(item['cost_per_fmea'] for item in result['activities']),selected['cost_per_fmea'])
+        self.assertEqual(selected['net_benefit'],result['modeled']['first_year_net_savings'])
+        self.assertLess(low['net_benefit'],selected['net_benefit'])
+        self.assertLess(selected['net_benefit'],high['net_benefit'])
 
 if __name__=='__main__': unittest.main()
