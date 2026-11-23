@@ -24,6 +24,18 @@
   window.addEventListener('hashchange', () => showView(true));
   mobile?.addEventListener('change', () => { window.location.hash = mobile.value; });
   document.addEventListener('click', event => {
+    const disclosure = event.target.closest('.registry-jump');
+    if(disclosure) {
+      event.preventDefault();
+      const registry=document.getElementById('generation-registry');
+      registry.open=true;
+      registry.querySelector('summary')?.focus();
+      registry.scrollIntoView({block:'nearest'});
+    }
+    const delegate = event.target.closest('[data-delegate-action]');
+    if(delegate) document.getElementById(delegate.dataset.delegateAction)?.click();
+    const actions=document.querySelector('.app-actions');
+    if(actions && event.target.closest('.app-action-menu button')) actions.open=false;
     const link = event.target.closest('[data-open-system], [data-open-run]');
     if (!link || !window.Shiny || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     if (link.dataset.openSystem) Shiny.setInputValue('open_system',link.dataset.openSystem,{priority:'event'});

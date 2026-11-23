@@ -90,11 +90,6 @@ server <- function(input,output,session) {
     alt='Academic coverage figure. Historical V2 aggregate and accepted run observations remain separate.')
   output$pareto <- renderPlot(responsive_plot(pareto_plot(data()),'pareto'),res=96,width=width_for('pareto'),height=function() {h<-session$clientData$output_pareto_height; if(is.null(h)||h<1) 250 else h},
     alt='Academic Pareto of missed reference failure modes, using validated category counts.')
-  output$pareto_detail <- renderUI({
-    selected <- Filter(Negate(is.null),lapply(workspace_filters(input),scope_value))
-    if(length(selected)) return(p('Missed-reason totals are available for the published cohort. Clear filters to inspect those totals.'))
-    dashboard_pareto(data())
-  })
   output$criteria <- renderUI({criteria <- data()$statistics$criteria; div(class='criteria-grid',lapply(names(criteria),function(k) div(strong(criteria[[k]]),span(gsub('_',' ',k)))))})
   output$pending_versions <- renderUI({
     available <- unique(as_table(data()$runs)$skill_version)
@@ -240,9 +235,10 @@ server <- function(input,output,session) {
       display=paste(vapply(values,generation_duration_label,character(1)),sprintf('(%d runs)',counts))),
       p(class='chart-note','Median recorded generator duration for successful timed runs. Queue and reviewer labor are separate.'))
   })
-  generation_table <- function(x,page=1,size=10) {
+  generation_table <- function(x,page=1,size=10,compact=FALSE) {
     if(!nrow(x)) return(chart_empty('No matching generations','Adjust filters or synchronize generation receipts.'))
     columns <- c(run_id='Experiment',skill_version='Skill',generator_model='Model',generation_seconds='Duration',generation_status='Generation',evaluation_status='Judge',generation_timestamp='Timestamp (UTC)')
+    if(compact) columns <- columns[c('run_id','skill_version','generation_seconds','generation_status')]
     labels <- if('experiment_label' %in% names(x)) x$experiment_label else experiment_labels(x,experiment_mapping)
     page <- max(1,min(ceiling(nrow(x)/size),if(is.null(page)) 1 else as.integer(page)))
     indexes <- seq.int((page-1)*size+1,min(page*size,nrow(x)))
@@ -265,7 +261,26 @@ server <- function(input,output,session) {
     tagList(div(class='run-table-wrap',html),p(class='chart-note',paste('Showing',min(indexes),'-',max(indexes),'of',nrow(x),'records. Select a row for full metadata.')))
   }
   output$explorer_table <- renderUI(generation_table(generations(),input$run_page))
-  output$recent_activity <- renderUI({x <- as_table(data()$registry); if(nrow(x) && 'generation_timestamp' %in% names(x)) x <- x[order(x$generation_timestamp,decreasing=TRUE,na.last=TRUE),,drop=FALSE]; generation_table(head(x,5))})
+  output$recent_activity <- renderUI({
+    x <- generations()
+    if(nrow(x) && 'generation_timestamp' %in% names(x)) x <- x[order(x$generation_timestamp,decreasing=TRUE,na.last=TRUE),,drop=FALSE]
+    generation_table(x,size=4,compact=TRUE)
+  })
+  output$experiment_metrics <- renderUI({
+    rows <- generations()
+    systems <- unique(stats::na.omit(rows$system))
+    versions <- unique(stats::na.omit(rows$skill_version))
+    durations <- rows$generation_seconds[which(rows$generation_status=='success')]
+    durations <- durations[is.finite(durations) & durations>=0]
+    div(class='evidence-kpis experiment-kpis',
+      evidence_kpi('Registered runs',nrow(rows),'Selected registry attempts','flask'),
+      evidence_kpi('Systems',length(systems),'Known system identifiers','layer-group'),
+      evidence_kpi('Generator versions',if(length(versions)) paste(sort(versions),collapse=', ') else 'Unavailable',NULL,'code-branch'),
+      evidence_kpi('Median generation time',if(length(durations)) generation_duration_label(median(durations)) else 'Unavailable',
+        sprintf('%d successful timed runs',length(durations)),'clock'))
+  })
+  for(id in c('experiment_metrics','analytics_duration','recent_activity','explorer_table'))
+    outputOptions(output,id,suspendWhenHidden=FALSE)
   output$generation_detail <- renderUI({
     x <- as_table(data()$registry)
     if(!nrow(x)) return(p('Choose a registered generation to inspect its lifecycle and provenance.'))
@@ -319,9 +334,9 @@ server <- function(input,output,session) {
     python <- Sys.getenv('SIGMA_PYTHON',file.path(project_root,'.venv','gemini','Scripts','python.exe'))
     if(!file.exists(python)) python <- Sys.which('python')
     previous <- getwd(); setwd(project_root); on.exit(setwd(previous),add=TRUE)
-    status <- suppressWarnings(system2(python,c('-m','analysis.research','finance','--snapshot',shQuote(snapshot_path),'--assumptions',shQuote(input_path),'--output',shQuote(output_path)),stdout=FALSE,stderr=FALSE))
+    status <- suppressWarnings(system2(python,c('-m','analysis.research','finance','--snapshot',shQuote(snapshot_path),'--assumptions',shQuote(input_path),'--output',shQuote(output_path),'--compare-scenarios'),stdout=FALSE,stderr=FALSE))
     if(status!=0 || !file.exists(output_path)) return(list(status='Scenario unavailable: check Python dependencies and nonnegative assumptions.',data=NULL))
-    list(status='MODELED NOT MEASURED | Python cost model and 10,000 deterministic simulation draws | Research data unchanged',data=jsonlite::fromJSON(output_path))
+    list(status='Planning estimate based on the existing cost model and 10,000 simulation draws.',data=jsonlite::fromJSON(output_path))
   })
   financial <- reactive(financial_result()$data)
   executive_server(input,output,data,historical_metrics,financial,number_text,historical)
@@ -347,7 +362,13 @@ server <- function(input,output,session) {
   output$financial_status <- renderText(financial_result()$status)
   output$finance_inputs <- renderTable({
     f <- financial(); req(f)
-    data.frame(Assumption=gsub('_',' ',names(f$assumptions)),Value=unlist(f$assumptions),row.names=NULL)
+    keys <- names(f$assumptions)
+    values <- unlist(f$assumptions)
+    initial <- unlist(financial_defaults[keys])
+    basis <- ifelse(values==initial,'Planning estimate','Edited scenario input')
+    basis[keys=='labor_rate' & values==initial] <- 'Derived from BLS benchmarks'
+    basis[keys=='manual_hours' & values==initial] <- 'Derived from historical planning budget'
+    data.frame(Assumption=gsub('_',' ',keys),Value=values,Basis=basis,row.names=NULL)
   })
   output$finance_provenance <- renderUI({
     f <- financial(); req(f)
@@ -374,16 +395,22 @@ server <- function(input,output,session) {
       'Scenario inputs',paste(names(f$assumptions),unlist(f$assumptions),sep=': ')),file)
   })
   output$financial_metrics <- renderUI({f <- financial(); if(is.null(f)) return(p('Scenario calculation pending'))
-    div(class='finance-outcomes',
-      kpi(number_text(f$modeled$first_year_net_savings,'$',0),'Modeled first-year net benefit','After implementation and maintenance'),
-      kpi(number_text(f$modeled$percentage_reduction,'',1),'Unit cost reduction (%)','Modeled before fixed costs'),
-      kpi(number_text(f$modeled$ai_per_fmea,'$',0),'Modeled assisted cost / FMEA','Labor and expected API costs'),
-      kpi(number_text(f$modeled$break_even_fmeas),'Break-even workload','FMEAs / modeled threshold'))
+    div(class='evidence-kpis experiment-kpis',
+      evidence_kpi('Modeled first-year net benefit',number_text(f$modeled$first_year_net_savings,'$',0),'After implementation and maintenance','coins'),
+      evidence_kpi('Unit cost reduction (%)',number_text(f$modeled$percentage_reduction,'',1),'Modeled before fixed costs','percent'),
+      evidence_kpi('Break-even workload',number_text(f$modeled$break_even_fmeas),'FMEAs / modeled threshold','scale-balanced'),
+      evidence_kpi('Modeled assisted cost / FMEA',number_text(f$modeled$ai_per_fmea,'$',0),'Labor and expected API costs','file-invoice-dollar'))
   })
   output$finance_cost <- renderUI({
     f <- financial(); req(f)
-    values <- c(f$modeled$manual_per_fmea,f$modeled$ai_per_fmea)
-    bar_rows(c('Manual','AI-assisted'),values,max(1,values),display=sprintf('$%.2f',values))
+    finance_cost_bridge(f)
+  })
+  output$finance_scenarios <- renderTable({
+    rows <- as_table(financial()$scenario_comparison)
+    req(nrow(rows))
+    data.frame(Scenario=rows$scenario,`First-year net`=sprintf('$%.2f',rows$net_benefit),
+      `Cost / FMEA`=sprintf('$%.2f',rows$cost_per_fmea),
+      `Break-even`=ifelse(is.na(rows$break_even),'Unavailable',as.character(rows$break_even)),check.names=FALSE)
   })
   output$finance_distribution <- renderUI(dashboard_finance(financial(),'simulation'))
   output$finance_breakdown <- renderUI(dashboard_finance(financial(),'breakdown'))

@@ -17,15 +17,16 @@ engineering_rpn_chart <- function(bins) {
   svg_chart(c(marks,'<text x="25" y="258">1</text><text x="195" y="258">500</text><text x="365" y="258" text-anchor="end">1000</text><text x="25" y="280">RPN / 100-point bins; hover for row counts</text>'),
     'Current RPN distribution; row counts in 100-point bins, not probability or risk acceptance.',290)
 }
-engineering_notice <- function() chart_empty('Private FMEA workspace is disabled',
-  'Use the local engineering launcher and explicitly import a generated V4 response. Reference worksheets are never imported.')
+engineering_notice <- function() div(class='workspace-empty explorer-empty',icon('lock'),
+  strong('Private records unavailable'),p('Open the local engineering workspace to inspect or import generated FMEA records.'))
 engineering_table <- function(rows,fields) {
   if(!nrow(rows)) return(chart_empty('No matching FMEA records','Adjust the run, review, severity or text filters.'))
   header <- htmltools::tags$thead(htmltools::tags$tr(lapply(fields,function(f) htmltools::tags$th(gsub('_',' ',f)))))
   body <- htmltools::tags$tbody(lapply(seq_len(nrow(rows)),function(i) {
     cells <- lapply(fields,function(f) {
       value<-if(is.na(rows[[f]][i])) 'Unknown' else as.character(rows[[f]][i])
-      htmltools::tags$td(title=value,if(f=='record_id') substr(value,1,12) else value)
+      htmltools::tags$td(title=value,if(f=='record_id') substr(value,1,12) else if(f=='disposition')
+        htmltools::span(class='disposition-label',value) else value)
     })
     htmltools::tags$tr(tabindex=0,class='engineering-row',`data-engineering-record`=rows$record_id[i],cells)
   }))
@@ -74,21 +75,29 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
         r$resolved_round[!is.na(from_registry)] <- from_registry[!is.na(from_registry)]
       }
     }
+    if(nrow(r)) r$disposition <- vapply(r$record_id,function(id) {
+      value <- record_index()[[id]]$current$judge_disposition
+      if(is.null(value)) 'Not adjudicated' else tools::toTitleCase(gsub('_',' ',value))
+    },character(1))
     r
   })
   focus_ids <- reactiveVal(NULL)
   output$engineering_body <- renderUI({
     if(!allowed()) return(engineering_notice())
+    if(!nrow(all_rows())) return(div(class='workspace-empty explorer-empty',icon('database'),
+      strong('No generated records imported'),p('Synchronize a receipt-bound V4 response and inventory to populate the register.'),
+      tags$button(type='button',class='btn btn-primary',`data-delegate-action`='github_sync_open','Sync from GitHub')))
     tagList(p(class='private-notice','Private workstation / generated drafts and human review. These records never enter public dashboard JSON.'),
       textOutput('eng_origin'),
       div(class='engineering-controls',textInput('eng_search','Search FMEA records'),
-        selectInput('eng_sort','Sort',choices=c('severity','RPN','component','failure_mode','review_status'))),
+        selectInput('eng_disposition_filter','Disposition',choices=c('All','Not adjudicated','Valid Additional','Duplicate','Technically Incorrect','Insufficient Evidence','Unresolved')),
+        selectInput('eng_sort','Sort',choices=c('severity','RPN','component','failure_mode','review_status','disposition'))),
       tags$details(tags$summary('Column filters'),div(class='engineering-controls',
         selectInput('eng_severity','Severity',choices=c('All',1:10)),selectInput('eng_occurrence','Occurrence',choices=c('All',1:10)),
         checkboxInput('eng_descending','Descending',TRUE))),
       tags$details(tags$summary('Record actions'),div(class='engineering-exports',actionButton('eng_clear','Clear record filters'),actionButton('eng_refresh','Refresh private data'))),
-      tags$details(tags$summary('Visible columns'),checkboxGroupInput('eng_columns','Columns',choices=c('record_id','run_id','row_id','system','subsystem','component','function','failure_mode','cause','local_effect','system_effect','severity','occurrence','detection','RPN','evidence_status','review_status','recommended_action'),
-        selected=c('component','failure_mode','severity','occurrence','detection','RPN','review_status'),inline=TRUE)),
+      tags$details(tags$summary('Visible columns'),checkboxGroupInput('eng_columns','Columns',choices=c('record_id','run_id','row_id','system','skill_version','disposition','subsystem','component','function','failure_mode','cause','local_effect','system_effect','severity','occurrence','detection','RPN','evidence_status','review_status','recommended_action'),
+        selected=c('record_id','system','skill_version','failure_mode','disposition'),inline=TRUE)),
       uiOutput('eng_table'),numericInput('eng_page','Page',1,min=1,width='6rem'),
       div(class='engineering-exports',downloadButton('eng_csv','Export filtered CSV'),downloadButton('eng_json','Export filtered JSON')),
       selectInput('eng_record','Inspect a record',choices=character()),
@@ -129,14 +138,19 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
     updateDateRangeInput(session,'g_dates',start='2020-01-01',end=Sys.Date()); focus_ids(NULL)
     updateTextInput(session,'eng_search',value='')
     for(id in c('eng_severity','eng_occurrence')) updateSelectInput(session,id,selected='All')
+    updateSelectInput(session,'eng_disposition_filter',selected='All')
+    updateNumericInput(session,'eng_page',value=1)
   })
   observeEvent(input$eng_clear,{
     focus_ids(NULL); updateTextInput(session,'eng_search',value=''); for(id in c('eng_severity','eng_occurrence')) updateSelectInput(session,id,selected='All')
+    updateSelectInput(session,'eng_disposition_filter',selected='All')
     updateNumericInput(session,'eng_page',value=1)
   })
   filtered <- reactive({
     r <- filter_engineering_rows(all_rows(),c(workspace_filters(input),list(severity=input$eng_severity,occurrence=input$eng_occurrence)),
       search=input$eng_search,focus=focus_ids())
+    disposition <- scope_value(input$eng_disposition_filter)
+    if(nrow(r)&&!is.null(disposition)) r <- r[r$disposition==disposition,,drop=FALSE]
     if(!nrow(r)) return(r)
     key <- input$eng_sort
     if(!is.null(key)&&key %in% names(r)) r <- r[order(r[[key]],decreasing=isTRUE(input$eng_descending),na.last=TRUE),,drop=FALSE]
@@ -147,7 +161,8 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
     if(!nrow(all_rows())) return(div(class='workspace-empty',strong('No generated FMEA records imported'),
       p('Synchronize a receipt-bound V4 response and its inventory to populate this register.')))
     if(!nrow(r)) return(div(class='workspace-empty',strong('No records match the current filters'),
-      p('Clear record filters or broaden the shared analysis scope.'),actionButton('clear_record_context','Clear record filters')))
+      p('Clear filters to restore the available generated records.'),
+      tags$button(type='button',class='btn btn-default',`data-delegate-action`='global_reset','Clear filters')))
     if(!length(fields)) return(p('Select at least one column.'))
     page <- input$eng_page; if(is.null(page)||!is.finite(page)) page <- 1
     page <- max(1,min(ceiling(nrow(r)/10),floor(page))); start <- (page-1)*10

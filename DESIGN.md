@@ -2,7 +2,7 @@
 
 ## Surface and reference
 
-Mode: Operate. An executive-first engineering workspace with persistent navigation for
+Mode: Operate. An executive-first engineering workspace with navy navigation for
 five destinations. Use compact white surfaces on a neutral gray canvas and reveal
 technical diagnostics and source evidence through explicit view links and disclosures.
 
@@ -20,7 +20,9 @@ risk acceptance. Standard Segoe UI/Arial typography, 13px body, 23px page title,
 Persistent primary navigation, a compact global filter disclosure, and a visible scope strip.
 On mobile the same routes are reachable through a labeled native selector. Show applicable
 cohort counts and move snapshot provenance into a disclosure.
-The executive brief uses five compact metrics, one coverage chart, findings and a decision.
+The executive brief leads with a scoped conclusion, paired coverage bars, a narrow value
+column and three decision prompts. Quality places the Pareto and ranked findings side by
+side with their own cohort labels. Finance uses a common per-FMEA scale for the cost bridge.
 Engineering Quality, Experiments & Performance, Financial Impact and Data Explorer carry
 their own evidence. Technical tables scroll within their containers. Review details, finance
 assumptions and the academic poster use disclosures.

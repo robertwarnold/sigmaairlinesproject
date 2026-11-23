@@ -167,3 +167,25 @@ dashboard_finance <- function(f,kind) {
   }
   stop('Unknown dashboard financial chart')
 }
+
+finance_cost_bridge <- function(f) {
+  rows <- as_table(f$activities)
+  values <- rows$cost_per_fmea
+  manual <- f$modeled$manual_per_fmea
+  assisted <- f$modeled$ai_per_fmea
+  if(!isTRUE(all.equal(sum(values),assisted))) return(p('Cost components do not reconcile with the modeled total.'))
+  ceiling <- max(1,manual,assisted)
+  colors <- c('#216da9','#1686cf','#76b6ea','#5c86b0','#94a9c0','#757fa2')
+  rows$color <- rep(colors,length.out=nrow(rows))
+  bar <- function(label,value,segments) div(class='cost-bridge-row',
+    div(class='cost-bridge-label',strong(label),span(sprintf('$%.2f',value))),
+    div(class='cost-bridge-track',segments))
+  div(class='cost-bridge',
+    bar('Manual labor',manual,span(style=sprintf('width:%f%%;background:#0c3459',100*manual/ceiling))),
+    bar('AI-assisted',assisted,lapply(seq_len(nrow(rows)),function(i)
+      span(title=sprintf('%s: $%.2f',rows$activity[i],values[i]),
+        style=sprintf('width:%f%%;background:%s',100*values[i]/ceiling,rows$color[i])))),
+    tags$ul(class='cost-bridge-legend',lapply(seq_len(nrow(rows)),function(i)
+      tags$li(span(style=paste0('background:',rows$color[i])),rows$activity[i],strong(sprintf('$%.2f',values[i]))))),
+    p(class='chart-note','Operating cost per FMEA. Implementation and maintenance are included separately in first-year net benefit.'))
+}

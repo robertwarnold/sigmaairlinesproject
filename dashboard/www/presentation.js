@@ -3,7 +3,8 @@ document.addEventListener('click', function(event) {
   const row = event.target.closest('[data-generation]');
   if(row && window.Shiny) {
     Shiny.setInputValue('detail_run',row.dataset.generation,{priority:'event'});
-    document.querySelector('[data-value="Experiment explorer"]')?.click();
+    const registry=document.getElementById('generation-registry');
+    if(registry) registry.open=true;
     const details=document.getElementById('run-detail');
     if(details) {details.open=true; details.scrollIntoView({block:'nearest'});}
   }

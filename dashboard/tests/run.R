@@ -58,6 +58,18 @@ test_that('historical scope shares source denominators across views and exports'
   expect_match(scope_text('B','2','v3.0',NULL,NULL,list(),list()),'System B',fixed=TRUE)
 })
 
+test_that('coverage change and ranked miss classifications keep their published denominators', {
+  source('dashboard/scope.R'); source('dashboard/executive.R')
+  expect_equal(coverage_change(list('v2.0'=list(pooled_missed_rate=.3),'v3.0'=list(pooled_missed_rate=.12))),18)
+  expect_null(coverage_change(list('v3.0'=list(pooled_missed_rate=.12))))
+  snapshot <- list(baseline=list(miss_categories=list(part=3,unit=7),missed=20))
+  reasons <- quality_reasons(snapshot,list(round='1'))
+  expect_equal(reasons$count,c(7,3))
+  expect_equal(reasons$percentage,c(35,15))
+  expect_equal(nrow(quality_reasons(snapshot,list(round='2'))),0)
+  expect_equal(nrow(quality_reasons(snapshot,list(system='B'))),0)
+})
+
 test_that('private RPN histogram preserves supplied bins and missing values stay outside', {
   source('dashboard/charts.R'); source('dashboard/engineering.R')
   bins <- data.frame(lower=c(1,101),upper=c(100,200),count=c(2,0))
