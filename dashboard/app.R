@@ -2,20 +2,45 @@
 source('bootstrap.R')
 source('data.R'); source('plots.R'); source('poster.R'); source('charts.R'); source('workspace.R'); source('engineering.R')
 library(shiny); library(bslib)
+if(identical(Sys.getenv('SIGMA_ENGINEERING_PRIVATE'),'1')) options(shiny.maxRequestSize=21*1024^2)
 source_path <- Sys.getenv('SIGMA_DASHBOARD_DATA', file.path(project_root,'results','research','current.json'))
 fallback <- 'data/baseline.json'
 plan_path <- Sys.getenv('SIGMA_DASHBOARD_MANIFEST',file.path(project_root,'results','v4','round2-plan','experiment_manifest.json'))
 financial_defaults <- jsonlite::fromJSON('data/financial-defaults.json')
-source('single_page.R'); source('analytics.R')
+source('single_page.R'); source('analytics.R'); source('judge_upload.R')
 ui <- analytics_ui(financial_defaults)
 
 server <- function(input,output,session) {
   loader <- make_loader(source_path,fallback)
+  import_revision <- reactiveVal(0)
+  judge_upload_server(input,output,session,function() import_revision(import_revision()+1))
   # Poll every 30 seconds and on manual refresh. Loader retains validated cache.
   refresh_key <- reactivePoll(30000,session,
-    checkFunc = function() paste(input$refresh, if (file.exists(source_path)) file.info(source_path)$mtime else floor(as.numeric(Sys.time())/30)),
+    checkFunc = function() paste(input$refresh, import_revision(), if (file.exists(source_path)) file.info(source_path)$mtime else floor(as.numeric(Sys.time())/30)),
     valueFunc = function() loader())
   data <- reactive(refresh_key()$data)
+  historical_path <- file.path(project_root,'results','research','historical-comparison.json')
+  historical <- reactivePoll(30000,session,
+    checkFunc=function() paste(input$refresh,if(file.exists(historical_path)) file.info(historical_path)$mtime else 'missing'),
+    valueFunc=function() {
+      if(!file.exists(historical_path)) return(NULL)
+      tryCatch(jsonlite::fromJSON(historical_path,simplifyVector=FALSE),error=function(e) NULL)
+    })
+  output$historical_comparison <- renderTable({
+    archive <- historical()
+    if(is.null(archive) || !identical(archive$schema,'historical-comparison-1'))
+      return(data.frame(Status='Historical comparison pending import'))
+    metrics <- archive$metrics
+    if(!is.null(input$g_skill) && input$g_skill!='All') metrics <- metrics[names(metrics)==input$g_skill]
+    if(!length(metrics)) return(data.frame(Status='No historical evidence for this skill version'))
+    do.call(rbind,lapply(names(metrics),function(version) {
+      value <- metrics[[version]]
+      data.frame(Skill=version,Runs=value$runs,`Pooled missed`=sprintf('%.1f%%',100*value$pooled_missed_rate),
+        `Mean run missed`=sprintf('%.1f%%',100*value$mean_run_missed_rate),
+        `Equal-system mean missed`=sprintf('%.1f%%',100*value$equal_system_mean_missed_rate),
+        `Unmatched rows per run`=round(value$mean_unmatched_generated_per_run,1),check.names=FALSE)
+    }))
+  })
   output$evidence_status <- renderText(paste('Evidence:',data()$research_status,'|',refresh_key()$status))
   output$snapshot_status <- renderText(paste('Study data as of',data()$last_updated,'| Snapshot',substr(data()$data_version,1,12),'|',data()$validation_status))
   output$poster_results <- renderUI({

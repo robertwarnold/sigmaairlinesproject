@@ -117,6 +117,7 @@ def audit(data, inventory):
     """Audit supplied IDs, independent applicability and content heuristics; no semantic certification."""
     units={u['unit_id']:u for u in check_inventory(inventory)}
     missing=[]; unsupported=[]; suspicious=[]; duplicates=[]; flags=list(inventory.get('review_flags',[]))
+    duplicate_pairs=[]; rating_findings=[]
     rows=data.get('rows',[]); ids={}; fingerprints={}; considered={}
     for n,row in enumerate(rows,1):
         rid=row.get('row_id'); uid=row.get('unit_id')
@@ -131,8 +132,15 @@ def audit(data, inventory):
         for key in ('operating_state','existing_detection','assumptions'):
             if not isinstance(row.get(key),str) or not row[key].strip(): missing.append({'row_id':rid,'field':key})
         fp=tuple(re.sub(r'\s+',' ',str(row.get(k,'')).strip().casefold()) for k in ('unit_id','failure_mode','cause','local_effect','system_effect','operating_state'))
-        if fp in fingerprints: duplicates.append(rid)
-        fingerprints[fp]=rid
+        if fp in fingerprints:
+            duplicates.append(rid)
+            duplicate_pairs.append({'row_id':rid,'first_row_id':fingerprints[fp]})
+        else:
+            fingerprints[fp]=rid
+        for field in ('severity','occurrence','detection'):
+            value=row.get(field)
+            if type(value) is not int or not 1<=value<=10:
+                rating_findings.append({'row_id':rid,'field':field,'reason':'expected integer from 1 to 10'})
         mode=str(row.get('failure_mode','')).casefold()
         if len(mode.split())<2 or re.search(r'\b(fails or|failure or|various|all failures)\b',mode): suspicious.append({'row_id':rid,'reason':'generic or combined failure-mode wording'})
         if row.get('cause')==row.get('system_effect'): suspicious.append({'row_id':rid,'reason':'cause equals end effect; review causal chain'})
@@ -172,9 +180,12 @@ def audit(data, inventory):
             'engineering_status':'engineering_review_required','identified_unit_count':len(units),
             'units_covered':sorted(covered),'units_without_coverage':uncovered,
             'interfaces_identified':sum(u['kind'] in ('interface','connection') for u in units.values()),
+            'units_considered':sorted({uid for uid,_ in considered if uid in units}),
+            'interfaces_considered':sorted({uid for uid,_ in considered if uid in units and units[uid]['kind'] in ('interface','connection')}),
             'candidate_failure_cases_considered':len(considered),'generated_failure_mode_count':len(rows),
             'verified_coverage':{'input_unit_ids_represented':sorted(covered),'basis':'Independent input inventory, not model completeness claim'},
             'suspected_gaps':missing,'unsupported_rows':unsupported,'duplicate_rows':duplicates,
+            'duplicate_pairs':duplicate_pairs,'rating_findings':rating_findings,
             'suspicious_rows':suspicious,'unresolved_assumptions':flags+data.get('review_flags',[]),
             'remediation':{'missing_unit_ids':uncovered,'missing_cases':missing,
                            'instructions':'Return only corrections for these IDs/cases. Preserve original artifact and bind corrections to its hash. Separate authorization is required for every paid remediation call.'}}
