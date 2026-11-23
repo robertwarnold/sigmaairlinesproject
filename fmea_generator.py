@@ -19,6 +19,12 @@ SKILL_FILES = {"v2.0": ROOT / "skill/fmea_instructions.md", "v3.0": ROOT / "skil
 RATINGS = ("severity", "occurrence", "detection")
 # Timing belongs in a per-attempt sidecar rather than being repeated in every row.
 CSV_FIELDS = ["case_id", "version", "run", "model"] + FIELDS + ["RPN"]
+
+
+def v4_csv_fields():
+    from standalone_v4 import RELEASE_FIELDS
+    return CSV_FIELDS+["row_id","unit_id","operating_state","existing_detection","assumptions",
+                      *RELEASE_FIELDS,"scoring_profile","review_status"]
 RESPONSE_SCHEMA = {
     "type": "ARRAY",
     "min_items": 1,
@@ -44,9 +50,9 @@ def v4_schema():
     return response_schema(RESPONSE_SCHEMA)
 
 
-def parse_v4(raw, inventory):
+def parse_v4(raw, inventory, require_release=False):
     from standalone_v4 import validate
-    return validate(raw, inventory, parse_fmea)
+    return validate(raw, inventory, parse_fmea,require_release=require_release)
 
 
 def v3_schema():
@@ -72,7 +78,7 @@ def load_local_env(path=None):
         os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
-def parse_fmea(raw):
+def parse_fmea(raw, *, allow_unrated=False):
     """Validate model response and calculate RPN locally, never trust AI arithmetic."""
     cleaned = raw.strip()
     cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.I)
@@ -91,14 +97,14 @@ def parse_fmea(raw):
         for field in FIELDS:
             value = item[field]
             if field in RATINGS:
-                if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 10:
+                if not (allow_unrated and value is None) and (type(value) is not int or not 1 <= value <= 10):
                     raise ValueError(f"Row {index}: {field} must be an integer 1–10")
             elif not isinstance(value, str):
                 raise ValueError(f"Row {index}: {field} must be text")
             elif not value.strip():
                 raise ValueError(f"Row {index}: {field} is empty; the skill requires text such as \"Not provided\"")
             row[field] = value
-        row["RPN"] = row["severity"] * row["occurrence"] * row["detection"]
+        row["RPN"] = None if any(row[field] is None for field in RATINGS) else row["severity"] * row["occurrence"] * row["detection"]
         output.append(row)
     return output
 
@@ -192,7 +198,9 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
     raw_path = output_dir / f"{prefix}_raw.txt"
     csv_path = output_dir / f"{prefix}.csv"
     metadata_path = output_dir / f"{prefix}_execution.json"
-    for path in (csv_path, raw_path, metadata_path):
+    diagnostics_path = output_dir / f"{prefix}_diagnostics.json" if version=="v4.0" else None
+    output_paths=(csv_path,raw_path,metadata_path)+((diagnostics_path,) if diagnostics_path else ())
+    for path in output_paths:
         if os.path.lexists(path):
             raise FileExistsError(f"Run output already exists: {path}")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -216,6 +224,11 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
               "usage_metadata": None, "estimated_cost": None,
               "completeness": {"status": "not_required_by_v2"} if version in ("v2.0", "v3.0") else {"status": "awaiting_validation"},
               "execution": execution}
+    if diagnostics_path:
+        from standalone_v4 import DIAGNOSTICS_VERSION, RESPONSE_VERSION, SCORING_PROFILE
+        record.update(response_contract=RESPONSE_VERSION,scoring_profile=SCORING_PROFILE,provider="Gemini")
+        record["generator_source_sha256"]=file_hash(ROOT/"fmea_generator.py")
+        record["validator_source_sha256"]=file_hash(ROOT/"standalone_v4.py")
     total_start = time.perf_counter()
     # Claim the receipt exclusively too, so a concurrent loser cannot publish our metadata.
     receipt_stream = metadata_path.open("x", encoding="utf-8", newline="\n")
@@ -243,15 +256,16 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
         try:
             # Reuse the unchanged v2 schema/rating validation and local RPN arithmetic.
             if version == "v4.0":
-                rows, record["completeness"] = parse_v4(result["text"], v4_inventory)
+                rows, record["completeness"] = parse_v4(result["text"], v4_inventory,require_release=True)
             elif version == "v3.0-audit":
                 rows, record["completeness"] = parse_v3(result["text"])
             else:
                 rows = parse_fmea(result["text"])
         finally:
             record["parsing_validation_seconds"] = max(0, time.perf_counter() - parse_start)
+        csv_fields=v4_csv_fields() if diagnostics_path else CSV_FIELDS
         with csv_path.open("x", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+            writer = csv.DictWriter(f, fieldnames=csv_fields)
             writer.writeheader()
             for row in rows:
                 writer.writerow({"case_id": case_id, "version": version, "run": run, "model": model, **row})
@@ -276,7 +290,21 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
                       usage_metadata=execution.get("usage_metadata"))
         record["configuration"]["max_output_tokens"] = execution.get("max_output_tokens")
         try:
-            write_receipt(metadata_path, record, (csv_path, raw_path), stream=receipt_stream)
+            artifacts=[csv_path,raw_path]
+            if diagnostics_path:
+                try:
+                    report=record["completeness"]
+                    diagnostic=dict(report.get("diagnostics",{"schema":DIAGNOSTICS_VERSION,"review_passes":0}))
+                    diagnostic.update(generation_id=record["generation_id"],system_id=case_id,
+                                      generation_status=record["status"],structural_status=report.get("structural_status"),
+                                      failure_classification=record["failure_classification"],
+                                      inventory_sha256=record["inventory_sha256"])
+                    with diagnostics_path.open("x",encoding="utf-8") as diagnostic_file:
+                        json.dump(diagnostic,diagnostic_file,indent=2,allow_nan=False)
+                    artifacts.append(diagnostics_path)
+                except (OSError,ValueError) as diagnostic_error:
+                    record["diagnostic_export_error"]=type(diagnostic_error).__name__
+            write_receipt(metadata_path, record, artifacts, stream=receipt_stream)
         finally:
             receipt_stream.close()
         # Reporting is offline and occurs after timing/outcome preservation; it never changes the Gemini call.

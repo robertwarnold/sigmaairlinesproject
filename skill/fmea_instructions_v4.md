@@ -84,20 +84,38 @@ Reconcile system/subsystem/assembly/component/interface/connection hierarchy, fu
 and operating states against the package. Flag omissions/ambiguities for engineering
 review; do not resolve missing quantities by invention. Keep the supplied unit names.
 
-For every inventory unit consider all 18 categories in the response schema. Explain every
+For every inventory unit consider every category in the response schema. Explain every
 inapplicable decision. Respect independently reviewed applicable_categories where present;
 otherwise explicitly flag uncertain applicability. Separate materially different mechanisms,
 operating states and effects into distinct rows; no speculative coverage inflation.
 Each case links to its own rows and each row links to one unit, category and operating state.
-Trace intended function -> mechanism/cause -> local effect -> system effect, using only
-stated detection provisions. Record assumptions separately from input evidence. Ratings
-remain provisional with rate allocation and uncertainty explained using the existing scales.
+Preserve repeated physical instances. If engineering treatment is equivalent, explain that
+in the case rationale while keeping each instance traceable. Consider power, mechanical,
+fluid, and control interfaces when listed. Identify unknown boundaries, states, dependencies,
+redundancy and environment in review_flags without inventing architectural details.
+
+Trace intended function -> failure mode and cause -> local effect -> higher-level effect ->
+system effect. Explain which supported operating context, detection, isolation, containment,
+or redundancy changes the consequence. Keep hypotheses separate from stated input evidence.
+Use the documented standalone 1–10 policy. In severity_rationale cite the supported end
+effect, state, protection and appropriate rating anchor. If any rating lacks a compatible
+engineering basis, use null and explain the gap in rating_rationale and review_flag.
+This V4 contract governs unavailable ratings throughout the response.
+
+Before returning, perform one bounded review of physical units, interfaces, merged
+failure directions, causal propagation, matching controls and near-duplicate findings.
+Use stable row IDs and explain any material consolidation or addition in review_flags.
+Retain uncertain findings with assumptions and review flags. Unmatched findings are not
+automatically incorrect. Do not repeat or expand rows simply to increase apparent coverage.
 
 ## V4 output contract
-Return JSON object only: rows, cases, review_flags, complete.
+Return JSON object only: schema_version, rows, cases, review_flags, complete.
+Set schema_version to standalone-fmea-v4.0-response-2.
 rows: original thirteen fields plus row_id, unit_id, category, operating_state,
-existing_detection and assumptions. Ratings are integers 1-10; all other row fields are
-nonempty strings. existing_detection copies the inventory provision or is 'Not provided'.
+existing_detection, assumptions, higher_level_effect, existing_prevention and
+severity_rationale. Ratings are integers 1-10 or null when unsupported. All other row
+fields are nonempty strings. Both existing controls copy their inventory provision or
+use 'Not provided'. Higher-level effect refers to the containing function or subsystem.
 Use 'Not provided' for an unspecified operating state, and flag it for review.
 cases: one {unit_id, category, applicable, rationale, row_ids} per inventory unit per
 category, including inapplicable categories. Each applicable case has nonempty row_ids;

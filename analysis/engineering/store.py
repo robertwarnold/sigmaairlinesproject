@@ -14,8 +14,8 @@ import re
 import sqlite3
 
 from analysis.round2.__main__ import private
-from fmea_generator import FIELDS, RATINGS
-from standalone_v4 import CATEGORIES, audit, check_inventory, strict_read
+from fmea_generator import FIELDS, RATINGS, parse_fmea
+from standalone_v4 import CATEGORIES, RESPONSE_VERSION, SCORING_PROFILE, audit, check_inventory, strict_read, validate
 
 SCHEMA = 'engineering-workspace-1'
 POLICY = 'standalone-1-to-10-v1'
@@ -113,6 +113,11 @@ def normalize(raw, inventory, receipt, dataset_version, response_hash, inventory
     # Reuse the V4 auditor. Malformed audit structures are rejected, not "passed".
     try: coverage = audit(raw, inventory)
     except (KeyError, TypeError, AttributeError) as exc: raise ValueError('Malformed V4 cases/inventory') from exc
+    if receipt.get('response_contract') is not None or raw.get('schema_version') is not None:
+        if receipt.get('response_contract')!=RESPONSE_VERSION or receipt.get('scoring_profile')!=SCORING_PROFILE:
+            raise ValueError('Release response must be bound to a compatible receipt')
+        if receipt['status']=='success':
+            _,coverage=validate(json.dumps(raw),inventory,parse_fmea,require_release=True)
     run_id = receipt['experiment_id'] + ':' + receipt['attempt_id']
     settings = {k:v for k,v in receipt['configuration'].items() if k in ('temperature','top_p','top_k','seed','max_output_tokens','retry_attempts','response_mime_type')}
     if any(isinstance(v,(list,dict)) for v in settings.values()): raise ValueError('Configuration values must be scalar')

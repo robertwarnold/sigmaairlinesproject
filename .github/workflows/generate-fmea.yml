@@ -367,6 +367,7 @@ jobs:
             results/*.csv
             results/*_raw.txt
             results/*_execution.json
+            results/*_diagnostics.json
             results/*_reporting.json
             results/input_inventory.json
             results/research/current.json

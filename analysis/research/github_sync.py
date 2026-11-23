@@ -74,7 +74,7 @@ def archive_generated_members(store, archive, receipt_member, receipt, generatio
         if not re.fullmatch(r'[A-Za-z0-9_.-]+\.(?:csv|json|xlsx|txt)', name):
             continue
         stem = PurePosixPath(receipt_member).name.removesuffix('_execution.json')
-        if name not in {stem + suffix for suffix in ('.csv', '.json', '.xlsx', '_raw.txt')}:
+        if name not in {stem + suffix for suffix in ('.csv', '.json', '.xlsx', '_raw.txt','_diagnostics.json')}:
             continue
         member = str(parent / name)
         matches = [entry for entry in archive.infolist() if entry.filename == member]
@@ -97,7 +97,8 @@ def archive_generated_members(store, archive, receipt_member, receipt, generatio
 def import_engineering_run(store, engineering, archive, receipt_path, receipt, members):
     if receipt.get('prompt_version')!='v4.0' or receipt.get('status')!='success':
         return None
-    responses = [entry for entry in members if entry['member'].endswith(('_raw.txt','.json'))]
+    responses = [entry for entry in members if entry['member'].endswith(('_raw.txt','.json'))
+                 and not entry['member'].endswith('_diagnostics.json')]
     if len(responses)!=1 or not receipt.get('inventory_sha256'):
         return None
     candidates = [entry for entry in archive.infolist()

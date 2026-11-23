@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 import fmea_generator as engine
-from standalone_v4 import CATEGORIES, audit, load_inventory, validate, extract_inventory
+from standalone_v4 import CATEGORIES, RELEASE_CATEGORIES, RESPONSE_VERSION, audit, load_inventory, validate, extract_inventory
 from analysis.research.__main__ import empty_snapshot, validate_snapshot, build, atomic_json, register, review_events, plan, review_sample
 from analysis.research.statistics import bootstrap, anova, compare
 from analysis.round2.__main__ import ingest, metrics, summarize
@@ -33,6 +33,20 @@ def fixture():
                              'row_id':rid,'unit_id':uid,'category':category,'operating_state':'operating','existing_detection':'Not provided','assumptions':'synthetic test only'})
             cases.append({'unit_id':uid,'category':category,'applicable':applicable,'rationale':'synthetic applicability','row_ids':ids})
     return {'schema':'input-inventory-4','units':units,'review_flags':[],'review_status':'reviewed'}, {'rows':rows,'cases':cases,'review_flags':[],'complete':True}
+
+
+def release_fixture():
+    inventory,data=fixture()
+    data['schema_version']=RESPONSE_VERSION
+    for unit in inventory['units']:
+        for category in RELEASE_CATEGORIES[len(CATEGORIES):]:
+            data['cases'].append({'unit_id':unit['unit_id'],'category':category,'applicable':False,
+                                  'rationale':'Synthetic scenario excludes this category','row_ids':[]})
+    for row in data['rows']:
+        row.update(higher_level_effect='Synthetic controller loses input',existing_prevention='Not provided',
+                   severity_rationale='Anchor 3 in the synthetic operating scenario')
+    data['rows'][0]['occurrence']=None
+    return inventory,data
 
 
 def import_data(version='v4.0'):
@@ -93,7 +107,7 @@ class V4EngineeringTests(unittest.TestCase):
 
     def test_v4_generator_is_one_call_and_records_audit(self):
         with tempfile.TemporaryDirectory() as temp:
-            root=Path(temp); source=root/'input.txt'; source.write_text('synthetic only'); inventory,data=fixture()
+            root=Path(temp); source=root/'input.txt'; source.write_text('synthetic only'); inventory,data=release_fixture()
             inventory['system_sha256']=hashlib.sha256(source.read_bytes()).hexdigest()
             path=root/'inventory.json'; path.write_text(json.dumps(inventory))
             with patch('fmea_generator.call_gemini',return_value={'text':json.dumps(data),'finish_reason':'STOP','max_output_tokens':50000}) as call,patch('fmea_generator.automatic_report'),patch('analysis.research.__main__.register'):
@@ -101,6 +115,26 @@ class V4EngineeringTests(unittest.TestCase):
             call.assert_called_once(); self.assertEqual(call.call_args.kwargs['version'],'v4.0')
             receipt=json.loads((root/'synthetic_v4.0_run01_execution.json').read_text())
             self.assertEqual(receipt['completeness']['structural_status'],'PASS'); self.assertEqual(len(receipt['git_commit']),40)
+            self.assertEqual(receipt['response_contract'],RESPONSE_VERSION)
+            self.assertTrue(receipt['fmea_metrics']['schema_valid'])
+            diagnostics=root/'synthetic_v4.0_run01_diagnostics.json'
+            self.assertIn(diagnostics.name,receipt['artifacts'])
+            report=json.loads(diagnostics.read_text())
+            self.assertEqual(report['summary']['instances_covered'],3)
+            self.assertEqual(report['summary']['interfaces_covered'],1)
+            self.assertEqual(report['review_passes'],1)
+
+    def test_release_requires_severity_basis_and_preserves_unrated_rpn(self):
+        inventory,data=release_fixture()
+        rows,report=validate(json.dumps(data),inventory,engine.parse_fmea,require_release=True)
+        self.assertIsNone(rows[0]['RPN'])
+        self.assertEqual(rows[0]['row_id'],data['rows'][0]['row_id'])
+        self.assertIn('higher_level_effect',rows[0])
+        self.assertEqual(report['diagnostics']['summary']['candidate_rows'],6)
+        data['rows'][0]['severity_rationale']='Not provided'
+        with self.assertRaises(ValueError) as error:
+            validate(json.dumps(data),inventory,engine.parse_fmea,require_release=True)
+        self.assertEqual(error.exception.coverage_report['structural_status'],'FAIL')
 
 
 class V4ResearchTests(unittest.TestCase):

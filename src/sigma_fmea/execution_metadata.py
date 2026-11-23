@@ -103,17 +103,22 @@ def write_receipt(path, record, artifacts, stream=None):
 def characterize_csv(path):
     """Validate standalone/legacy CSVs using the existing v2 parser and derive provisional aggregates."""
     # Import only the parser, never a provider client; canonical unrated worksheets are excluded by callers.
-    from fmea_generator import CSV_FIELDS, FIELDS, RATINGS, parse_fmea
+    from fmea_generator import CSV_FIELDS, FIELDS, RATINGS, parse_fmea, v4_csv_fields
     with Path(path).open(encoding="utf-8-sig", newline="") as stream:
         reader = csv.DictReader(stream, strict=True)
         historical = CSV_FIELDS[:4] + ["generation_minutes"] + CSV_FIELDS[4:]
-        if reader.fieldnames not in (CSV_FIELDS, historical):
+        release=reader.fieldnames==v4_csv_fields()
+        if reader.fieldnames not in (CSV_FIELDS, historical) and not release:
             raise ValueError("Unexpected standalone FMEA CSV headers")
         source = list(reader)
     if not source or any(None in row or None in row.values() for row in source):
         raise ValueError("Empty/malformed standalone FMEA CSV")
-    rows = parse_fmea(json.dumps([{f: int(r[f]) if f in RATINGS else r[f] for f in FIELDS} for r in source]))
-    if any(int(raw["RPN"]) != row["RPN"] for raw, row in zip(source, rows)):
+    if release and (any(row['version']!='v4.0' or not row['row_id'] for row in source) or
+                    len({row['row_id'] for row in source})!=len(source)):
+        raise ValueError('Invalid V4 CSV row identity')
+    rows = parse_fmea(json.dumps([{f: (None if release and r[f]=='' else int(r[f])) if f in RATINGS else r[f]
+                                  for f in FIELDS} for r in source]),allow_unrated=release)
+    if any((None if release and raw["RPN"]=='' else int(raw["RPN"])) != row["RPN"] for raw, row in zip(source, rows)):
         raise ValueError("CSV RPN does not match S*O*D")
     counts = Counter(r["component"] for r in rows)
     duplicates = Counter(tuple(re.sub(r"\s+", " ", r[f].strip().casefold()) for f in ("component", "failure_mode", "cause")) for r in rows)

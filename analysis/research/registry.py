@@ -15,8 +15,19 @@ import tempfile
 from analysis.round2.__main__ import private, read, ingest
 
 VERSIONS=('v2.0','v3.0','v3.0-audit','v4.0')
+DIAGNOSTIC_COUNTS=('inventory_elements','instances_covered','components_covered','components_identified',
+                   'interfaces_covered','interfaces_identified','candidate_rows','potential_duplicates',
+                   'unsupported_flags','completeness_warnings','severity_review_flags')
 STATES=('PLANNED','QUEUED','RUNNING','GENERATION_FAILED','GENERATED','AWAITING_JUDGE',
         'JUDGE_IMPORTED','VALIDATION_FAILED','EVALUATED','HUMAN_REVIEW_PENDING','COMPLETE')
+
+
+def diagnostic_counts(values):
+    """Allow only bounded numeric aggregates into the browser-facing registry."""
+    if not isinstance(values,dict):
+        return {}
+    return {key:values[key] for key in DIAGNOSTIC_COUNTS
+            if type(values.get(key)) is int and 0<=values[key]<=1_000_000}
 
 
 def now(): return datetime.now(timezone.utc).isoformat()
@@ -135,6 +146,8 @@ class Registry:
             if status!=old['generation_status'] or (old['system'],old['skill_version'],old['generator_model'],old.get('generated_rows'))!=(receipt['system_id'].removeprefix('system_'),receipt['prompt_version'],receipt['model'],receipt.get('row_count')):
                 raise ValueError('Conflicting finalized receipt')
         coverage=receipt.get('completeness',{}); config=receipt.get('configuration',{})
+        diagnostics=coverage.get('diagnostics',{})
+        summary=diagnostic_counts(diagnostics.get('summary')) if isinstance(diagnostics,dict) else {}
         rows=receipt.get('row_count')
         if rows is not None and (type(rows) is not int or rows<0): raise ValueError('Invalid row count')
         if status=='success' and (rows is None or rows<1): raise ValueError('Successful generation needs rows')
@@ -147,12 +160,14 @@ class Registry:
                  'skill_version':receipt['prompt_version'],'replicate':receipt.get('run_number'),
                  'batch':receipt['experiment_id'],'workflow_execution_id':workflow_id,
                  'skill_sha256':receipt.get('skill_sha256'),'git_commit':receipt.get('git_commit'),
+                 'response_contract':receipt.get('response_contract'),
                  'generator_model':receipt.get('model'),'configuration':config,
                  'generation_timestamp':receipt.get('started_at'),'generation_finished_at':receipt.get('finished_at'),
                  'generation_seconds':receipt.get('api_request_seconds',receipt.get('total_elapsed_seconds')),
                  'generation_status':status,'generated_rows':rows,'structural_status':coverage.get('structural_status','PENDING'),
                  'duplicate_rows':len(coverage.get('duplicate_rows',[])) if 'duplicate_rows' in coverage else receipt.get('fmea_metrics',{}).get('potential_duplicate_rows'),
                  'traceability_status':'PASS' if coverage.get('row_traceability') else 'PENDING',
+                 'diagnostics_summary':summary or None,
                  'token_usage':receipt.get('usage_metadata'),'actual_cost':receipt.get('invoice_expense_usd'),
                  'estimated_cost':receipt.get('estimated_api_expense_usd'),
                  'api_calls':receipt.get('execution',{}).get('request_invocations'),
@@ -200,6 +215,10 @@ class Registry:
 
     def validate_cohort(self,records):
         if not records: return [],[]
+        contracts={self.generation(run['run_id']).get('response_contract')
+                   for run in records if run['skill_version']=='v4.0' and self.generation(run['run_id'])}
+        if len(contracts)>1:
+            raise ValueError('Do not pool official V4.0 and development V4.0 responses')
         with tempfile.TemporaryDirectory(dir=self.path.parent) as temp:
             path=Path(temp)/'judge_import.json'; path.write_text(encoded({'schema':'standalone-judge-import-1','workflow':'standalone_gemini','runs':records}),encoding='utf-8')
             runs,items,_,_=ingest([path])
@@ -219,6 +238,8 @@ class Registry:
                 expected={str(private(generation['receipt_path']))}
                 if generation.get('receipt_original_path'): expected.add(str(private(generation['receipt_original_path'])))
                 if supplied not in expected: raise ValueError('Judge receipt is not the registered generation receipt')
+                run['generation_receipt_path']=generation['receipt_path']
+            if generation.get('response_contract'):
                 run['generation_receipt_path']=generation['receipt_path']
             if run['generator_model']!=generation['generator_model']: raise ValueError('Judge/generation model mismatch')
             if any(k in generation.get('configuration',{}) and generation['configuration'][k]!=v for k,v in run['settings'].items()): raise ValueError('Judge/generation settings mismatch')
