@@ -21,7 +21,7 @@ analytics_ui <- function(defaults) {
       tags$script(src='presentation.js'),tags$script(src='charts.js'),tags$script(src='single-page.js'),tags$script(src='workspace-v43.js',defer=NA)),
     tags$main(class='analytics-page',
       tags$header(class='app-topbar',`aria-label`='Sigma Airlines FMEA Engineering Intelligence',
-      div(class='workspace-brand',icon('plane'),div(strong('Sigma Airlines'),span('FMEA Intelligence'))),
+      div(class='workspace-brand',icon('plane'),div(strong('Sigma Airlines'),span('FMEA Intelligence V4.6'))),
       tags$nav(class='workspace-nav',`aria-label`='Primary navigation',
         lapply(names(workspace_views),function(view) workspace_link(view,workspace_nav_labels[[view]],
           `aria-label`=workspace_views[[view]],`aria-current`=if(view=='overview') 'page' else NULL))),
@@ -30,6 +30,8 @@ analytics_ui <- function(defaults) {
       tags$details(class='app-actions',tags$summary('Actions'),div(class='app-action-menu',
         uiOutput('judge_import_action',inline=TRUE),actionButton('refresh','Refresh'),actionButton('generation_help','Generate FMEA')))),
       div(class='scope-bar',`aria-live`='polite',textOutput('active_analysis_filters'),textOutput('scope_evidence')),
+      if(identical(Sys.getenv('SIGMA_DASHBOARD_SYNTHETIC'),'1'))
+        div(class='workspace-empty',role='status',strong('Synthetic test fixture'), ' Operational run and reviewer records are simulated.'),
       tags$details(class='workspace-filters',tags$summary('Analysis filters'),
       div(class='global-filters',selectInput('g_run','Experiment / run',choices='All'),selectInput('g_system','System',choices='All'),
         selectInput('g_subsystem','Subsystem',choices='All'),selectInput('g_model','Model / provider',choices='All'),
@@ -43,8 +45,10 @@ analytics_ui <- function(defaults) {
           chart_panel('Reference failure-mode coverage',uiOutput('executive_coverage')),
           uiOutput('executive_metrics')),
         chart_panel('Engineering decision',uiOutput('executive_findings'))),
-      workspace_view('quality','Assess reference coverage, rating agreement and records that need review.',
+      workspace_view('quality','Compare scoped coverage and review version-specific diagnostic evidence.',
+      h2(class='evidence-section-title','Current historical comparison'),
       uiOutput('quality_metrics'),
+      h2(class='evidence-section-title','Published diagnostic cohort'),
       div(class='evidence-grid',chart_panel('Missed reasons (Pareto)',uiOutput('pareto_detail')),
         chart_panel('Key quality findings',uiOutput('quality_findings'))),
       tags$details(class='support-details',tags$summary('Supporting evidence and system detail'),uiOutput('quality_coverage'),uiOutput('quality_agreement')),
@@ -86,6 +90,10 @@ analytics_ui <- function(defaults) {
           analytics_card('Cost comparison per FMEA','finance_cost'),
           chart_panel('Modeled scenarios',tableOutput('finance_scenarios'),
             'Sensitivity around the selected assumptions. Higher and lower cases vary review and reconstruction effort by 25%.')),
+        chart_panel('First-year benefit by workload and review effort',tagList(
+          plotOutput('finance_review_volume',height='300px'),
+          tags$details(tags$summary('View sensitivity values and break-even thresholds'),tableOutput('finance_review_volume_table'))),
+          'Modeled in US dollars. Other assumptions remain at their selected values. The contour marks zero net benefit where both regions appear.'),
         tags$details(class='support-details',tags$summary('Activity cost breakdown'),uiOutput('finance_breakdown')),
         tags$details(tags$summary('Assumptions and sensitivity'),div(class='assumption-grid',lapply(names(defaults),function(k) {
           if(k=='uncertainty_fraction') sliderInput(paste0('fin_',k),gsub('_',' ',k),min=0,max=.6,value=defaults[[k]],step=.05)

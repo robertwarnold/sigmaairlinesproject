@@ -68,6 +68,8 @@
 .explorer-empty i { font-size: 1.55rem; color: #216da9; }
 #engineering_body:empty::before { content: 'Loading the register…'; display: block; padding: .75rem; color: #435c71; }
 .disposition-label { display: inline-block; padding: .14rem .35rem; border-radius: 4px; background: #eaf2fa; color: #244e72; }
+.evidence-section-title { font-size: .93rem; margin: .7rem 0 .35rem; }
+.generation-diagnostics { margin: .6rem 0; }
 @media (max-width: 900px) {
   .app-topbar { gap: .55rem; }
   .quality-kpis { grid-template-columns: repeat(3,minmax(0,1fr)); }

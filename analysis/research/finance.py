@@ -21,6 +21,26 @@ def scenario_comparison(generations, runs, baseline, assumptions):
         scenarios.append({'scenario':label, 'net_benefit':result['first_year_net_savings'],
                           'cost_per_fmea':result['ai_per_fmea'], 'break_even':result['break_even_fmeas']})
     return scenarios
+
+
+def review_volume_sensitivity(result):
+    """Vary review/reconstruction labor and annual workload in the same cost model."""
+    assumptions=result['assumptions']
+    review_activities={'Matched-item review','Missed-item reconstruction','Extra-row review'}
+    review=sum(row['hours_per_fmea'] for row in result['activities'] if row['activity'] in review_activities)
+    rate=assumptions['labor_rate']
+    fixed_unit=result['modeled']['ai_per_fmea']-rate*review
+    volume=assumptions['annual_volume']
+    volumes=[volume*factor/4 for factor in range(1,9)]
+    hours=[review*factor/4 for factor in range(1,8)] if review else [factor*.5 for factor in range(7)]
+    grid=[]
+    for h in hours:
+        for v in volumes:
+            metrics=comparison(result['modeled']['manual_per_fmea'],max(0,fixed_unit+rate*h),
+                               assumptions['development_usd'],assumptions['maintenance_usd'],v)
+            grid.append({'annual_volume':v,'review_hours':h,'first_year_net':metrics['net_annual_savings_usd'],
+                         'break_even_volume':metrics['break_even_fmeas']})
+    return grid
 HISTORICAL={'status':'HISTORICAL_PLANNING_SCENARIO_NOT_MEASURED','annual_volume':50,'labor_rate':92.71,
             'manual_annual_usd_approximate':43851,'ai_annual_operating_usd_approximate':34800,
             'first_year_net_savings_usd_approximate':5551,'simulation_interval95_usd_reported':[-9475,21483],

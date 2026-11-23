@@ -268,14 +268,18 @@ server <- function(input,output,session) {
   })
   output$experiment_metrics <- renderUI({
     rows <- generations()
-    systems <- unique(stats::na.omit(rows$system))
-    versions <- unique(stats::na.omit(rows$skill_version))
+    successful <- sum(rows$generation_status=='success',na.rm=TRUE)
+    failed <- sum(rows$generation_status=='failed',na.rm=TRUE)
+    attempted <- sum(rows$generation_status %in% c('success','failed','running'))
+    evaluated <- sum(rows$generation_status=='success' & rows$evaluation_status=='evaluated',na.rm=TRUE)
     durations <- rows$generation_seconds[which(rows$generation_status=='success')]
     durations <- durations[is.finite(durations) & durations>=0]
     div(class='evidence-kpis experiment-kpis',
-      evidence_kpi('Registered runs',nrow(rows),'Selected registry attempts','flask'),
-      evidence_kpi('Systems',length(systems),'Known system identifiers','layer-group'),
-      evidence_kpi('Generator versions',if(length(versions)) paste(sort(versions),collapse=', ') else 'Unavailable',NULL,'code-branch'),
+      evidence_kpi('Generation attempts',attempted,'Includes running attempts','flask'),
+      evidence_kpi('Successful runs',successful,sprintf('%d evaluated, %d awaiting evaluation',evaluated,successful-evaluated),'check'),
+      evidence_kpi('Failed runs',failed,'Execution status only','triangle-exclamation'),
+      evidence_kpi('Generation success rate',if(successful+failed) sprintf('%.1f%%',100*successful/(successful+failed)) else 'Unavailable',
+        sprintf('%d completed attempts',successful+failed),'percent'),
       evidence_kpi('Median generation time',if(length(durations)) generation_duration_label(median(durations)) else 'Unavailable',
         sprintf('%d successful timed runs',length(durations)),'clock'))
   })
@@ -299,7 +303,8 @@ server <- function(input,output,session) {
     div(h3(identity$label),if(length(identity$conflicts)) p(paste('Metadata conflict:',paste(identity$conflicts,collapse=', '))),
       if(!is.null(identity$branch)) p(paste('Branch:',identity$branch)),link,' ',
       workspace_link('explorer','Inspect generated records',`data-open-run`=engineering_id),
-      div(class='detail-grid',lapply(names(row),function(k) div(strong(gsub('_',' ',k)),tags$pre(if(is.na(row[[k]][1])) 'Unavailable' else as.character(row[[k]][1]))))))
+      generator_diagnostic_panel(row$diagnostics_summary),
+      div(class='detail-grid',lapply(setdiff(names(row),'diagnostics_summary'),function(k) div(strong(gsub('_',' ',k)),tags$pre(if(is.na(row[[k]][1])) 'Unavailable' else as.character(row[[k]][1]))))))
   })
   output$event_table <- renderTable({x <- as_table(data()$lifecycle_events); if(nrow(x) && !is.null(input$detail_run)) x <- x[x$object_id==input$detail_run,,drop=FALSE]; x})
   set_assumptions <- function(values) {
@@ -413,6 +418,26 @@ server <- function(input,output,session) {
       `Break-even`=ifelse(is.na(rows$break_even),'Unavailable',as.character(rows$break_even)),check.names=FALSE)
   })
   output$finance_distribution <- renderUI(dashboard_finance(financial(),'simulation'))
+  sensitivity_grid <- reactive(as_table(financial()$review_volume_sensitivity))
+  output$finance_review_volume <- renderPlot({
+    grid <- sensitivity_grid(); req(nrow(grid))
+    graph <- ggplot2::ggplot(grid,ggplot2::aes(annual_volume,review_hours))+
+      ggplot2::geom_tile(ggplot2::aes(fill=first_year_net))+
+      ggplot2::scale_fill_gradient2(low='#a74336',mid='#f2f4f6',high='#0868a5',
+          labels=function(x) paste0('$',format(round(x),big.mark=',',trim=TRUE)))+
+      ggplot2::labs(x='FMEAs per year',y='Review and reconstruction hours per FMEA',fill='First-year net')+
+      ggplot2::theme_minimal(base_size=11)+ggplot2::theme(panel.grid=ggplot2::element_blank())
+    if(min(grid$first_year_net)<0 && max(grid$first_year_net)>0)
+      graph <- graph+ggplot2::geom_contour(ggplot2::aes(z=first_year_net),breaks=0,colour='#10253c',linewidth=.8)
+    graph
+  },res=96,alt='Modeled net benefit across annual FMEA volumes and review hours. The accompanying table provides exact values.')
+  output$finance_review_volume_table <- renderTable({
+    grid <- sensitivity_grid(); req(nrow(grid))
+    data.frame(`FMEAs / year`=round(grid$annual_volume,2),`Review hours / FMEA`=round(grid$review_hours,2),
+      `First-year net USD`=round(grid$first_year_net,2),
+      `Break-even FMEAs / year`=ifelse(is.na(grid$break_even_volume),'Unavailable',as.character(grid$break_even_volume)),
+      check.names=FALSE)
+  })
   output$finance_breakdown <- renderUI(dashboard_finance(financial(),'breakdown'))
   output$finance_sensitivity <- renderUI(dashboard_finance(financial(),'sensitivity'))
   output$finance_spending <- renderUI(dashboard_finance(financial(),'spending'))

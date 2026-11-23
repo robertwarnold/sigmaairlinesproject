@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 import time
 
-from .registry import Registry, encoded, now
+from .registry import Registry, diagnostic_counts, encoded, now
 from .github_sync import discover_branches, synchronize
 from .judge_import import adapt
 from .finance import model, DEFAULTS
@@ -43,6 +43,8 @@ def _snapshot(store,output,render=True):
                  'engineering_run_id','original_filename',
                  'workflow_execution_id','parent_workflow_run_id','workflow_attempt','generation_timestamp','generation_finished_at','generation_seconds','generation_status',
                  'generated_rows','structural_status','duplicate_rows','traceability_status','artifact_reference','git_commit','skill_sha256','actual_cost','estimated_cost')}
+            if generation.get('diagnostics_summary'):
+                row['diagnostics_summary']=diagnostic_counts(generation['diagnostics_summary'])
             row.update(state=generation['state'],evaluation_status='evaluated' if evaluated else 'awaiting_evaluation' if generation['generation_status']=='success' else 'not_evaluated',
                        evaluation_label='Evaluated' if evaluated else 'Awaiting Independent Evaluation' if generation['generation_status']=='success' else generation['state'],
                        missed_percentage=evaluated['missed_percentage'] if evaluated else None,
@@ -127,9 +129,11 @@ def validate_extended(data):
              'engineering_run_id','original_filename',
              'parent_workflow_run_id','workflow_attempt','generation_timestamp','generation_finished_at','generation_seconds','generation_status','generated_rows','structural_status',
              'duplicate_rows','traceability_status','artifact_reference','git_commit','skill_sha256','actual_cost','estimated_cost',
-             'state','evaluation_status','evaluation_label','missed_percentage','selected_evaluation'}
+             'state','evaluation_status','evaluation_label','missed_percentage','selected_evaluation','diagnostics_summary'}
     for row in data['registry']:
         if set(row)-allowed: raise ValueError('Unsafe generation registry field')
+        if 'diagnostics_summary' in row and row['diagnostics_summary']!=diagnostic_counts(row['diagnostics_summary']):
+            raise ValueError('Unsafe generator diagnostic summary')
         if row['evaluation_status']!='evaluated' and row['missed_percentage'] is not None: raise ValueError('Unevaluated generation cannot have quality metrics')
     base={k:v for k,v in data.items() if k not in EXTRA_FIELDS}; base['schema']=SCHEMA
     base['registry']=[{k:v for k,v in r.items() if k in SAFE_RUN_FIELDS or k in ('git_commit','skill_sha256')} for r in data['registry']]
@@ -171,8 +175,9 @@ def main():
         data=read(private(args.snapshot)); values=read(private(args.assumptions))
         result=model(data.get('registry',[]),data['runs'],data['baseline'],values)
         if args.compare_scenarios:
-            from .finance import scenario_comparison
+            from .finance import review_volume_sensitivity, scenario_comparison
             result['scenario_comparison']=scenario_comparison(data.get('registry',[]),data['runs'],data['baseline'],values)
+            result['review_volume_sensitivity']=review_volume_sensitivity(result)
         atomic_json(private(args.output),result); return
     store=Registry(args.database)
     try:

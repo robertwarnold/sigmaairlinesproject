@@ -82,9 +82,11 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
     r
   })
   focus_ids <- reactiveVal(NULL)
+  has_private_records <- reactiveVal(FALSE)
+  observe(has_private_records(nrow(as_table(state()$rows))>0))
   output$engineering_body <- renderUI({
     if(!allowed()) return(engineering_notice())
-    if(!nrow(all_rows())) return(div(class='workspace-empty explorer-empty',icon('database'),
+    if(!has_private_records()) return(div(class='workspace-empty explorer-empty',icon('database'),
       strong('No generated records imported'),p('Synchronize a receipt-bound V4 response and inventory to populate the register.'),
       tags$button(type='button',class='btn btn-primary',`data-delegate-action`='github_sync_open','Sync from GitHub')))
     tagList(p(class='private-notice','Private workstation / generated drafts and human review. These records never enter public dashboard JSON.'),
@@ -180,7 +182,7 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
     req(allowed()); r <- record(); if(is.null(r)) return(p('Select an imported record.'))
     text <- function(x) if(is.null(x)||!length(x)) 'Not provided' else paste(unlist(x),collapse=', ')
     assessment <- function(title,row,score) tags$section(class='engineering-assessment',h3(title),
-      tags$dl(lapply(c('component','function','failure_mode','cause','local_effect','system_effect','recommended_action'),function(k)
+      tags$dl(lapply(c('component','function','failure_mode','cause','local_effect','higher_level_effect','system_effect','severity_rationale','recommended_action'),function(k)
         tagList(tags$dt(gsub('_',' ',k)),tags$dd(text(row[[k]]))))),
       p(paste('Severity',text(row$severity),'/ Occurrence',text(row$occurrence),'/ Detection',text(row$detection),'/ RPN',text(score))))
     tagList(div(class='chart-grid-layout',assessment('Original AI draft',r$original,r$original_validation$computed_rpn),
@@ -205,8 +207,8 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
     req(allowed()); r <- record(); if(is.null(r)) return(NULL)
     tagList(p(paste('Revision',r$revision,'/',r$review_status)),textInput('eng_reviewer','Engineer / reviewer name'),textAreaInput('eng_note','Review note / rationale'),
       selectInput('eng_decision','Decision',choices=c('Needs review / reopen'='NEEDS_REVIEW','Approve'='APPROVED','Reject'='REJECTED')),
-      selectInput('eng_disposition','Engineering disposition',choices=c('No change'='', 'Valid additional failure mode'='valid_additional',
-        'Duplicate'='duplicate','Technically incorrect'='technically_incorrect','Insufficient evidence'='insufficient_evidence','Unresolved'='unresolved')),
+      selectInput('eng_disposition','Engineering disposition',choices=c('No change'='', 'Confirmed valid addition'='valid_additional',
+        'Duplicate'='duplicate','Unsupported or incorrect'='technically_incorrect','Needs evidence'='insufficient_evidence','Unresolved'='unresolved')),
       selectInput('eng_basis','Engineering basis',choices=c('Select a basis'='', 'Human-verified source citation'='source_verified','Human-approved inference'='approved_inference')),
       checkboxInput('eng_confirm','I reviewed the causal chain, assumptions, ratings and recommended action',FALSE),
       checkboxInput('eng_edit','Apply corrections below (original AI values remain unchanged)',FALSE),

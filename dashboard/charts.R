@@ -106,6 +106,16 @@ dashboard_versions <- function(d) {
     htmltools::tags$details(class='chart-details',htmltools::tags$summary('Historical V2 baseline'),
       htmltools::tags$p(paste(fmt(d$baseline$pooled_missed_percentage_reported,'%'),'pooled missed;',d$baseline$total_runs,'reported FMEAs. Aggregate only; no run observations or inferred interval.'))))
 }
+generator_diagnostic_panel <- function(value) {
+  metrics <- unlist(value,recursive=TRUE,use.names=TRUE)
+  metrics <- metrics[!is.na(metrics)]
+  if(!length(metrics)) return(NULL)
+  htmltools::tags$section(class='generation-diagnostics',
+    htmltools::tags$h3('Generator self-checks'),
+    htmltools::tags$p('Inventory and response diagnostics. Independent reference coverage requires judging.'),
+    chart_details(data.frame(Check=gsub('_',' ',names(metrics)),Count=unname(metrics)),'Diagnostic counts'))
+}
+
 dashboard_pareto <- function(d) {
   rows <- as_table(d$pareto); historical <- !nrow(rows)
   if(historical) rows <- data.frame(miss_category=names(d$baseline$miss_categories),count=as.numeric(unlist(d$baseline$miss_categories)),percentage=as.numeric(unlist(d$baseline$miss_category_percentages)),skill_version='Historical V2 report')
