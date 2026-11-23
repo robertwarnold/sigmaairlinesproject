@@ -31,7 +31,7 @@ engineering_table <- function(rows,fields) {
   }))
   htmltools::div(class='engineering-table-wrap',htmltools::tags$table(class='engineering-table',header,body))
 }
-engineering_server <- function(input,output,session,research=NULL,historical=NULL,identity_mapping=list()) {
+engineering_server <- function(input,output,session,research=NULL,historical=NULL,identity_mapping=list(),run_registry=NULL) {
   allowed <- reactive(engineering_allowed(Sys.getenv('SIGMA_ENGINEERING_PRIVATE'),session$request))
   database <- Sys.getenv('SIGMA_ENGINEERING_DATABASE',file.path(project_root,'results','engineering','workspace.sqlite'))
   registry <- file.path(project_root,'results','research','registry.sqlite')
@@ -61,6 +61,18 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
     if(nrow(r)&&nrow(meta)) {
       i <- match(r$run_id,meta$run_id)
       for(k in c('generator_model','generation_timestamp','dataset_id')) r[[k]] <- meta[[k]][i]
+      r$resolved_round <- vapply(i,function(j) {
+        if(is.na(j)) return(NA_character_)
+        identity <- experiment_identity(as.list(meta[j,,drop=FALSE]),mapping=identity_mapping)
+        if(is.null(identity$round)) NA_character_ else identity$round
+      },character(1))
+      registry_rows <- if(is.null(run_registry)) data.frame() else run_registry()
+      if(all(c('engineering_run_id','judge_skill_version') %in% names(registry_rows))) {
+        j <- match(r$run_id,registry_rows$engineering_run_id)
+        r$judge_skill_version <- registry_rows$judge_skill_version[j]
+        from_registry <- registry_rows$resolved_round[j]
+        r$resolved_round[!is.na(from_registry)] <- from_registry[!is.na(from_registry)]
+      }
     }
     r
   })
@@ -74,9 +86,9 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
       tags$details(tags$summary('Column filters'),div(class='engineering-controls',
         selectInput('eng_severity','Severity',choices=c('All',1:10)),selectInput('eng_occurrence','Occurrence',choices=c('All',1:10)),
         checkboxInput('eng_descending','Descending',TRUE))),
-      div(class='engineering-exports',actionButton('eng_clear','Clear record filters'),actionButton('eng_refresh','Refresh private data')),
+      tags$details(tags$summary('Record actions'),div(class='engineering-exports',actionButton('eng_clear','Clear record filters'),actionButton('eng_refresh','Refresh private data'))),
       tags$details(tags$summary('Visible columns'),checkboxGroupInput('eng_columns','Columns',choices=c('record_id','run_id','row_id','system','subsystem','component','function','failure_mode','cause','local_effect','system_effect','severity','occurrence','detection','RPN','evidence_status','review_status','recommended_action'),
-        selected=c('record_id','subsystem','component','function','failure_mode','cause','system_effect','severity','occurrence','detection','RPN','evidence_status','review_status','recommended_action'),inline=TRUE)),
+        selected=c('component','failure_mode','severity','occurrence','detection','RPN','review_status'),inline=TRUE)),
       uiOutput('eng_table'),numericInput('eng_page','Page',1,min=1,width='6rem'),
       div(class='engineering-exports',downloadButton('eng_csv','Export filtered CSV'),downloadButton('eng_json','Export filtered JSON')),
       selectInput('eng_record','Inspect a record',choices=character()),
@@ -113,7 +125,7 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
     updateSelectInput(session,'eng_record',choices=choices,selected=selected)
   })
   observeEvent(input$global_reset,{
-    for(id in c('g_run','g_system','g_subsystem','g_model','g_skill','g_review')) updateSelectInput(session,id,selected='All')
+    for(id in c('g_run','g_system','g_subsystem','g_model','g_skill','g_review','g_round','g_judge')) updateSelectInput(session,id,selected='All')
     updateDateRangeInput(session,'g_dates',start='2020-01-01',end=Sys.Date()); focus_ids(NULL)
     updateTextInput(session,'eng_search',value='')
     for(id in c('eng_severity','eng_occurrence')) updateSelectInput(session,id,selected='All')
@@ -123,8 +135,7 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
     updateNumericInput(session,'eng_page',value=1)
   })
   filtered <- reactive({
-    r <- filter_engineering_rows(all_rows(),list(run=input$g_run,system=input$g_system,subsystem=input$g_subsystem,
-      model=input$g_model,skill=input$g_skill,review=input$g_review,dates=input$g_dates,severity=input$eng_severity,occurrence=input$eng_occurrence),
+    r <- filter_engineering_rows(all_rows(),c(workspace_filters(input),list(severity=input$eng_severity,occurrence=input$eng_occurrence)),
       search=input$eng_search,focus=focus_ids())
     if(!nrow(r)) return(r)
     key <- input$eng_sort
@@ -133,6 +144,10 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
   })
   output$eng_table <- renderUI({
     req(allowed()); r <- filtered(); fields <- intersect(input$eng_columns,names(r))
+    if(!nrow(all_rows())) return(div(class='workspace-empty',strong('No generated FMEA records imported'),
+      p('Synchronize a receipt-bound V4 response and its inventory to populate this register.')))
+    if(!nrow(r)) return(div(class='workspace-empty',strong('No records match the current filters'),
+      p('Clear record filters or broaden the shared analysis scope.'),actionButton('clear_record_context','Clear record filters')))
     if(!length(fields)) return(p('Select at least one column.'))
     page <- input$eng_page; if(is.null(page)||!is.finite(page)) page <- 1
     page <- max(1,min(ceiling(nrow(r)/10),floor(page))); start <- (page-1)*10

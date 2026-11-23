@@ -1,6 +1,7 @@
 (() => {
   const views = [...document.querySelectorAll('.workspace-view')];
   const nav = document.querySelector('.workspace-nav');
+  const mobile = document.getElementById('workspace-view-select');
   if (!nav) return;
 
   function showView(moveFocus) {
@@ -11,6 +12,7 @@
       if (link.hash === '#' + view.id) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
     });
+    if (mobile) mobile.value = view.id;
     document.title = view.querySelector('h1').textContent + ' | Sigma Airlines';
     window.dispatchEvent(new Event('resize'));
     if (moveFocus) {
@@ -20,6 +22,7 @@
   }
 
   window.addEventListener('hashchange', () => showView(true));
+  mobile?.addEventListener('change', () => { window.location.hash = mobile.value; });
   document.addEventListener('click', event => {
     const link = event.target.closest('[data-open-system], [data-open-run]');
     if (!link || !window.Shiny || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;

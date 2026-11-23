@@ -13,27 +13,32 @@ analytics_ui <- function(defaults) {
   page_fluid(theme=bs_theme(version=5,bg=chart_tokens$background,fg=chart_tokens$ink,primary=chart_tokens$accent,base_font='sans-serif'),
     tags$head(tags$title('Sigma Airlines | FMEA Engineering Dashboard'),chart_css_tokens(),tags$link(rel='stylesheet',href='research.css'),tags$link(rel='stylesheet',href='single-page.css'),
       tags$link(rel='stylesheet',href='workspace-v43.css'),
+      tags$link(rel='stylesheet',href='workspace-v44.css'),
       tags$script(src='presentation.js'),tags$script(src='charts.js'),tags$script(src='single-page.js'),tags$script(src='workspace-v43.js',defer=NA)),
     tags$main(class='analytics-page',
       tags$header(class='analytics-header',div(class='workspace-brand',strong('Sigma Airlines'),span('FMEA Engineering Intelligence')),
         div(uiOutput('judge_import_action',inline=TRUE),actionButton('refresh','Refresh'),actionButton('generation_help','Generate FMEA'))),
       tags$nav(class='workspace-nav',`aria-label`='Primary navigation',
         lapply(names(workspace_views),function(view) workspace_link(view,`aria-current`=if(view=='overview') 'page' else NULL))),
-      tags$details(class='workspace-filters',tags$summary('Analysis filters'),textOutput('active_analysis_filters',inline=TRUE),
+      tags$label(class='workspace-mobile-nav',span('View'),tags$select(id='workspace-view-select',`aria-label`='View',
+        lapply(names(workspace_views),function(view) tags$option(value=view,workspace_views[[view]])))),
+      div(class='scope-bar',`aria-live`='polite',textOutput('active_analysis_filters'),textOutput('scope_evidence')),
+      tags$details(class='workspace-filters',tags$summary('Analysis filters'),
       div(class='global-filters',selectInput('g_run','Experiment / run',choices='All'),selectInput('g_system','System',choices='All'),
         selectInput('g_subsystem','Subsystem',choices='All'),selectInput('g_model','Model / provider',choices='All'),
-        selectInput('g_skill','Skill version',choices='All'),dateRangeInput('g_dates','Generation date',start='2020-01-01',end=Sys.Date()),
+        selectInput('g_skill','Skill version',choices='All'),selectInput('g_round','Experiment round',choices='All'),
+        selectInput('g_judge','Judge version',choices='All'),dateRangeInput('g_dates','Generation date',start='2020-01-01',end=Sys.Date()),
         selectInput('g_review','Engineering review',choices=c('All','NEEDS_REVIEW','APPROVED','REJECTED')),actionButton('global_reset','Reset filters'))),
-      div(class='dataset-line',uiOutput('analytics_context'),textOutput('snapshot_status')),
-      workspace_view('overview','Decision brief for engineering and program leadership.',
+      tags$details(class='workspace-provenance',tags$summary('Data provenance'),uiOutput('analytics_context'),textOutput('snapshot_status')),
+      workspace_view('overview',textOutput('executive_headline',inline=TRUE),
         uiOutput('executive_metrics'),
         div(class='executive-grid',
           chart_panel('Coverage across study rounds',uiOutput('executive_coverage')),
-          chart_panel('Key engineering findings',uiOutput('executive_findings'))),
-        chart_panel('Engineering decision',uiOutput('executive_decision'))),
+          chart_panel('Key engineering findings',uiOutput('executive_findings')))),
       workspace_view('quality','Assess reference coverage, rating agreement and records that need review.',
       uiOutput('quality_coverage'),
-      div(class='analytics-grid',analytics_card('Judge field agreement','quality_agreement'),analytics_card('Missed-reason Pareto','pareto_detail')),
+      uiOutput('quality_agreement'),
+      tags$details(class='support-details',tags$summary('Missed reasons and supporting evidence'),uiOutput('pareto_detail')),
       tags$details(class='support-details',tags$summary('Engineering validation and risk distribution'),
       tags$section(id='health',h2('FMEA health at a glance'),uiOutput('analytics_health'),
         div(class='attention-card',h3('What needs attention'),uiOutput('analytics_attention'))),
@@ -44,11 +49,14 @@ analytics_ui <- function(defaults) {
           analytics_card('Corrective action status','analytics_actions')))),
       workspace_link('explorer','Open the evidence register')),
       workspace_view('experiments','Trace generation timing, independent evaluations and workflow provenance.',
-        div(class='analytics-grid',analytics_card('Generation duration','analytics_duration'),
-          analytics_card('Generation and evaluation activity','mission_activity')),
-        chart_panel('Generation registry',tagList(uiOutput('explorer_table'),numericInput('run_page','Page',1,min=1,width='6rem'),
+        analytics_card('Generation time by system and skill','analytics_duration'),
+        chart_panel('Generation registry',tagList(div(class='finance-controls',
+          selectInput('generation_filter','Run status',choices=c('All','success','failed','running','planned')),
+          selectInput('generation_sort','Sort runs',choices=c('Most recent'='recent','System and round'='identity','Longest generation'='duration'))),
+          uiOutput('explorer_table'),numericInput('run_page','Page',1,min=1,width='6rem'),
           tags$details(id='run-detail',tags$summary('Selected generation'),uiOutput('generation_detail'),tableOutput('event_table')))),
       tags$details(id='ai-performance',class='support-details',tags$summary('Performance diagnostics'),
+        analytics_card('Generation and evaluation activity','mission_activity'),
         div(class='analytics-grid',analytics_card('Skill version performance','analytics_versions','Structural validation and engineering decisions; not reference recall.'),
           analytics_card('Evidence quality','analytics_evidence'),
           analytics_card('Scoring agreement','analytics_agreement','Explicit human rating corrections only / within \u00b11 / at least two pairs per rating.')),
@@ -60,15 +68,16 @@ analytics_ui <- function(defaults) {
         tags$details(class='support-details',tags$summary('GitHub run registry, provenance and lifecycle'),
           uiOutput('experiment_progress'),textOutput('sync_summary'),tableOutput('workflow_table')))),
       workspace_view('finance','Compare planning scenarios and review the available spending and labor evidence.',
+        p(class='finance-context','Planning scenario · based on the research snapshot and editable assumptions. Record filters do not change the scenario.'),
         div(class='finance-controls',selectInput('finance_preset','Planning scenario',choices=c('Baseline','Conservative','Optimistic')),
           downloadButton('finance_export','Export scenario CSV'),downloadButton('finance_brief','Export decision brief')),
-        uiOutput('financial_metrics'),div(class='analytics-grid',analytics_card('Modeled annual operating cost','finance_cost'),analytics_card('Modeled savings distribution','finance_distribution')),
+        uiOutput('financial_metrics'),div(class='analytics-grid',analytics_card('Manual and AI-assisted cost per FMEA','finance_cost'),analytics_card('AI-assisted cost composition','finance_breakdown')),
         tags$details(tags$summary('Assumptions and sensitivity'),div(class='assumption-grid',lapply(names(defaults),function(k) {
           if(k=='uncertainty_fraction') sliderInput(paste0('fin_',k),gsub('_',' ',k),min=0,max=.6,value=defaults[[k]],step=.05)
           else numericInput(paste0('fin_',k),gsub('_',' ',k),defaults[[k]],min=if(k=='success_probability') .01 else if(k=='annual_volume') 1 else 0,
             max=if(k=='success_probability') 1 else NA)
-        })),actionButton('reset_finance','Reset assumptions'),uiOutput('finance_sensitivity')),
-        div(class='analytics-grid',analytics_card('Modeled cost breakdown','finance_breakdown'),analytics_card('Measured API spending','finance_spending')),
+        })),actionButton('reset_finance','Reset assumptions'),uiOutput('finance_sensitivity'),uiOutput('finance_distribution')),
+        tags$details(class='support-details',tags$summary('Observed API spending'),uiOutput('finance_spending')),
         textOutput('financial_status'),tags$details(tags$summary('Inputs, formulas and provenance'),uiOutput('finance_provenance'),
           tableOutput('finance_inputs'),tableOutput('historical_finance'),tableOutput('observed_costs'))),
       workspace_view('explorer','Inspect generated rows, record engineering decisions and export evidence.',
@@ -76,7 +85,7 @@ analytics_ui <- function(defaults) {
       tags$details(class='support-details',tags$summary('Research methods, historical baseline and academic exports'),
         p('Generator output, structural validation, source-supported evidence, human review and independent reference evaluation are separate evidence layers.'),
         p('Ratings use the existing integer 1\u201310 policy. S \u2265 9 is a visibility threshold, not a formal risk acceptance criterion. Dashboard V4.1/V4.2 revisions do not imply new FMEA skill versions.'),
-        p('Global filters select imported engineering rows and applicable operational records. The frozen historical report, full-cohort inference, financial scenario and academic poster remain separately labeled study-level context.'),
+        p('System, round and skill filter the historical comparison. Generation and private record filters apply when the relevant metadata is available. The frozen report and academic poster show their published cohort.'),
         uiOutput('historical_reference'),tableOutput('historical_baseline'),verbatimTextOutput('statistics'),uiOutput('criteria'),
         div(class='presentation-actions',actionButton('presentation_toggle','Present fullscreen'),downloadButton('poster_pdf','Export poster PDF')),
         div(class='poster',div(class='poster-title',h2('Can structured engineering coverage reduce missed failure modes?')),
@@ -92,7 +101,8 @@ canonical_system <- function(value) sub('^system_','',value,ignore.case=TRUE)
 filter_generation_rows <- function(rows,filters) {
   if(!nrow(rows)) return(rows)
   keep <- rep(TRUE,nrow(rows))
-  for(pair in list(c('run','run_id'),c('system','system'),c('model','generator_model'),c('skill','skill_version'))) {
+  for(pair in list(c('run','run_id'),c('system','system'),c('model','generator_model'),c('skill','skill_version'),
+    c('round','resolved_round'),c('judge','judge_skill_version'))) {
     value <- filters[[pair[1]]]
     if(!is.null(value)&&value!='All') {
       match <- if(pair[2] %in% names(rows)) !is.na(rows[[pair[2]]]) & rows[[pair[2]]]==value else rep(FALSE,nrow(rows))
@@ -111,11 +121,12 @@ filter_generation_rows <- function(rows,filters) {
 filter_engineering_rows <- function(rows,filters,search='',focus=NULL) {
   if(!nrow(rows)) return(rows)
   keep<-rep(TRUE,nrow(rows))
-  fields<-c(run='run_id',system='system',subsystem='subsystem',model='generator_model',skill='skill_version',review='review_status',severity='severity',occurrence='occurrence')
+  fields<-c(run='run_id',system='system',subsystem='subsystem',model='generator_model',skill='skill_version',
+    round='resolved_round',judge='judge_skill_version',review='review_status',severity='severity',occurrence='occurrence')
   for(key in names(fields)) {
     value<-filters[[key]]
     if(!is.null(value)&&value!='All') {
-      observed <- as.character(rows[[fields[[key]]]])
+      observed <- if(fields[[key]] %in% names(rows)) as.character(rows[[fields[[key]]]]) else rep(NA_character_,nrow(rows))
       if(key=='system') observed <- canonical_system(observed)
       keep <- keep & !is.na(observed) & observed==value
     }

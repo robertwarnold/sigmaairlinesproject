@@ -32,13 +32,30 @@ test_that('experiment identity uses structured evidence and flags conflicts', {
   source('dashboard/experiment_identity.R')
   mapping <- jsonlite::fromJSON('dashboard/data/experiment-mappings.json',simplifyVector=FALSE)
   resolved <- experiment_identity(list(run_id='stable',original_filename='system_a_round2_run03.json'),mapping=mapping)
-  expect_equal(resolved$label,'System A \u2014 Round 2 \u2014 Run 03')
+  expect_equal(resolved$label,'System A \u00b7 Round 2 \u00b7 Run 03')
   expect_equal(resolved$id,'stable')
   expect_equal(experiment_identity(list(run_id='system_b_v4.0_run02.csv'),mapping=mapping)$label,
-    'Unresolved experiment \u2014 Run 02')
+    'System B \u00b7 Round unverified \u00b7 Run 02')
+  expect_equal(experiment_identity(list(run_id='legacy:system_c_v2.0_run01'),mapping=mapping)$label,
+    'System C \u00b7 Round unverified \u00b7 Run 01')
+  expect_equal(experiment_identity(list(run_id='round2-A-r03',manifest_round=3),mapping=mapping)$round,'3')
+  expect_equal(generation_duration_label(61),'1 min 01 s')
+  expect_equal(generation_duration_label(3720),'1 h 02 min')
+  expect_equal(generation_duration_label(NA_real_),'Unavailable')
   conflicting <- experiment_identity(list(system='B',run_id='round2-A-r03'),mapping=mapping)
   expect_equal(conflicting$conflicts,'system')
   expect_equal(conflicting$system,'B')
+})
+
+test_that('historical scope shares source denominators across views and exports', {
+  source('dashboard/scope.R')
+  archive <- list(schema='historical-comparison-1',source_sha256='source',
+    metrics=list('v2.0'=list(runs=18),'v3.0'=list(runs=15)),
+    metrics_by_system=list(B=list('v2.0'=list(runs=5),'v3.0'=list(runs=3))))
+  expect_equal(select_historical_scope(archive,'B',round='2')$metrics,list('v3.0'=list(runs=3)))
+  expect_length(select_historical_scope(archive,'B','v2.0','2')$metrics,0)
+  expect_equal(select_historical_scope(archive)$source_sha256,'source')
+  expect_match(scope_text('B','2','v3.0',NULL,NULL,list(),list()),'System B',fixed=TRUE)
 })
 
 test_that('private RPN histogram preserves supplied bins and missing values stay outside', {

@@ -99,21 +99,6 @@ engineering_analytics_server <- function(input,output,session,allowed,state,filt
       chart_details(group[,intersect(c('run_id','skill_version','generator_model','selected_rows','reviewed_rows','approved_rows','acceptance_percentage','validation_percentage'),names(group)),drop=FALSE],'Run denominators and engineering acceptance'))),
       p(class='chart-note','No reference recall or unsupported-assertion rate without independent evaluation. Different condition groups are not pooled.'))
   })
-  output$analytics_duration <- renderUI({
-    a<-analytics();d<-as_table(a$runs)
-    if(!nrow(d)&&!is.null(research)) d<-filter_generation_rows(as_table(research()$registry),list(run=input$g_run,system=input$g_system,model=input$g_model,skill=input$g_skill,dates=input$g_dates,subsystem=input$g_subsystem,review=input$g_review))
-    timing<-intersect(c('generation_seconds','generation_duration','duration'),names(d))
-    if(!nrow(d)||!length(timing))return(chart_empty('Generation timing unavailable','No reliable per-attempt duration in this filtered dataset. Missing costs remain unknown.'))
-    if(is.list(d[[timing[1]]])) d[[timing[1]]]<-vapply(d[[timing[1]]],function(x)if(is.numeric(x)&&length(x)==1&&is.finite(x))x else NA_real_,numeric(1))
-    d<-d[which(!is.na(d[[timing[1]]])&d[[timing[1]]]>=0),,drop=FALSE]
-    if('generation_status' %in% names(d))d<-d[d$generation_status=='success',,drop=FALSE]
-    if(!nrow(d))return(chart_empty('No successful timed generations','Failed attempts are excluded from successful generation duration.'))
-    d<-d[order(d$skill_version,d$system,d[[timing[1]]],na.last=TRUE),,drop=FALSE]
-    labels <- experiment_labels(d,identity_mapping)
-    tagList(bar_rows(paste(labels,d$skill_version,sep=' / '),d[[timing[1]]],max(1,d[[timing[1]]]),
-      display=paste(round(d[[timing[1]]],1),'s'),tips=d$run_id),
-      p(class='chart-note','Recorded generator duration per successful run. Labor and queue time require separate observations.'))
-  })
   output$analytics_agreement <- renderUI({a<-analytics();d<-as_table(a$agreement);if(!nrow(d)||all(is.na(d$within_one_percentage)))return(chart_empty('Insufficient reviewed rating pairs','At least two explicit human corrections per rating are required. Approval without a rating correction is not an independent rating observation.'));tagList(bar_rows(d$rating,ifelse(is.na(d$within_one_percentage),0,d$within_one_percentage),100,display=ifelse(is.na(d$within_one_percentage),'Pending',paste0(round(d$within_one_percentage,1),'%')),tips=paste(d$rating,'n =',d$n)),chart_details(d,'Agreement denominators'))})
   output$analytics_trends <- renderUI({
     a<-analytics();d<-as_table(a$runs);if(!nrow(d))return(pending())
@@ -133,7 +118,7 @@ engineering_analytics_server <- function(input,output,session,allowed,state,filt
   })
   output$analytics_judge <- renderUI({
     if(is.null(research))return(chart_empty('Awaiting independent evaluation'))
-    d<-filter_generation_rows(as_table(research()$runs),list(run=input$g_run,system=input$g_system,model=input$g_model,skill=input$g_skill,dates=input$g_dates,subsystem=input$g_subsystem,review=input$g_review))
+    d<-filter_generation_rows(as_table(research()$runs),workspace_filters(input))
     if(!nrow(d))return(chart_empty('Awaiting independent evaluation','Historical V2 aggregates remain separate in research context. No invented V4 observations.'))
     chart_details(d[,intersect(c('run_id','skill_version','system','missed_percentage','dpmo'),names(d)),drop=FALSE],'Accepted independent observations')
   })
