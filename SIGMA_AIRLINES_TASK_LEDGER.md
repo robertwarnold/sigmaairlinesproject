@@ -185,3 +185,124 @@ These are **workstreams, not person assignments**. Multiple contributors may wor
 - No secrets, unlicensed documents, or sensitive datasets committed.
 - Change reviewed on a feature branch; no direct push to `main`.
 - Owner remains **Unassigned** until the team explicitly assigns one.
+
+## Round 2 implementation ? November 15, 2026
+
+- Implemented standalone v3 selection and auditable inventory/case structural validation; v2 skill unchanged.
+- Implemented private identifier-level judge import, deterministic aggregation, workbook, Pareto, condition gates and deferred additive ANOVA.
+- Preserved user-supplied Round 1 report aggregates without inferred run/system records.
+- Prepared seeded 20-run generation and external judging manifests offline; execution runbook in docs/round2-runbook.md.
+- Blockers: exact Round 1 model/settings and reviewed classification/ground-truth/judge revisions; actual private judge records; pilot authorization and permission to push. No live generation/judging performed.
+- Reference worksheets and frozen archive excluded. Software checks do not establish engineering completeness or efficacy.
+- Validation: full offline suite passed 179 tests; subsequent targeted suite passed 11 tests including receipt joins and synthetic ANOVA. Final full-suite verification recorded in results/round2-offline-tests-release.log.
+
+## V4 research platform implementation ? November 15, 2026
+
+- Discovered remote V3 at e143ec4 after fetching all branches; V4 starts there and
+  incorporates complementary local 99647d4 changes without a merge commit. Original branches and prompts retained.
+- V2 default preserved; remote V3 array and prior local V3 audit explicitly separated.
+- Added V4 input-bound inventory, deterministic coverage/unsupported/duplicate checks,
+  targeted gap reports, Git/inventory hashes and single-call generation workflow support.
+- Extended authoritative judge importer/orchestrator with V4, provenance/condition gates,
+  private immutable builds, cumulative import catalog, safe presentation snapshots,
+  sampled human-review events, bootstrap intervals and primary V2/V4 additive inference.
+- Implemented five-view Shiny app, periodic/manual refresh, last-good cache, offline
+  baseline mode, shared ggplot figures, landscape poster PDF and generated presenter notes.
+- Prepared 20-run V4 manifest and external judge queue offline. No paid model calls.
+- Offline validation: 192 Python tests passed in initial full V4 run; R data/refresh/
+  plot/PDF checks passed; browser exercised locally. Final verification logs and exported
+  previews remain ignored under results/.
+- Pending: exact Round 1 conditions, original private judge/run evidence, reviewed input
+  inventories, unchanged external judge runner and human review; then explicit pilot
+  authorization. No V3/V4 performance has been measured.
+- Pending approval/configuration: branch push, public sanitized publication/deployment,
+  durable hosted private import store and permanent approved HTTPS endpoint. Local
+  refresh is implemented; cross-run hosted publication is not claimed as configured.
+- Architecture, schema/methods, experiment/refresh/export/hosting runbook and backlog:
+  docs/v4-research-platform.md. Students must verify/rewrite presentation prose.
+
+Final V4 validation: 193 Python tests passed (results/v4-release-tests.log); 16 R assertions passed including Shiny startup; populated synthetic-only rendering passed; desktop/mobile browser previews saved privately; all Actions YAML parsed and design detector reported no findings. No actual V3/V4 evaluations or public deployment occurred.
+
+## Research dashboard V4.1 ? November 15, 2026
+
+- Baseline verified before edits: 193 Python tests and 16 R assertions passed.
+- Added one normalized private SQLite workflow/generation/evaluation registry with
+  append-only lifecycle events, idempotent receipt backfill, ambiguous-alias detection,
+  explicit repeated-evaluation selection, and human-review completion events.
+- Added GitHub REST pagination/checkpoints, workflow-attempt/job/artifact metadata,
+  receipt-only artifact consumption, rate-limit/transport status and durable workstation
+  polling. No workflow or provider request is dispatched by synchronization.
+- Added preview/hash-confirmed private JSON/CSV/validated-workbook judge imports using
+  the existing schema; invalid batches roll back and originals remain private.
+- Reused existing Python quality/statistical and financial cost/simulation calculations.
+  Added matched-item field accuracy, measured-versus-modeled billing distinctions and
+  editable quality-linked scenarios, reset, Monte Carlo and sensitivity views.
+- Refined existing Shiny components into six dark views; shared figures/poster export,
+  presentation focus, safe metadata drill-down, polling and last-good caching retained.
+- Real-data smoke: 30 public workflow execution records fetched before unauthenticated
+  API limit; normalized 14 preexisting local receipts (8 success, 6 failed, 0 evaluated).
+  These are operational records, not reconstructed Round 1 judged observations.
+- No raw FMEA/reference worksheet read, no paid calls, no push/merge/public deployment.
+- Remaining: Actions-read credential for full artifact backfill; publish branch and
+  configure authorized persistent watcher/host; unchanged private judge results;
+  actual comparable V4 evaluation and measured accepted labor/billing for verified savings.
+- Runbook/architecture: docs/v41-research-dashboard.md; metric dictionary: docs/v41-metrics.md.
+
+V4.1 final verification: 209 Python tests and 26 R assertions; live API metadata sync was partial/rate-limited, historical receipt migration succeeded, all six views have private previews. Detailed security/data-quality record: docs/v41-validation.md. No paid calls or publication.
+
+## V4.2 visualization refactor — 2026-11-15
+
+- Completed source/rendered audit and separated native dashboard HTML/SVG components
+  from retained academic ggplot/export constructors; shared semantic theme tokens.
+- Refined activity, run selection, version comparisons, Pareto, conditional agreement,
+  financial histogram/cost drivers/sensitivity and missing-cost states.
+- Preserved Python metrics, financial assumptions, judge ingestion, historical data,
+  generation versions and academic PNG/PDF/poster exports.
+- Financial assumptions use an inline disclosure; detailed research tables remain
+  available without dominating the primary charts.
+- Offline tests, same-snapshot desktop/laptop/mobile previews and construction
+  benchmark documented in docs/v42-visualization-refactor.md; artifacts stay ignored.
+- No paid calls, push, merge or deployment. Real V4 evaluation, invoices and accepted
+  engineering labor evidence remain pending; Explorer table refinements remain backlog.
+
+## V4.2 premium workspace refinement — 2026-11-15
+
+- Applied shared restrained tokens, compact branding/navigation and four landing KPIs.
+- Added exact-manifest progress projection; current missed rate remains Pending
+  without comparable accepted V4 observations. Historical aggregates stay separate.
+- Refined Explorer into paged seven-column records and expandable provenance; mobile
+  record lists replace horizontal tables. Financial analysis uses four task tabs.
+- Condensed methods and quality detail; retained two academic figures, notes and PDF
+  export with a 16:9 focus layout and keyboard exit.
+- Completed first/final 18-view viewport inspection passes and interaction checks;
+  gallery in ignored results/v42-previews/index.html, report docs/v42-premium-dashboard.md.
+- Verified 209 Python tests, 70 R assertions, valid/invalid snapshot refresh, financial
+  loss/reset and academic exports. No research calculations or live registry changed.
+- Remaining: actual comparable V4 evaluation, confirmed plan/model settings, complete
+  authorized GitHub backfill and invoice/labor evidence; no publication or paid calls.
+- V4.2 engineering integration (2026-11-15): extended premium Explorer with opt-in
+  private generated-output workspace, hash-bound V4 adapter, immutable originals,
+  append-only review history, missing-rating-safe RPN, evidence inspection, private
+  risk counts and scoped exports. Existing judge/research/financial pipeline and
+  all prompt versions preserved. See docs/v42-engineering-integration.md.
+  Offline and browser validation use labeled synthetic fixtures only. Pending:
+  authorized V4 artifacts, engineer acceptance, comparable judge observations and
+  authenticated multi-user hosting; no paid calls, push or deployment authorized.
+  Verified 223 Python tests, 82 R assertions, six-view desktop/tablet rendering,
+  persistent synthetic review and private exports, and 25 academic export files.
+
+## Single-page engineering analytics - 2026-11-15
+
+- Created feat/v42-single-page-analytics from 4142fd5, preserving the engineering
+  integration above remote premium baseline 5433212. Inspected the supplied light
+  Engineering Team Dashboard reference before replacing the primary tab shell.
+- Added shared global selection, six KPIs, deterministic attention, risk/evidence/
+  validation charts and inline row review with existing private exports.
+- Python owns selected-record analytics and filtered operational receipt counts.
+  Public mode exposes no private rows; missing ratings and unreviewed quality stay
+  unknown. Existing prompts, scoring, judge methodology and research statistics intact.
+- Remaining: authorized real V4 imports, comparable independent judge observations,
+  engineer acceptance and authenticated multi-user deployment if needed.
+- Validation: 229 Python tests, 96 R assertions, academic poster/figure export and
+  actual desktop/tablet browser checks; private preview uses labeled synthetic rows.
+  No generation, paid calls, push, merge or deployment performed.

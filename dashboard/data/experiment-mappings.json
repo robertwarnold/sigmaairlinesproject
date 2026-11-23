@@ -1,0 +1,9 @@
+{
+  "systems": {"1": "Aircraft Hydraulic System", "2": "NASA Concept Tilt-Wing Propulsion System"},
+  "aliases": {},
+  "patterns": [
+    {"pattern": "^system_([a-z0-9]+)_round([0-9]+)_run([0-9]+)(?:[._-]|$)", "fields": ["system", "round", "replicate"]},
+    {"pattern": "^round([0-9]+)-(?:v[0-9]+-)?([a-z0-9]+)-r([0-9]+)$", "fields": ["round", "system", "replicate"]},
+    {"pattern": "^system_([a-z0-9]+)_v[0-9.]+(?:-audit)?_run([0-9]+)(?:[._-]|$)", "fields": ["system", "replicate"]}
+  ]
+}

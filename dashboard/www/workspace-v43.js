@@ -1,0 +1,45 @@
+(() => {
+  const views = [...document.querySelectorAll('.workspace-view')];
+  const nav = document.querySelector('.workspace-nav');
+  const mobile = document.getElementById('workspace-view-select');
+  if (!nav) return;
+
+  function showView(moveFocus) {
+    const hash = window.location.hash.slice(1);
+    const view = views.find(candidate => candidate.id === hash) || views[0];
+    views.forEach(candidate => { candidate.hidden = candidate !== view; });
+    nav.querySelectorAll('a').forEach(link => {
+      if (link.hash === '#' + view.id) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
+    if (mobile) mobile.value = view.id;
+    document.title = view.querySelector('h1').textContent + ' | Sigma Airlines';
+    window.dispatchEvent(new Event('resize'));
+    if (moveFocus) {
+      view.querySelector('h1').focus({preventScroll: true});
+      window.scrollTo(0, 0);
+    }
+  }
+
+  window.addEventListener('hashchange', () => showView(true));
+  mobile?.addEventListener('change', () => { window.location.hash = mobile.value; });
+  document.addEventListener('click', event => {
+    const disclosure = event.target.closest('.registry-jump');
+    if(disclosure) {
+      event.preventDefault();
+      const registry=document.getElementById('generation-registry');
+      registry.open=true;
+      registry.querySelector('summary')?.focus();
+      registry.scrollIntoView({block:'nearest'});
+    }
+    const delegate = event.target.closest('[data-delegate-action]');
+    if(delegate) document.getElementById(delegate.dataset.delegateAction)?.click();
+    const actions=document.querySelector('.app-actions');
+    if(actions && event.target.closest('.app-action-menu button')) actions.open=false;
+    const link = event.target.closest('[data-open-system], [data-open-run]');
+    if (!link || !window.Shiny || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    if (link.dataset.openSystem) Shiny.setInputValue('open_system',link.dataset.openSystem,{priority:'event'});
+    if (link.dataset.openRun) Shiny.setInputValue('open_run',link.dataset.openRun,{priority:'event'});
+  });
+  showView(false);
+})();

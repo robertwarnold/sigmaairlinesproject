@@ -324,3 +324,84 @@ estimates. Actual billing and manual-versus-AI savings remain unavailable.
 [View every financial figure and its caption](reports/experiment_metrics/AE-metrics-6a745cc-v5/financial_figures.md).
 
 ![Observed generation duration by system](reports/experiment_metrics/AE-metrics-6a745cc-v5/financial-figures/08_observed_duration.png)
+
+## Standalone v3 and Round 2
+
+Explicit `--version v3.0` selects the new inventory/case audit; existing commands
+still default to v2.0. See [Round 2 execution and import runbook](docs/round2-runbook.md)
+for private judge imports, analysis workbooks, controlled pilot dispatch and limitations.
+
+## V4 research platform and Shiny poster
+
+V4 extends the discovered remote V3 and complementary local audit work while retaining
+both prompts. Main's V2 remains the default. See [branch discovery](docs/v4-discovery.md)
+and [the V4 implementation/runbook](docs/v4-research-platform.md) for independent input
+inventory verification, controlled generation, unchanged external judging, validated
+aggregation, system-stratified confidence intervals and R Shiny/poster export.
+
+```powershell
+python -m analysis.research build --output results/research/my-new-build
+Rscript -e ".libPaths(c('.venv/r-library',.libPaths())); shiny::runApp('dashboard',port=5384,launch.browser=FALSE)"
+```
+
+The offline dashboard contains report-derived V2 aggregates. V3/V4 evaluated performance
+is pending; no model calls, public deployment or statistical efficacy claims are implied.
+
+## Research dashboard V4.1
+
+[The V4.1 runbook](docs/v41-research-dashboard.md) extends the existing Shiny app with
+one private workflow/FMEA/evaluation registry, read-only GitHub synchronization,
+previewed independent judge imports, six dark dashboard views and editable quality-linked
+financial scenarios. [Metric definitions](docs/v41-metrics.md) distinguish operational,
+judged, measured and modeled quantities. No paid model request is needed to monitor data.
+
+```powershell
+python -m analysis.research sync --metadata-only
+python -m analysis.research preview-judge --file results/imports/judge_export.json
+python -m analysis.research watch --interval 60
+```
+
+Shiny reads the resulting sanitized `results/research/current.json` every 30 seconds.
+Authenticated artifact backfill needs a server-side Actions-read token. Public deployment
+and publication remain approval gates. Historical baseline aggregates are not fabricated
+into run observations, and unevaluated generations receive no quality scores.
+
+## V4.2 visualization architecture
+
+Dashboard charts now use compact HTML/SVG components while academic ggplot2 figures
+remain available through the existing export command. Both consume the same validated
+Python snapshot. See [visualization refactor](docs/v42-visualization-refactor.md) for
+rendering tests, before/after previews, benchmark commands and retained data boundaries.
+
+The [premium workspace redesign](docs/v42-premium-dashboard.md) documents the six-view
+layout, manifest-matched progress, compact Explorer, financial tabs and 16:9 focus mode.
+
+The [private engineering workspace](docs/v42-engineering-integration.md) adds explicit
+V4 artifact imports, row-level evidence inspection, append-only human review,
+rating-safe risk analysis and private CSV/JSON exports within Experiment Explorer.
+Start the opt-in loopback-only workstation with `Rscript dashboard/run_private.R`.
+It is disabled in public mode and never contributes unjudged rows to research metrics.
+
+## Single-page engineering analytics
+
+The [single-page dashboard](docs/v42-single-page-analytics.md) replaces primary tabs
+with a light analytics report: six compact KPIs, deterministic attention findings,
+risk and AI-validation charts, and an inline FMEA register. Shared global filters
+drive Python-calculated selected-record metrics and private exports. Generation,
+judge import, financial scenarios and academic exports retain their existing workflows.
+The standard Shiny and private-workstation launch commands remain unchanged.
+
+## V4.6 integration and the official V4.0 generator
+
+The [V4.6 release guide](docs/v46-generator-integration.md) covers the five-view
+dashboard, current V4.0 response and diagnostics contracts, historical evidence
+boundaries, and an offline experiment-readiness checklist. The existing V4.0
+skill is improved in place. V1.2 remains the judge condition. The [campaign
+configuration](examples/research/v4-release-campaign.json) is a plan for five
+systems with four replicates each. It authorizes no generation.
+
+Launch the private dashboard with `Rscript dashboard/run_private.R`. Use
+`python -m analysis.research plan --output results/v4/round2-plan --model MODEL_ID`
+from the intended release checkout to build the ignored experiment and judging
+manifests. Replace `MODEL_ID` with the agreed Gemini model before freezing the
+configuration. This command runs offline and makes no model request.

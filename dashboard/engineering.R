@@ -1,0 +1,259 @@
+# Optional trusted local workstation. Never loaded into the public aggregate dataset.
+engineering_allowed <- function(enabled,request) {
+  identical(enabled,'1') && !is.null(request) &&
+    !is.null(request$REMOTE_ADDR) && request$REMOTE_ADDR %in% c('127.0.0.1','::1','::ffff:127.0.0.1') &&
+    !is.null(request$HTTP_HOST) && grepl('^(localhost|127\\.0\\.0\\.1|\\[::1\\])(:[0-9]+)?$',request$HTTP_HOST) &&
+    (is.null(request$HTTP_ORIGIN) || grepl('^https?://(localhost|127\\.0\\.0\\.1|\\[::1\\])(:[0-9]+)?$',request$HTTP_ORIGIN)) &&
+    is.null(request$HTTP_X_FORWARDED_FOR) && is.null(request$HTTP_FORWARDED)
+}
+engineering_ui <- function() shiny::uiOutput('engineering_body')
+engineering_rpn_chart <- function(bins) {
+  maximum <- max(1,bins$count)
+  marks <- vapply(seq_len(nrow(bins)),function(i) {
+    height <- 190*bins$count[i]/maximum
+    mark('rect',paste0('x="',25+(i-1)*34,'" y="',225-height,'" width="28" height="',height,'" fill="',chart_tokens$accent,'"'),
+      paste('RPN',bins$lower[i],'to',bins$upper[i],':',bins$count[i],'rows'))
+  },character(1))
+  svg_chart(c(marks,'<text x="25" y="258">1</text><text x="195" y="258">500</text><text x="365" y="258" text-anchor="end">1000</text><text x="25" y="280">RPN / 100-point bins; hover for row counts</text>'),
+    'Current RPN distribution; row counts in 100-point bins, not probability or risk acceptance.',290)
+}
+engineering_notice <- function() div(class='workspace-empty explorer-empty',icon('lock'),
+  strong('Private records unavailable'),p('Open the local engineering workspace to inspect or import generated FMEA records.'))
+engineering_table <- function(rows,fields) {
+  if(!nrow(rows)) return(chart_empty('No matching FMEA records','Adjust the run, review, severity or text filters.'))
+  header <- htmltools::tags$thead(htmltools::tags$tr(lapply(fields,function(f) htmltools::tags$th(gsub('_',' ',f)))))
+  body <- htmltools::tags$tbody(lapply(seq_len(nrow(rows)),function(i) {
+    cells <- lapply(fields,function(f) {
+      value<-if(is.na(rows[[f]][i])) 'Unknown' else as.character(rows[[f]][i])
+      htmltools::tags$td(title=value,if(f=='record_id') substr(value,1,12) else if(f=='disposition')
+        htmltools::span(class='disposition-label',value) else value)
+    })
+    htmltools::tags$tr(tabindex=0,class='engineering-row',`data-engineering-record`=rows$record_id[i],cells)
+  }))
+  htmltools::div(class='engineering-table-wrap',htmltools::tags$table(class='engineering-table',header,body))
+}
+engineering_server <- function(input,output,session,research=NULL,historical=NULL,identity_mapping=list(),run_registry=NULL) {
+  allowed <- reactive(engineering_allowed(Sys.getenv('SIGMA_ENGINEERING_PRIVATE'),session$request))
+  database <- Sys.getenv('SIGMA_ENGINEERING_DATABASE',file.path(project_root,'results','engineering','workspace.sqlite'))
+  registry <- file.path(project_root,'results','research','registry.sqlite')
+  folder <- file.path(project_root,'results','engineering','ui',session$token)
+  command <- function(action,args=character()) {
+    req(allowed()); dir.create(folder,recursive=TRUE,showWarnings=FALSE)
+    python <- Sys.getenv('SIGMA_PYTHON',file.path(project_root,'.venv','gemini','Scripts','python.exe'))
+    if(!file.exists(python)) python <- Sys.which('python')
+    previous <- getwd(); setwd(project_root); on.exit(setwd(previous),add=TRUE)
+    log <- file.path(folder,'operation.log')
+    status <- suppressWarnings(system2(python,c('-m','analysis.engineering','--database',shQuote(database),action,args),stdout=log,stderr=log))
+    if(status!=0) stop('Operation rejected. Refresh stale records; verify required review fields, ratings and source hashes. Details are in the private workstation operation.log.')
+  }
+  tick <- reactiveVal(0)
+  observeEvent(input$eng_refresh,{tick(tick()+1)})
+  observeEvent(input$refresh,{tick(tick()+1)},ignoreInit=TRUE)
+  state <- reactivePoll(30000,session,checkFunc=function() {
+    if(!allowed()) return('disabled')
+    paste(tick(),file.info(c(database,registry))$mtime,collapse=' ')
+  },valueFunc=function() {
+    if(!allowed() || !file.exists(database)) return(list(rows=data.frame(),records=list(),summary=NULL,comparisons=data.frame(),risk=NULL))
+    path <- file.path(folder,'workspace.json'); command('snapshot',c('--output',shQuote(path),'--research-registry',shQuote(registry)))
+    jsonlite::fromJSON(path,simplifyDataFrame=TRUE)
+  })
+  all_rows <- reactive({
+    r <- as_table(state()$rows); meta <- as_table(state()$comparisons)
+    if(nrow(r)&&nrow(meta)) {
+      i <- match(r$run_id,meta$run_id)
+      for(k in c('generator_model','generation_timestamp','dataset_id')) r[[k]] <- meta[[k]][i]
+      r$resolved_round <- vapply(i,function(j) {
+        if(is.na(j)) return(NA_character_)
+        identity <- experiment_identity(as.list(meta[j,,drop=FALSE]),mapping=identity_mapping)
+        if(is.null(identity$round)) NA_character_ else identity$round
+      },character(1))
+      registry_rows <- if(is.null(run_registry)) data.frame() else run_registry()
+      if(all(c('engineering_run_id','judge_skill_version') %in% names(registry_rows))) {
+        j <- match(r$run_id,registry_rows$engineering_run_id)
+        r$judge_skill_version <- registry_rows$judge_skill_version[j]
+        from_registry <- registry_rows$resolved_round[j]
+        r$resolved_round[!is.na(from_registry)] <- from_registry[!is.na(from_registry)]
+      }
+    }
+    if(nrow(r)) r$disposition <- vapply(r$record_id,function(id) {
+      value <- record_index()[[id]]$current$judge_disposition
+      if(is.null(value)) 'Not adjudicated' else tools::toTitleCase(gsub('_',' ',value))
+    },character(1))
+    r
+  })
+  focus_ids <- reactiveVal(NULL)
+  has_private_records <- reactiveVal(FALSE)
+  observe(has_private_records(nrow(as_table(state()$rows))>0))
+  output$engineering_body <- renderUI({
+    if(!allowed()) return(engineering_notice())
+    if(!has_private_records()) return(div(class='workspace-empty explorer-empty',icon('database'),
+      strong('No generated records imported'),p('Synchronize a receipt-bound V4 response and inventory to populate the register.'),
+      tags$button(type='button',class='btn btn-primary',`data-delegate-action`='github_sync_open','Sync from GitHub')))
+    tagList(p(class='private-notice','Private workstation / generated drafts and human review. These records never enter public dashboard JSON.'),
+      textOutput('eng_origin'),
+      div(class='engineering-controls',textInput('eng_search','Search FMEA records'),
+        selectInput('eng_disposition_filter','Disposition',choices=c('All','Not adjudicated','Valid Additional','Duplicate','Technically Incorrect','Insufficient Evidence','Unresolved')),
+        selectInput('eng_sort','Sort',choices=c('severity','RPN','component','failure_mode','review_status','disposition'))),
+      tags$details(tags$summary('Column filters'),div(class='engineering-controls',
+        selectInput('eng_severity','Severity',choices=c('All',1:10)),selectInput('eng_occurrence','Occurrence',choices=c('All',1:10)),
+        checkboxInput('eng_descending','Descending',TRUE))),
+      tags$details(tags$summary('Record actions'),div(class='engineering-exports',actionButton('eng_clear','Clear record filters'),actionButton('eng_refresh','Refresh private data'))),
+      tags$details(tags$summary('Visible columns'),checkboxGroupInput('eng_columns','Columns',choices=c('record_id','run_id','row_id','system','skill_version','disposition','subsystem','component','function','failure_mode','cause','local_effect','system_effect','severity','occurrence','detection','RPN','evidence_status','review_status','recommended_action'),
+        selected=c('record_id','system','skill_version','failure_mode','disposition'),inline=TRUE)),
+      uiOutput('eng_table'),numericInput('eng_page','Page',1,min=1,width='6rem'),
+      div(class='engineering-exports',downloadButton('eng_csv','Export filtered CSV'),downloadButton('eng_json','Export filtered JSON')),
+      selectInput('eng_record','Inspect a record',choices=character()),
+      tags$details(id='engineering-record-detail',tags$summary('Selected record - evidence, AI values and review'),
+        uiOutput('eng_evidence'),tags$details(tags$summary('Engineering review and corrections'),uiOutput('eng_review_form'),
+          actionButton('eng_save','Save review event'),textOutput('eng_save_status')),
+        tags$details(tags$summary('Append-only change history'),uiOutput('eng_history'))))
+  })
+  output$eng_origin <- renderText({
+    if(!allowed()) return('')
+    r <- as_table(state()$comparisons)
+    if(nrow(r) && any(grepl('synthetic|demo',r$data_origin,ignore.case=TRUE))) 'SYNTHETIC TEST DATA / NOT RESEARCH FINDINGS' else 'Imported V4 generated outputs; engineer approval is distinct from independent judge evaluation.'
+  })
+  observe({
+    r <- all_rows()
+    registry <- if(is.null(research)) data.frame() else as_table(research()$registry)
+    archive <- if(is.null(historical)) NULL else historical()
+    historical_values <- list(system=names(archive$metrics_by_system),skill_version=names(archive$metrics))
+    preserve <- function(id,choices) {v <- isolate(input[[id]]); if(is.null(v)||!v %in% choices) choices[1] else v}
+    for(pair in list(c('g_run','run_id'),c('g_system','system'),c('g_subsystem','subsystem'),c('g_model','generator_model'),c('g_skill','skill_version'))) {
+      values <- c(if(pair[2] %in% names(r)) r[[pair[2]]] else character(),if(pair[2] %in% names(registry)) registry[[pair[2]]] else character())
+      values <- c(values,historical_values[[pair[2]]])
+      if(pair[1]=='g_run') values <- c(values,registry$engineering_run_id)
+      if(pair[1]=='g_system') values <- canonical_system(values)
+      values <- sort(unique(values[!is.na(values)]))
+      choices <- c('All',values); updateSelectInput(session,pair[1],choices=choices,selected=preserve(pair[1],choices))
+    }
+  })
+  observe({
+    r <- filtered()
+    if(!nrow(r)) {updateSelectInput(session,'eng_record',choices=character()); return()}
+    choices <- setNames(r$record_id,paste(r$row_id,r$component,r$failure_mode,sep=' / '))
+    selected <- isolate(input$eng_record); if(is.null(selected)||!selected %in% r$record_id) selected <- r$record_id[1]
+    updateSelectInput(session,'eng_record',choices=choices,selected=selected)
+  })
+  observeEvent(input$global_reset,{
+    for(id in c('g_run','g_system','g_subsystem','g_model','g_skill','g_review','g_round','g_judge')) updateSelectInput(session,id,selected='All')
+    updateDateRangeInput(session,'g_dates',start='2020-01-01',end=Sys.Date()); focus_ids(NULL)
+    updateTextInput(session,'eng_search',value='')
+    for(id in c('eng_severity','eng_occurrence')) updateSelectInput(session,id,selected='All')
+    updateSelectInput(session,'eng_disposition_filter',selected='All')
+    updateNumericInput(session,'eng_page',value=1)
+  })
+  observeEvent(input$eng_clear,{
+    focus_ids(NULL); updateTextInput(session,'eng_search',value=''); for(id in c('eng_severity','eng_occurrence')) updateSelectInput(session,id,selected='All')
+    updateSelectInput(session,'eng_disposition_filter',selected='All')
+    updateNumericInput(session,'eng_page',value=1)
+  })
+  filtered <- reactive({
+    r <- filter_engineering_rows(all_rows(),c(workspace_filters(input),list(severity=input$eng_severity,occurrence=input$eng_occurrence)),
+      search=input$eng_search,focus=focus_ids())
+    disposition <- scope_value(input$eng_disposition_filter)
+    if(nrow(r)&&!is.null(disposition)) r <- r[r$disposition==disposition,,drop=FALSE]
+    if(!nrow(r)) return(r)
+    key <- input$eng_sort
+    if(!is.null(key)&&key %in% names(r)) r <- r[order(r[[key]],decreasing=isTRUE(input$eng_descending),na.last=TRUE),,drop=FALSE]
+    r
+  })
+  output$eng_table <- renderUI({
+    req(allowed()); r <- filtered(); fields <- intersect(input$eng_columns,names(r))
+    if(!nrow(all_rows())) return(div(class='workspace-empty',strong('No generated FMEA records imported'),
+      p('Synchronize a receipt-bound V4 response and its inventory to populate this register.')))
+    if(!nrow(r)) return(div(class='workspace-empty',strong('No records match the current filters'),
+      p('Clear filters to restore the available generated records.'),
+      tags$button(type='button',class='btn btn-default',`data-delegate-action`='global_reset','Clear filters')))
+    if(!length(fields)) return(p('Select at least one column.'))
+    page <- input$eng_page; if(is.null(page)||!is.finite(page)) page <- 1
+    page <- max(1,min(ceiling(nrow(r)/10),floor(page))); start <- (page-1)*10
+    tagList(engineering_table(utils::head(r[seq_len(nrow(r))>start,,drop=FALSE],10),fields),p(class='chart-note',paste(nrow(r),'matching rows. Click a row to inspect its original assessment and review history.')))
+  })
+  observeEvent(input$eng_pick,{updateSelectInput(session,'eng_record',selected=input$eng_pick)})
+  # Reading one record without dataframe simplification avoids lossy scalar/list coercion.
+  record_index <- reactive({
+    if(!allowed()||!file.exists(file.path(folder,'workspace.json'))) return(list())
+    state(); records <- jsonlite::fromJSON(file.path(folder,'workspace.json'),simplifyVector=FALSE)$records
+    setNames(records,vapply(records,function(r) r$record_id,character(1)))
+  })
+  record <- reactive({if(is.null(input$eng_record)) NULL else record_index()[[input$eng_record]]})
+  output$eng_evidence <- renderUI({
+    req(allowed()); r <- record(); if(is.null(r)) return(p('Select an imported record.'))
+    text <- function(x) if(is.null(x)||!length(x)) 'Not provided' else paste(unlist(x),collapse=', ')
+    assessment <- function(title,row,score) tags$section(class='engineering-assessment',h3(title),
+      tags$dl(lapply(c('component','function','failure_mode','cause','local_effect','higher_level_effect','system_effect','severity_rationale','recommended_action'),function(k)
+        tagList(tags$dt(gsub('_',' ',k)),tags$dd(text(row[[k]]))))),
+      p(paste('Severity',text(row$severity),'/ Occurrence',text(row$occurrence),'/ Detection',text(row$detection),'/ RPN',text(score))))
+    tagList(div(class='chart-grid-layout',assessment('Original AI draft',r$original,r$original_validation$computed_rpn),
+      assessment('Current assessment / reviewed values',r$current,r$validation$computed_rpn)),
+      div(class='engineering-facts',h3('Evidence and traceability'),
+        p(paste('Input package SHA:',r$metadata$dataset_id,'/ unit:',r$original$unit_id)),
+        strong('Input-package fact'),tags$blockquote(text(r$unit$evidence)),
+        strong('AI-provided citation / unverified until engineering review'),p(text(r$current$evidence)),
+        strong('AI assumptions'),p(text(r$current$assumptions)),
+        p(paste('Human review:',r$review_status,'/ basis:',text(r$review_basis))),
+        p(paste('Structure:',r$validation$structural_status,'/ provisional S/O/D scale 1-10; high severity is independent of RPN')),
+        tags$ul(lapply(c(unlist(r$validation$errors),unlist(r$validation$review_flags)),tags$li))),
+      tags$details(tags$summary('Linked judge trials'),
+        if(length(r$judge_matches)) tags$pre(jsonlite::toJSON(r$judge_matches,pretty=TRUE,auto_unbox=TRUE,null='null'))
+        else p('No receipt-verified judge match is linked to this row.'),
+        p(paste('Engineering disposition:',text(r$current$judge_disposition)))),
+      tags$details(tags$summary('Full provenance, relationships and immutable source JSON'),
+        tags$pre(jsonlite::toJSON(list(original=r$original,current=r$current,unit=r$unit,metadata=r$metadata),pretty=TRUE,auto_unbox=TRUE,null='null'))),
+      p(class='chart-note','Human-approved inference is distinct from source verification. No calibrated probability or residual-risk claim is implied. Reference FMEAs are never opened.'))
+  })
+  output$eng_review_form <- renderUI({
+    req(allowed()); r <- record(); if(is.null(r)) return(NULL)
+    tagList(p(paste('Revision',r$revision,'/',r$review_status)),textInput('eng_reviewer','Engineer / reviewer name'),textAreaInput('eng_note','Review note / rationale'),
+      selectInput('eng_decision','Decision',choices=c('Needs review / reopen'='NEEDS_REVIEW','Approve'='APPROVED','Reject'='REJECTED')),
+      selectInput('eng_disposition','Engineering disposition',choices=c('No change'='', 'Confirmed valid addition'='valid_additional',
+        'Duplicate'='duplicate','Unsupported or incorrect'='technically_incorrect','Needs evidence'='insufficient_evidence','Unresolved'='unresolved')),
+      selectInput('eng_basis','Engineering basis',choices=c('Select a basis'='', 'Human-verified source citation'='source_verified','Human-approved inference'='approved_inference')),
+      checkboxInput('eng_confirm','I reviewed the causal chain, assumptions, ratings and recommended action',FALSE),
+      checkboxInput('eng_edit','Apply corrections below (original AI values remain unchanged)',FALSE),
+      div(class='assumption-grid',lapply(c('severity','occurrence','detection'),function(k) textInput(paste0('eng_edit_',k),paste(k,'(1-10; blank = missing)'),value=if(is.null(r$current[[k]])) '' else r$current[[k]]))),
+      lapply(c('cause','local_effect','system_effect','recommended_action','evidence','assumptions'),function(k) textAreaInput(paste0('eng_edit_',k),gsub('_',' ',k),value=r$current[[k]])),
+      div(class='engineering-controls',selectInput('eng_action_status','Action status',choices=c('Not recorded'='', 'Open'='OPEN','In progress'='IN_PROGRESS','Complete'='COMPLETE'),selected=if(is.null(r$current$action_status)) '' else r$current$action_status),
+        textInput('eng_action_due','Action due date (YYYY-MM-DD)',value=if(is.null(r$current$action_due_date)) '' else r$current$action_due_date),
+        textInput('eng_action_owner','Action owner',value=if(is.null(r$current$action_owner)) '' else r$current$action_owner)),
+      p(class='chart-note','Approval requires valid structure and explicit engineering confirmation. Reopen an approved/rejected record before further decisions.'))
+  })
+  output$eng_history <- renderUI({req(allowed()); r <- record(); if(is.null(r)) return(NULL); tags$pre(jsonlite::toJSON(r$history,pretty=TRUE,auto_unbox=TRUE,null='null'))})
+  save_status <- reactiveVal('')
+  output$eng_save_status <- renderText(save_status())
+  observeEvent(input$eng_save,{
+    req(allowed()); r <- record(); req(r)
+    tryCatch({
+      corrections <- list()
+      if(!is.null(input$eng_disposition)&&nzchar(input$eng_disposition)) corrections$judge_disposition <- input$eng_disposition
+      if(isTRUE(input$eng_edit)) {
+        for(k in c('severity','occurrence','detection')) {
+          v <- trimws(input[[paste0('eng_edit_',k)]]); if(nzchar(v)&&!grepl('^([1-9]|10)$',v)) stop('Ratings must be whole numbers 1-10 or blank; no default ratings are substituted.')
+          corrections[k] <- list(if(nzchar(v)) as.integer(v) else NULL)
+        }
+        for(k in c('cause','local_effect','system_effect','recommended_action','evidence','assumptions')) corrections[[k]] <- input[[paste0('eng_edit_',k)]]
+        corrections$action_status <- input$eng_action_status; corrections$action_due_date <- input$eng_action_due; corrections$action_owner <- input$eng_action_owner
+      }
+      request <- list(record_id=r$record_id,expected_revision=r$revision,state=input$eng_decision,reviewer=input$eng_reviewer,note=input$eng_note,
+                      corrections=if(length(corrections)) corrections else NULL,basis=input$eng_basis,engineering_confirmed=isTRUE(input$eng_confirm))
+      path <- file.path(folder,'review-request.json'); jsonlite::write_json(request,path,auto_unbox=TRUE,null='null',digits=NA)
+      command('review',c('--request',shQuote(path))); tick(tick()+1); save_status('Review event saved. Original assessment preserved.')
+    },error=function(e) save_status(conditionMessage(e)))
+  })
+  for(kind in c('csv','json')) local({
+    format <- kind
+    output[[paste0('eng_',format)]] <- downloadHandler(filename=function() paste0('private-reviewed-fmea.',format),content=function(file) {
+      req(allowed()); ids <- as.list(filtered()$record_id); selection <- tempfile(tmpdir=folder,fileext='.json'); stage <- tempfile(tmpdir=folder,fileext=paste0('.',format))
+      jsonlite::write_json(ids,selection,auto_unbox=TRUE); command('export',c('--format',format,'--selection',shQuote(selection),'--output',shQuote(stage)))
+      file.copy(stage,file,overwrite=TRUE)
+    })
+  })
+  observeEvent(input$eng_risk_cell,{
+    pieces <- strsplit(input$eng_risk_cell,',',fixed=TRUE)[[1]]; req(length(pieces)==2,all(pieces %in% as.character(1:10)))
+    # Global context remains selected when drilling into a rating cell.
+    updateTextInput(session,'eng_search',value=''); updateSelectInput(session,'eng_severity',selected=pieces[1]); updateSelectInput(session,'eng_occurrence',selected=pieces[2])
+    focus_ids(NULL)
+  })
+  engineering_analytics_server(input,output,session,allowed,state,filtered,command,folder,focus_ids,research,identity_mapping)
+}

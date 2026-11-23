@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sigma-airlines:engineering-workspace:1",
+  "title": "Private engineering workspace snapshot",
+  "type": "object",
+  "required": [
+    "schema",
+    "private",
+    "rows",
+    "records",
+    "summary",
+    "risk",
+    "comparisons",
+    "content_version"
+  ],
+  "properties": {
+    "schema": {
+      "const": "engineering-workspace-1"
+    },
+    "private": {
+      "const": true
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "record_id",
+          "run_id",
+          "row_id",
+          "system",
+          "subsystem",
+          "review_status",
+          "skill_version",
+          "evidence_status",
+          "structural_status",
+          "dataset_version",
+          "component",
+          "function",
+          "failure_mode",
+          "cause",
+          "local_effect",
+          "system_effect",
+          "recommended_action",
+          "rating_rationale",
+          "evidence",
+          "review_flag",
+          "severity",
+          "occurrence",
+          "detection",
+          "RPN",
+          "original_RPN",
+          "revision"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "row_id": {
+            "type": "string"
+          },
+          "system": {
+            "type": "string"
+          },
+          "subsystem": {
+            "type": "string"
+          },
+          "review_status": {
+            "type": "string"
+          },
+          "skill_version": {
+            "type": "string"
+          },
+          "evidence_status": {
+            "type": "string"
+          },
+          "structural_status": {
+            "type": "string"
+          },
+          "dataset_version": {
+            "type": "string"
+          },
+          "component": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "function": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "failure_mode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cause": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "local_effect": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "system_effect": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recommended_action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rating_rationale": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "review_flag": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "severity": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 10
+          },
+          "occurrence": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 10
+          },
+          "detection": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 10
+          },
+          "RPN": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "original_RPN": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "original",
+          "current",
+          "validation",
+          "metadata",
+          "history",
+          "revision",
+          "evidence_refs"
+        ]
+      }
+    },
+    "summary": {
+      "type": "object"
+    },
+    "risk": {
+      "type": "object"
+    },
+    "comparisons": {
+      "type": "array"
+    },
+    "content_version": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

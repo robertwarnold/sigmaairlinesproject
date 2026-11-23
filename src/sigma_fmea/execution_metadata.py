@@ -24,6 +24,18 @@ def file_hash(path):
 def write_receipt(path, record, artifacts, stream=None):
     """Create a structured sidecar once; pricing remains unavailable until analysis."""
     artifacts = tuple(artifacts)
+    # Versioned receipt identity is separate from workflow identity and replicate.
+    if record.get('workflow') == 'standalone_gemini':
+        record.setdefault('generation_id', 'fmea-' + hashlib.sha256(json.dumps({
+            'repository': os.getenv('GITHUB_REPOSITORY'), 'workflow_run_id': os.getenv('GITHUB_RUN_ID'),
+            'workflow_attempt': os.getenv('GITHUB_RUN_ATTEMPT'), 'experiment_id': record.get('experiment_id'),
+            'attempt_id': record.get('attempt_id'), 'started_at': record.get('started_at')
+        }, sort_keys=True).encode()).hexdigest()[:32])
+        if os.getenv('GITHUB_RUN_ID'):
+            record.setdefault('github', {'repository': os.getenv('GITHUB_REPOSITORY'),
+                'workflow_run_id': os.getenv('GITHUB_RUN_ID'), 'run_attempt': int(os.getenv('GITHUB_RUN_ATTEMPT', '1')),
+                'job_id': os.getenv('GITHUB_JOB'), 'git_commit': os.getenv('GITHUB_SHA'),
+                'branch': os.getenv('GITHUB_REF_NAME'), 'event': os.getenv('GITHUB_EVENT_NAME')})
     # Separate timing/usage from FMEA rows; unknown billing is explicitly not zero.
     record["metadata_schema"] = "fmea-execution-1"
     if record.get("configuration", {}).get("response_schema") and "response_schema_sha256" not in record:
@@ -63,21 +75,50 @@ def write_receipt(path, record, artifacts, stream=None):
             json.dump(record, destination, indent=2, allow_nan=False)
             destination.write("\n")
 
+    database = os.getenv('SIGMA_RESEARCH_DATABASE')
+    if database and record.get('workflow') == 'standalone_gemini':
+        try:
+            from analysis.research.registry import Registry
+            registry = Registry(database)
+            try:
+                execution = None
+                if record.get('github'):
+                    github = record['github']
+                    execution = registry.workflow(github['repository'], {
+                        'id': github['workflow_run_id'], 'run_attempt': github['run_attempt'],
+                        'name': os.getenv('GITHUB_WORKFLOW'), 'head_sha': github['git_commit'],
+                        'head_branch': github['branch'], 'event': github['event'],
+                        'status': 'in_progress', 'run_started_at': record.get('started_at'),
+                        'html_url': 'https://github.com/' + github['repository'] + '/actions/runs/' + github['workflow_run_id']})
+                with registry.transaction(): registry.receipt(path, execution)
+                if record.get('status') in ('success','failed'):
+                    from analysis.research.platform import snapshot
+                    snapshot(registry, Path(database).parent / 'current.json', render=False)
+            finally: registry.close()
+        except Exception as error:
+            # Provider outcome is preserved; the watcher can reconcile from this receipt later.
+            print('[REGISTRY] ' + type(error).__name__ + '; receipt preserved', flush=True)
+
 
 def characterize_csv(path):
     """Validate standalone/legacy CSVs using the existing v2 parser and derive provisional aggregates."""
     # Import only the parser, never a provider client; canonical unrated worksheets are excluded by callers.
-    from fmea_generator import CSV_FIELDS, FIELDS, RATINGS, parse_fmea
+    from fmea_generator import CSV_FIELDS, FIELDS, RATINGS, parse_fmea, v4_csv_fields
     with Path(path).open(encoding="utf-8-sig", newline="") as stream:
         reader = csv.DictReader(stream, strict=True)
         historical = CSV_FIELDS[:4] + ["generation_minutes"] + CSV_FIELDS[4:]
-        if reader.fieldnames not in (CSV_FIELDS, historical):
+        release=reader.fieldnames==v4_csv_fields()
+        if reader.fieldnames not in (CSV_FIELDS, historical) and not release:
             raise ValueError("Unexpected standalone FMEA CSV headers")
         source = list(reader)
     if not source or any(None in row or None in row.values() for row in source):
         raise ValueError("Empty/malformed standalone FMEA CSV")
-    rows = parse_fmea(json.dumps([{f: int(r[f]) if f in RATINGS else r[f] for f in FIELDS} for r in source]))
-    if any(int(raw["RPN"]) != row["RPN"] for raw, row in zip(source, rows)):
+    if release and (any(row['version']!='v4.0' or not row['row_id'] for row in source) or
+                    len({row['row_id'] for row in source})!=len(source)):
+        raise ValueError('Invalid V4 CSV row identity')
+    rows = parse_fmea(json.dumps([{f: (None if release and r[f]=='' else int(r[f])) if f in RATINGS else r[f]
+                                  for f in FIELDS} for r in source]),allow_unrated=release)
+    if any((None if release and raw["RPN"]=='' else int(raw["RPN"])) != row["RPN"] for raw, row in zip(source, rows)):
         raise ValueError("CSV RPN does not match S*O*D")
     counts = Counter(r["component"] for r in rows)
     duplicates = Counter(tuple(re.sub(r"\s+", " ", r[f].strip().casefold()) for f in ("component", "failure_mode", "cause")) for r in rows)
