@@ -17,7 +17,9 @@ risk acceptance. Standard Segoe UI/Arial typography, 13px body, 23px page title,
 
 ## Composition
 
-Persistent primary navigation, a compact global filter disclosure, and dataset provenance.
+Persistent primary navigation, a compact global filter disclosure, and a visible scope strip.
+On mobile the same routes are reachable through a labeled native selector. Show applicable
+cohort counts and move snapshot provenance into a disclosure.
 The executive brief uses five compact metrics, one coverage chart, findings and a decision.
 Engineering Quality, Experiments & Performance, Financial Impact and Data Explorer carry
 their own evidence. Technical tables scroll within their containers. Review details, finance
