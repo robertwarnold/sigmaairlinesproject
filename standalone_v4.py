@@ -207,19 +207,57 @@ def validate(raw, inventory, parse_rows):
     return rows,report
 
 
+def candidate_diagnostics(data, inventory, report):
+    """Optional V4-C1 review findings. The active V4 prompt and pass criteria are unchanged."""
+    repeated_units = {}
+    for unit in check_inventory(inventory):
+        signature = (unit.get('parent_id'), unit['kind'], unit.get('function'))
+        if signature[2]:
+            repeated_units.setdefault(signature, []).append(unit['unit_id'])
+    covered = set(report.get('units_covered', []))
+    repeated_gaps = [sorted(set(group)-covered) for group in repeated_units.values()
+                     if len(group)>1 and set(group)-covered]
+    overlapping = {}
+    severity_review = []
+    separation = []
+    for row in data.get('rows', []):
+        row_id = row.get('row_id')
+        clauses = [' '.join(str(row.get(key, '')).casefold().split())
+                   for key in ('cause','failure_mode','local_effect','system_effect')]
+        if clauses[0] and clauses[0] in clauses[1:]:
+            separation.append(row_id)
+        key = (row.get('unit_id'), row.get('operating_state'), clauses[1], clauses[3])
+        if clauses[1] and clauses[3]:
+            overlapping.setdefault(key, []).append(row_id)
+        severity = row.get('severity')
+        if type(severity) is int and severity>=9:
+            severity_review.append({'row_id':row_id,'severity':severity,
+                'checks':['system end effect','propagation','redundancy','containment','severity rubric'],
+                'assumptions':row.get('assumptions')})
+    return {'schema':'v4-c1-review-1','repeated_unit_coverage_gaps':repeated_gaps,
+            'potential_overlaps':[group for group in overlapping.values() if len(group)>1],
+            'causal_separation_review':separation,'high_severity_review':severity_review}
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--system',required=True); parser.add_argument('--system-id',default='unspecified'); parser.add_argument('--output',required=True)
     parser.add_argument('--inventory'); parser.add_argument('--response')
+    parser.add_argument('--candidate-review',action='store_true')
     args=parser.parse_args()
+    if args.candidate_review and not args.response:
+        parser.error('--candidate-review requires an existing --response')
     if args.response:
         from fmea_generator import parse_fmea
         inventory=load_inventory(args.inventory,args.system)
+        raw=Path(args.response).read_text(encoding='utf-8')
         try:
-            _,result=validate(Path(args.response).read_text(encoding='utf-8'),inventory,parse_fmea)
+            _,result=validate(raw,inventory,parse_fmea)
         except ValueError as exc:
             if not hasattr(exc,'coverage_report'): raise
             result=exc.coverage_report
+        if args.candidate_review:
+            result['candidate_review']=candidate_diagnostics(strict_read(raw),inventory,result)
     else:
         result=extract_inventory(args.system,args.system_id)
     path=Path(args.output); path.parent.mkdir(parents=True,exist_ok=True)

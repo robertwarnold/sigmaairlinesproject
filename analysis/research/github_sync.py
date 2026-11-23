@@ -1,8 +1,9 @@
 """Supported GitHub REST synchronization; read-only and never dispatches generation."""
 import io
+import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import PurePosixPath
 import re
 import urllib.error
 from urllib.parse import urlencode
@@ -65,8 +66,57 @@ def discover_branches(repository, client=None):
             for entry in (client or GitHub()).pages(root+'/branches', None)]
 
 
-def synchronize(store,repository,client=None,run_id=None,download=True,branches=()):
-    """Backfill workflows and receipt-only ZIP members, preserving partial progress.
+def archive_generated_members(store, archive, receipt_member, receipt, generation_id):
+    """Preserve receipt-bound generator files without extracting arbitrary ZIP paths."""
+    parent = PurePosixPath(receipt_member).parent
+    records = []
+    for name, declared in receipt.get('artifacts', {}).items():
+        if not re.fullmatch(r'[A-Za-z0-9_.-]+\.(?:csv|json|xlsx|txt)', name):
+            continue
+        stem = PurePosixPath(receipt_member).name.removesuffix('_execution.json')
+        if name not in {stem + suffix for suffix in ('.csv', '.json', '.xlsx', '_raw.txt')}:
+            continue
+        member = str(parent / name)
+        matches = [entry for entry in archive.infolist() if entry.filename == member]
+        if not matches:
+            continue
+        if len(matches) != 1 or matches[0].file_size > 20_000_000:
+            raise ValueError('Duplicate or oversized generated artifact')
+        with archive.open(matches[0]) as stream:
+            content = stream.read(20_000_001)
+        sha = hashlib.sha256(content).hexdigest()
+        if len(content)>20_000_000 or declared.get('sha256')!=sha or declared.get('bytes')!=len(content):
+            raise ValueError('Generated artifact differs from its execution receipt')
+        path = store.raw / (sha + PurePosixPath(name).suffix)
+        if not path.exists():
+            path.write_bytes(content)
+        records.append({'generation_id':generation_id,'member':member,'sha256':sha,'bytes':len(content)})
+    return records
+
+
+def import_engineering_run(store, engineering, archive, receipt_path, receipt, members):
+    if receipt.get('prompt_version')!='v4.0' or receipt.get('status')!='success':
+        return None
+    responses = [entry for entry in members if entry['member'].endswith(('_raw.txt','.json'))]
+    if len(responses)!=1 or not receipt.get('inventory_sha256'):
+        return None
+    candidates = [entry for entry in archive.infolist()
+                  if PurePosixPath(entry.filename).name=='input_inventory.json' and entry.file_size<=2_000_000]
+    for candidate in candidates:
+        content = archive.read(candidate)
+        if hashlib.sha256(content).hexdigest()!=receipt['inventory_sha256']:
+            continue
+        inventory = store.raw / (receipt['inventory_sha256'] + '.json')
+        if not inventory.exists():
+            inventory.write_bytes(content)
+        response = responses[0]
+        source = store.raw / (response['sha256'] + PurePosixPath(response['member']).suffix)
+        return engineering.ingest(source,inventory,receipt_path,'sha256:'+receipt['system_sha256'])
+    return None
+
+
+def synchronize(store,repository,client=None,run_id=None,download=True,branches=(),engineering=None):
+    """Backfill workflows, receipts and verified generated ZIP members.
 
     No HTML scraping, log scraping, model calls, retries or assumed generations.
     Re-running is idempotent. A rate limit preserves prior committed data and records
@@ -86,7 +136,8 @@ def synchronize(store,repository,client=None,run_id=None,download=True,branches=
         for run in runs:
             current_key=workflow_key(repository,run['id'],int(run.get('run_attempt',1)))
             cached=store.db.execute('SELECT * FROM sync_runs WHERE execution_id=?',(current_key,)).fetchone()
-            if cached and run.get('status')=='completed' and cached['updated_at']==run.get('updated_at') and (not download or cached['artifacts_complete']): continue
+            cache_version=3 if engineering else 2
+            if cached and run.get('status')=='completed' and cached['updated_at']==run.get('updated_at') and (not download or cached['artifacts_complete']>=cache_version): continue
             artifact_failures=False
             for attempt in range(1,int(run.get('run_attempt',1))+1):
                 record=run if attempt==int(run.get('run_attempt',1)) else client.get(root+f'/actions/runs/{run["id"]}/attempts/{attempt}')
@@ -104,19 +155,25 @@ def synchronize(store,repository,client=None,run_id=None,download=True,branches=
             for artifact in client.pages(root+f'/actions/runs/{run["id"]}/artifacts','artifacts'):
                 aid=str(artifact['id']); metadata={'artifact_id':aid,'name':artifact['name'],'expired':artifact.get('expired',False),'download_status':'metadata_only','workflow_run_id':str(run['id'])}
                 prior=store.db.execute('SELECT payload FROM artifacts WHERE id=?',(repository+':'+aid,)).fetchone()
-                if prior and json.loads(prior[0]).get('download_status')=='downloaded': continue
+                if prior:
+                    cached_artifact=json.loads(prior[0])
+                    if 'generated_members' in cached_artifact and (not engineering or 'engineering_runs' in cached_artifact): continue
                 if metadata['expired']: problems.append({'artifact_id':aid,'reason':'expired'})
                 elif download:
                     try:
                         payload=client.get(root+f'/actions/artifacts/{int(aid)}/zip',binary=True)
                         with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+                            entries=archive.infolist()
+                            if len(entries)>4096 or sum(entry.file_size for entry in entries)>100_000_000:
+                                raise ValueError('Artifact exceeds expansion limits')
                             members=[m for m in archive.infolist() if m.filename.endswith('_execution.json')]
+                            generated_members=[]
+                            engineering_runs=[]
                             if sum(m.file_size for m in members)>20_000_000: raise ValueError('Receipt payload too large')
                             for member in members:
                                 if member.file_size>2_000_000: raise ValueError('Receipt exceeds size limit')
                                 content=archive.read(member); receipt=json.loads(content)
                                 if receipt.get('workflow')!='standalone_gemini': continue
-                                import hashlib
                                 destination=store.raw/(hashlib.sha256(content).hexdigest()+'_execution.json')
                                 if not destination.exists(): destination.write_bytes(content)
                                 receipt_attempt=receipt.get('github',{}).get('run_attempt')
@@ -125,9 +182,19 @@ def synchronize(store,repository,client=None,run_id=None,download=True,branches=
                                 if receipt_attempt is None and int(run.get('run_attempt',1))==1: receipt_attempt=1
                                 execution=workflow_key(repository,run['id'],int(receipt_attempt)) if receipt_attempt else None
                                 if execution is None: problems.append({'artifact_id':aid,'reason':'workflow attempt not verifiable from legacy artifact'})
-                                with store.transaction(): store.receipt(destination,execution,artifact=aid)
+                                with store.transaction():
+                                    gid=store.receipt(destination,execution,artifact=aid)
+                                    values=archive_generated_members(store,archive,member.filename,receipt,gid)
+                                    generated_members.extend(values)
+                                if engineering:
+                                    key=import_engineering_run(store,engineering,archive,destination,receipt,values)
+                                    if key:
+                                        engineering_runs.append(key)
                                 receipts+=1
                         metadata['download_status']='downloaded'; metadata['receipt_members']=len(members)
+                        metadata['generated_members']=generated_members
+                        if engineering:
+                            metadata['engineering_runs']=engineering_runs
                     except RateLimited: raise
                     except Exception as exc:
                         metadata['download_status']='failed'; artifact_failures=True; problems.append({'artifact_id':aid,'reason':type(exc).__name__})
@@ -135,7 +202,7 @@ def synchronize(store,repository,client=None,run_id=None,download=True,branches=
                     execution=workflow_key(repository,run['id'],int(run.get('run_attempt',1)))
                     store.db.execute('INSERT INTO artifacts VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload',(repository+':'+aid,execution,encoded(metadata)))
             if run.get('status')=='completed':
-                store.db.execute('INSERT INTO sync_runs VALUES(?,?,?) ON CONFLICT(execution_id) DO UPDATE SET updated_at=excluded.updated_at,artifacts_complete=excluded.artifacts_complete',(current_key,run.get('updated_at'),int(download and not artifact_failures)))
+                store.db.execute('INSERT INTO sync_runs VALUES(?,?,?) ON CONFLICT(execution_id) DO UPDATE SET updated_at=excluded.updated_at,artifacts_complete=excluded.artifacts_complete',(current_key,run.get('updated_at'),cache_version*int(download and not artifact_failures)))
         previous=store.db.execute('SELECT payload FROM sync_state WHERE id=1').fetchone()
         state={'last_successful_sync':(json.loads(previous[0]).get('last_successful_sync') if previous else None) if problems else now(),'status':'PARTIAL' if problems else 'SUCCESS','problems':problems,'receipt_members_processed':receipts}
         store.db.execute('INSERT INTO sync_state VALUES(1,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload',(encoded(state),))

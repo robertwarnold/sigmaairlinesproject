@@ -20,7 +20,8 @@ from standalone_v4 import CATEGORIES, audit, check_inventory, strict_read
 SCHEMA = 'engineering-workspace-1'
 POLICY = 'standalone-1-to-10-v1'
 STATES = ('NEEDS_REVIEW', 'APPROVED', 'REJECTED')
-EDITABLE = frozenset(FIELDS + ['existing_detection', 'assumptions', 'operating_state', 'action_status', 'action_due_date', 'action_owner'])
+EDITABLE = frozenset(FIELDS + ['existing_detection', 'assumptions', 'operating_state', 'action_status', 'action_due_date', 'action_owner','judge_disposition'])
+JUDGE_DISPOSITIONS = ('valid_additional','duplicate','technically_incorrect','insufficient_evidence','unresolved')
 PLACEHOLDERS = {'', 'not provided', 'unknown', 'not specified', 'n/a'}
 
 
@@ -198,6 +199,8 @@ class EngineeringStore:
                 if v is not None and not rating(v): raise ValueError('Corrections require integer ratings 1-10 or null')
             elif not isinstance(v, str): raise ValueError('Text corrections must be strings')
         if corrections.get('action_status', '') not in ('', 'OPEN', 'IN_PROGRESS', 'COMPLETE'): raise ValueError('Invalid action status')
+        if 'judge_disposition' in corrections and corrections['judge_disposition'] not in JUDGE_DISPOSITIONS:
+            raise ValueError('Invalid engineering disposition')
         if corrections.get('action_due_date'):
             from datetime import date
             date.fromisoformat(corrections['action_due_date'])

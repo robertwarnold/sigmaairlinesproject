@@ -40,6 +40,7 @@ def _snapshot(store,output,render=True):
         for generation in generations:
             gid=generation['generation_id']; evaluated=quality.get(gid)
             row={k:generation.get(k) for k in ('generation_id','run_id','system','skill_version','replicate','batch','generator_model',
+                 'engineering_run_id','original_filename',
                  'workflow_execution_id','parent_workflow_run_id','workflow_attempt','generation_timestamp','generation_finished_at','generation_seconds','generation_status',
                  'generated_rows','structural_status','duplicate_rows','traceability_status','artifact_reference','git_commit','skill_sha256','actual_cost','estimated_cost')}
             row.update(state=generation['state'],evaluation_status='evaluated' if evaluated else 'awaiting_evaluation' if generation['generation_status']=='success' else 'not_evaluated',
@@ -123,6 +124,7 @@ def validate_extended(data):
     from .__main__ import validate_snapshot, SAFE_RUN_FIELDS, SCHEMA
     if set(data)-EXTRA_FIELDS != {'schema','data_version','last_updated','validation_status','research_status','baseline','runs','registry','per_system','per_version','pareto','statistics','review_summary','coverage_summary'}: raise ValueError('Invalid 4.1 envelope')
     allowed={'generation_id','run_id','system','skill_version','replicate','batch','generator_model','workflow_execution_id',
+             'engineering_run_id','original_filename',
              'parent_workflow_run_id','workflow_attempt','generation_timestamp','generation_finished_at','generation_seconds','generation_status','generated_rows','structural_status',
              'duplicate_rows','traceability_status','artifact_reference','git_commit','skill_sha256','actual_cost','estimated_cost',
              'state','evaluation_status','evaluation_label','missed_percentage','selected_evaluation'}
@@ -143,6 +145,7 @@ def main():
     s.add_argument('--branch', action='append', default=[])
     s.add_argument('--list-branches', action='store_true')
     s.add_argument('--no-render', action='store_true')
+    s.add_argument('--engineering-database')
     h=sub.add_parser('import-historical')
     h.add_argument('--file',required=True,type=Path)
     r=sub.add_parser('register-generation'); r.add_argument('--receipt',required=True)
@@ -172,7 +175,13 @@ def main():
             if args.list_branches:
                 print(encoded(discover_branches(args.repository)))
             else:
-                result=synchronize(store,args.repository,run_id=args.run_id,download=not args.metadata_only,branches=args.branch)
+                from contextlib import ExitStack, closing
+                with ExitStack() as stack:
+                    engineering=None
+                    if args.engineering_database:
+                        from analysis.engineering.store import EngineeringStore
+                        engineering=stack.enter_context(closing(EngineeringStore(args.engineering_database)))
+                    result=synchronize(store,args.repository,run_id=args.run_id,download=not args.metadata_only,branches=args.branch,engineering=engineering)
                 print(encoded(result))
                 snapshot(store,store.path.parent/'current.json',not args.no_render)
         elif args.command=='register-generation':

@@ -15,6 +15,7 @@ def main():
     imp = sub.add_parser('import-v4')
     for arg in ('response', 'inventory', 'receipt', 'dataset-version'): imp.add_argument('--'+arg, required=True)
     snap = sub.add_parser('snapshot'); snap.add_argument('--output', required=True)
+    snap.add_argument('--research-registry')
     analytics = sub.add_parser('analytics'); analytics.add_argument('--selection', required=True); analytics.add_argument('--output', required=True)
     operations = sub.add_parser('operations'); operations.add_argument('--input',required=True); operations.add_argument('--output',required=True)
     rev = sub.add_parser('review'); rev.add_argument('--request', required=True)
@@ -52,7 +53,11 @@ def main():
                   'records':[r for r in data['records'] if r['record_id'] in ids],
                   'coverage_audits':{k:v for k,v in data['coverage_audits'].items() if k in selected_runs},
                   'metric_scope':'Selected records only; no inferred research metrics'})
-            else: atomic_export(args.output,data)
+            else:
+                if args.command == 'snapshot' and args.research_registry:
+                    from .judge_links import attach_judge_links
+                    attach_judge_links(data,args.research_registry)
+                atomic_export(args.output,data)
     finally: store.close()
 
 

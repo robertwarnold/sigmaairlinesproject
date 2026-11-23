@@ -142,6 +142,8 @@ class Registry:
         parts=path.relative_to(Path('results').resolve()).parts
         if parent_run is None and len(parts)>2 and parts[0]=='github' and parts[1].isdigit(): parent_run=parts[1]
         payload={'parent_workflow_run_id':str(parent_run) if parent_run else None,'workflow_attempt':receipt.get('github',{}).get('run_attempt'),'run_id':alias,'system':receipt['system_id'].removeprefix('system_'),
+                 'engineering_run_id':receipt['experiment_id']+':'+receipt.get('attempt_id',source_id),
+                 'original_filename':next((name for name in receipt.get('artifacts',{}) if re.fullmatch(r'[A-Za-z0-9_.-]+\.csv',name)),None),
                  'skill_version':receipt['prompt_version'],'replicate':receipt.get('run_number'),
                  'batch':receipt['experiment_id'],'workflow_execution_id':workflow_id,
                  'skill_sha256':receipt.get('skill_sha256'),'git_commit':receipt.get('git_commit'),
