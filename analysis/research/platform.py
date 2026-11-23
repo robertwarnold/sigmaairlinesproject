@@ -9,7 +9,7 @@ import tempfile
 import time
 
 from .registry import Registry, encoded, now
-from .github_sync import synchronize
+from .github_sync import discover_branches, synchronize
 from .judge_import import adapt
 from .finance import model, DEFAULTS
 from analysis.round2.__main__ import private, read, write_csv, QUALITY
@@ -140,10 +140,16 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__); parser.add_argument('--database',default='results/research/registry.sqlite')
     sub=parser.add_subparsers(dest='command',required=True)
     s=sub.add_parser('sync'); s.add_argument('--repository',default='robertwarnold/sigmaairlinesproject'); s.add_argument('--run-id'); s.add_argument('--metadata-only',action='store_true')
+    s.add_argument('--branch', action='append', default=[])
+    s.add_argument('--list-branches', action='store_true')
+    s.add_argument('--no-render', action='store_true')
+    h=sub.add_parser('import-historical')
+    h.add_argument('--file',required=True,type=Path)
     r=sub.add_parser('register-generation'); r.add_argument('--receipt',required=True)
     p=sub.add_parser('register-plan'); p.add_argument('--manifest',required=True)
     for name in ('preview-judge','accept-judge'):
         j=sub.add_parser(name); j.add_argument('--file',required=True); j.add_argument('--items'); j.add_argument('--confirm-sha256')
+        j.add_argument('--no-render',action='store_true')
     select=sub.add_parser('select-evaluation'); select.add_argument('--generation-id',required=True); select.add_argument('--evaluation-id',required=True)
     review=sub.add_parser('record-review'); review.add_argument('--generation-id',required=True); review.add_argument('--event-id',required=True); review.add_argument('--outcome',choices=['complete','pending'],required=True); review.add_argument('--reviewed-at',required=True); review.add_argument('--minutes',type=float)
     migrate=sub.add_parser('migrate'); migrate.add_argument('--receipts',nargs='+',required=True)
@@ -152,6 +158,10 @@ def main():
     watch=sub.add_parser('watch'); watch.add_argument('--repository',default='robertwarnold/sigmaairlinesproject'); watch.add_argument('--interval',type=int,default=60); watch.add_argument('--once',action='store_true'); watch.add_argument('--output',default='results/research/current.json')
     finance=sub.add_parser('finance'); finance.add_argument('--snapshot',required=True); finance.add_argument('--assumptions',required=True); finance.add_argument('--output',required=True)
     args=parser.parse_args()
+    if args.command=='import-historical':
+        from .historical import import_comparison
+        print(encoded(import_comparison(args.file,private(args.database).parent/'historical-comparison.json')))
+        return
     if args.command=='finance':
         from .__main__ import atomic_json
         data=read(private(args.snapshot)); values=read(private(args.assumptions))
@@ -159,7 +169,12 @@ def main():
     store=Registry(args.database)
     try:
         if args.command=='sync':
-            result=synchronize(store,args.repository,run_id=args.run_id,download=not args.metadata_only); print(encoded(result)); snapshot(store,store.path.parent/'current.json')
+            if args.list_branches:
+                print(encoded(discover_branches(args.repository)))
+            else:
+                result=synchronize(store,args.repository,run_id=args.run_id,download=not args.metadata_only,branches=args.branch)
+                print(encoded(result))
+                snapshot(store,store.path.parent/'current.json',not args.no_render)
         elif args.command=='register-generation':
             with store.transaction(): print(store.receipt(args.receipt))
             snapshot(store,store.path.parent/'current.json')
@@ -174,7 +189,7 @@ def main():
                 if args.confirm_sha256!=sha: raise ValueError('Acceptance requires exact preview --confirm-sha256 digest')
                 previews=store.accept(data,args.file)
                 if args.items: store.archive(args.items)
-                snapshot(store,store.path.parent/'current.json')
+                snapshot(store,store.path.parent/'current.json',not args.no_render)
             print(encoded({'confirmation_sha256':sha,'records':[{k:v for k,v in p.items() if k!='record'} for p in previews]}))
         elif args.command=='select-evaluation': store.select(args.generation_id,args.evaluation_id); snapshot(store,store.path.parent/'current.json')
         elif args.command=='record-review': store.human_review(args.generation_id,args.event_id,args.outcome,args.reviewed_at,args.minutes); snapshot(store,store.path.parent/'current.json')

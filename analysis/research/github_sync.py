@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 import urllib.error
+from urllib.parse import urlencode
 import urllib.request
 import zipfile
 
@@ -45,13 +46,26 @@ class GitHub:
         page=1
         while True:
             separator='&' if '?' in path else '?'
-            records=self.get(path+separator+f'per_page=100&page={page}')[key]
+            response=self.get(path+separator+f'per_page=100&page={page}')
+            records=response if key is None else response[key]
             yield from records
             if len(records)<100: break
             page+=1
 
 
-def synchronize(store,repository,client=None,run_id=None,download=True):
+def repository_root(repository):
+    if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',repository):
+        raise ValueError('Invalid repository')
+    return f'/repos/{repository}'
+
+
+def discover_branches(repository, client=None):
+    root=repository_root(repository)
+    return [{'branch': entry['name'], 'commit': entry['commit']['sha']}
+            for entry in (client or GitHub()).pages(root+'/branches', None)]
+
+
+def synchronize(store,repository,client=None,run_id=None,download=True,branches=()):
     """Backfill workflows and receipt-only ZIP members, preserving partial progress.
 
     No HTML scraping, log scraping, model calls, retries or assumed generations.
@@ -59,10 +73,16 @@ def synchronize(store,repository,client=None,run_id=None,download=True):
     the error without advancing the last-successful synchronization timestamp.
     """
     client=client or GitHub()
-    if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',repository): raise ValueError('Invalid repository')
-    root=f'/repos/{repository}'; problems=[]; receipts=0
+    root=repository_root(repository); problems=[]; receipts=0
+    if run_id and branches:
+        raise ValueError('Select a workflow run or a set of branches')
     try:
-        runs=[client.get(root+f'/actions/runs/{int(run_id)}')] if run_id else client.pages(root+'/actions/workflows/generate-fmea.yml/runs','workflow_runs')
+        workflow=root+'/actions/workflows/generate-fmea.yml/runs'
+        if run_id:
+            runs=[client.get(root+f'/actions/runs/{int(run_id)}')]
+        else:
+            queries=[workflow+'?'+urlencode({'branch': branch}) for branch in dict.fromkeys(branches)] or [workflow]
+            runs=(run for query in queries for run in client.pages(query,'workflow_runs'))
         for run in runs:
             current_key=workflow_key(repository,run['id'],int(run.get('run_attempt',1)))
             cached=store.db.execute('SELECT * FROM sync_runs WHERE execution_id=?',(current_key,)).fetchone()

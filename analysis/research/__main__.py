@@ -346,7 +346,7 @@ def review_sample(paths, output, seed=5300):
 
 def main():
     import sys
-    if any(command in sys.argv[1:2] for command in ("sync","register-generation","register-plan","preview-judge","accept-judge","select-evaluation","reconcile","refresh","watch","finance","record-review","migrate")) or "--database" in sys.argv:
+    if any(command in sys.argv[1:2] for command in ("sync","import-historical","register-generation","register-plan","preview-judge","accept-judge","select-evaluation","reconcile","refresh","watch","finance","record-review","migrate")) or "--database" in sys.argv:
         from .platform import main as platform_main
         return platform_main()
     parser=argparse.ArgumentParser(description=__doc__); sub=parser.add_subparsers(dest='command',required=True)
