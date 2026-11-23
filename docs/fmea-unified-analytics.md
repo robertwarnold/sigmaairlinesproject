@@ -42,5 +42,5 @@ Results above were recalculated from the supplied archive's `runs_both.csv`. The
 - The SQLite registry still embeds configuration, branch, item links and trial details in JSON payloads. The engineering workspace and registry do not yet share row identities.
 - GitHub sync remains receipt-specific. Raw generated result ingestion and configurable branch-tree discovery are pending.
 - Historical judge workbook layouts, repeatability matrices, ambiguous adjudication, and summary-only judge uploads still need identifier-only adapters. Those features require a human-prepared, reference-free export.
-- The historical table is study-level context with a skill filter. Shared branch, judge-version and round filtering across the operational register, historical charts and exports remains pending.
+- The historical table is study-level context with system and skill filters and a provenance-bearing CSV export. Shared branch, judge-version and round filtering across the operational register, historical charts and exports remains pending.
 - The in-page import uses synchronous local Python invocations. Registry acceptance and dashboard snapshot creation are separate operations. If a refresh fails after acceptance, rerun refresh to republish the snapshot or re-preview to verify whether an evaluation is already stored.

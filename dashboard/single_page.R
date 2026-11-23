@@ -29,7 +29,7 @@ analytics_ui <- function(defaults) {
         div(class='analytics-grid three',analytics_card('Duplicate and validation rates by run','analytics_trends'),
           analytics_card('Generation and evaluation activity','mission_activity','Sanitized GitHub generation registry / operational receipts only.'),analytics_card('Independent evaluation','analytics_judge')),
         chart_panel('Experiment summary',uiOutput('analytics_experiments')),
-        chart_panel('Historical V2.0 and V3.0 comparison',tableOutput('historical_comparison'),
+        chart_panel('Historical V2.0 and V3.0 comparison',tagList(tableOutput('historical_comparison'),uiOutput('historical_export_action')),
           'Descriptive results from the archived run-level CSV. Equal-system means give each system the same weight.'),
         tags$details(class='support-details',tags$summary('GitHub run registry, provenance and lifecycle'),
           uiOutput('explorer_table'),numericInput('run_page','Page',1,min=1,width='6rem'),

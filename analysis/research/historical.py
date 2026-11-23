@@ -54,9 +54,13 @@ def import_comparison(path, output):
     except FileExistsError:
         if raw.read_bytes() != content:
             raise ValueError('Stored historical source differs from its content hash')
+    systems = sorted({row['system'] for row in rows})
     result = {'schema': 'historical-comparison-1', 'source_sha256': sha,
               'source_member': MEMBER if path.suffix.lower() == '.zip' else None,
-              'metrics': comparison_metrics(rows), 'runs': rows}
+              'metrics': comparison_metrics(rows),
+              'metrics_by_system': {system: comparison_metrics([row for row in rows if row['system'] == system])
+                                    for system in systems},
+              'runs': rows}
     atomic_json(output, result)
     return result['metrics']
 

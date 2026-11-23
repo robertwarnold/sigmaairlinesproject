@@ -31,7 +31,7 @@ engineering_table <- function(rows,fields) {
   }))
   htmltools::div(class='engineering-table-wrap',htmltools::tags$table(class='engineering-table',header,body))
 }
-engineering_server <- function(input,output,session,research=NULL) {
+engineering_server <- function(input,output,session,research=NULL,historical=NULL) {
   allowed <- reactive(engineering_allowed(Sys.getenv('SIGMA_ENGINEERING_PRIVATE'),session$request))
   database <- Sys.getenv('SIGMA_ENGINEERING_DATABASE',file.path(project_root,'results','engineering','workspace.sqlite'))
   folder <- file.path(project_root,'results','engineering','ui',session$token)
@@ -92,9 +92,12 @@ engineering_server <- function(input,output,session,research=NULL) {
   observe({
     r <- all_rows()
     registry <- if(is.null(research)) data.frame() else as_table(research()$registry)
+    archive <- if(is.null(historical)) NULL else historical()
+    historical_values <- list(system=names(archive$metrics_by_system),skill_version=names(archive$metrics))
     preserve <- function(id,choices) {v <- isolate(input[[id]]); if(is.null(v)||!v %in% choices) choices[1] else v}
     for(pair in list(c('g_run','run_id'),c('g_system','system'),c('g_subsystem','subsystem'),c('g_model','generator_model'),c('g_skill','skill_version'))) {
       values <- c(if(pair[2] %in% names(r)) r[[pair[2]]] else character(),if(pair[2] %in% names(registry)) registry[[pair[2]]] else character())
+      values <- c(values,historical_values[[pair[2]]])
       values <- sort(unique(values[!is.na(values)]))
       choices <- c('All',values); updateSelectInput(session,pair[1],choices=choices,selected=preserve(pair[1],choices))
     }

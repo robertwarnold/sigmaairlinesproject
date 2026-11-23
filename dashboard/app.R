@@ -26,13 +26,19 @@ server <- function(input,output,session) {
       if(!file.exists(historical_path)) return(NULL)
       tryCatch(jsonlite::fromJSON(historical_path,simplifyVector=FALSE),error=function(e) NULL)
     })
-  output$historical_comparison <- renderTable({
+  historical_metrics <- reactive({
     archive <- historical()
-    if(is.null(archive) || !identical(archive$schema,'historical-comparison-1'))
-      return(data.frame(Status='Historical comparison pending import'))
-    metrics <- archive$metrics
+    if(is.null(archive) || !identical(archive$schema,'historical-comparison-1')) return(NULL)
+    metrics <- if(!is.null(input$g_system) && input$g_system!='All')
+      archive$metrics_by_system[[input$g_system]] else archive$metrics
     if(!is.null(input$g_skill) && input$g_skill!='All') metrics <- metrics[names(metrics)==input$g_skill]
-    if(!length(metrics)) return(data.frame(Status='No historical evidence for this skill version'))
+    list(source_sha256=archive$source_sha256,metrics=metrics)
+  })
+  output$historical_comparison <- renderTable({
+    selection <- historical_metrics()
+    if(is.null(selection)) return(data.frame(Status='Historical comparison pending import'))
+    metrics <- selection$metrics
+    if(!length(metrics)) return(data.frame(Status='No historical evidence for the selected system and skill'))
     do.call(rbind,lapply(names(metrics),function(version) {
       value <- metrics[[version]]
       data.frame(Skill=version,Runs=value$runs,`Pooled missed`=sprintf('%.1f%%',100*value$pooled_missed_rate),
@@ -41,6 +47,21 @@ server <- function(input,output,session) {
         `Unmatched rows per run`=round(value$mean_unmatched_generated_per_run,1),check.names=FALSE)
     }))
   })
+  output$historical_export_action <- renderUI({
+    if(length(historical_metrics()$metrics)) downloadButton('historical_export','Export historical metrics')
+  })
+  output$historical_export <- downloadHandler(
+    filename=function() 'historical-comparison.csv',
+    content=function(file) {
+      selection <- historical_metrics()
+      req(length(selection$metrics))
+      rows <- lapply(names(selection$metrics),function(version) {
+        system <- if(is.null(input$g_system)) 'All' else input$g_system
+        as.data.frame(c(list(skill=version,system=system,source_sha256=selection$source_sha256),
+          selection$metrics[[version]]))
+      })
+      write.csv(do.call(rbind,rows),file,row.names=FALSE)
+    })
   output$evidence_status <- renderText(paste('Evidence:',data()$research_status,'|',refresh_key()$status))
   output$snapshot_status <- renderText(paste('Study data as of',data()$last_updated,'| Snapshot',substr(data()$data_version,1,12),'|',data()$validation_status))
   output$poster_results <- renderUI({
@@ -259,6 +280,6 @@ server <- function(input,output,session) {
   output$review_costs <- renderTable(as_table(financial()$quality_review_estimates),digits=2)
   output$historical_finance <- renderTable({h <- financial()$historical_scenario; if(is.null(h)) return(data.frame(Status='Pending')); data.frame(Metric=names(h),Value=vapply(h,function(x) paste(x,collapse=' to '),character(1)))})
 
-  engineering_server(input,output,session,research=data)
+  engineering_server(input,output,session,research=data,historical=historical)
 }
 shinyApp(ui,server)
