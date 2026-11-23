@@ -9,12 +9,13 @@ web
 User specified R Shiny, ggplot2 and bslib; Python owns research calculations.
 
 ## Users
-Sigma Airlines researchers and engineers inspect experiments; SYSEN 5300 classmates
-view a projected poster and live demonstration. User confirmed continuation with +.
+Chief engineers and program leaders assess demonstrated engineering value and planning
+economics. Analysts and reviewers trace results to experiments, assessments and dispositions.
+The academic poster remains available for faculty and classroom review.
 
 ## Product Purpose
-Trace each independently evaluated experiment into reproducible analysis and a live
-academic poster. Actual evidence and pending observations must be visibly distinct.
+Show coverage, review burden, modeled value and evidence limitations in an executive brief.
+Provide clear paths to reproducible analysis, private records and engineering review.
 
 ## Operating Context
 Windows/Positron local use; optional approved Shiny hosting; 16:9 classroom projection.
@@ -26,7 +27,8 @@ private generated rows and judge notes stay private. Five systems, four V4 runs 
 V2/V3 retained; primary comparison is V2 versus V4. Prompt versions differ from package 0.3.
 
 ## Evidence on Hand
-Report-derived V2 aggregates only. No comparable item-level V4 evaluations available.
+Historical V2 and V3 run-level aggregate comparison. Item-level V4 evidence depends on
+registered generator rows and independently supplied identifier-only judge outputs.
 
 ## Product Principles
 - Preserve evidence and version identity.

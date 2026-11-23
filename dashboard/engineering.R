@@ -31,9 +31,10 @@ engineering_table <- function(rows,fields) {
   }))
   htmltools::div(class='engineering-table-wrap',htmltools::tags$table(class='engineering-table',header,body))
 }
-engineering_server <- function(input,output,session,research=NULL,historical=NULL) {
+engineering_server <- function(input,output,session,research=NULL,historical=NULL,identity_mapping=list()) {
   allowed <- reactive(engineering_allowed(Sys.getenv('SIGMA_ENGINEERING_PRIVATE'),session$request))
   database <- Sys.getenv('SIGMA_ENGINEERING_DATABASE',file.path(project_root,'results','engineering','workspace.sqlite'))
+  registry <- file.path(project_root,'results','research','registry.sqlite')
   folder <- file.path(project_root,'results','engineering','ui',session$token)
   command <- function(action,args=character()) {
     req(allowed()); dir.create(folder,recursive=TRUE,showWarnings=FALSE)
@@ -49,10 +50,10 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
   observeEvent(input$refresh,{tick(tick()+1)},ignoreInit=TRUE)
   state <- reactivePoll(30000,session,checkFunc=function() {
     if(!allowed()) return('disabled')
-    paste(tick(),if(file.exists(database)) file.info(database)$mtime else 'missing')
+    paste(tick(),file.info(c(database,registry))$mtime,collapse=' ')
   },valueFunc=function() {
     if(!allowed() || !file.exists(database)) return(list(rows=data.frame(),records=list(),summary=NULL,comparisons=data.frame(),risk=NULL))
-    path <- file.path(folder,'workspace.json'); command('snapshot',c('--output',shQuote(path)))
+    path <- file.path(folder,'workspace.json'); command('snapshot',c('--output',shQuote(path),'--research-registry',shQuote(registry)))
     jsonlite::fromJSON(path,simplifyDataFrame=TRUE)
   })
   all_rows <- reactive({
@@ -98,6 +99,8 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
     for(pair in list(c('g_run','run_id'),c('g_system','system'),c('g_subsystem','subsystem'),c('g_model','generator_model'),c('g_skill','skill_version'))) {
       values <- c(if(pair[2] %in% names(r)) r[[pair[2]]] else character(),if(pair[2] %in% names(registry)) registry[[pair[2]]] else character())
       values <- c(values,historical_values[[pair[2]]])
+      if(pair[1]=='g_run') values <- c(values,registry$engineering_run_id)
+      if(pair[1]=='g_system') values <- canonical_system(values)
       values <- sort(unique(values[!is.na(values)]))
       choices <- c('All',values); updateSelectInput(session,pair[1],choices=choices,selected=preserve(pair[1],choices))
     }
@@ -160,6 +163,10 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
         p(paste('Human review:',r$review_status,'/ basis:',text(r$review_basis))),
         p(paste('Structure:',r$validation$structural_status,'/ provisional S/O/D scale 1-10; high severity is independent of RPN')),
         tags$ul(lapply(c(unlist(r$validation$errors),unlist(r$validation$review_flags)),tags$li))),
+      tags$details(tags$summary('Linked judge trials'),
+        if(length(r$judge_matches)) tags$pre(jsonlite::toJSON(r$judge_matches,pretty=TRUE,auto_unbox=TRUE,null='null'))
+        else p('No receipt-verified judge match is linked to this row.'),
+        p(paste('Engineering disposition:',text(r$current$judge_disposition)))),
       tags$details(tags$summary('Full provenance, relationships and immutable source JSON'),
         tags$pre(jsonlite::toJSON(list(original=r$original,current=r$current,unit=r$unit,metadata=r$metadata),pretty=TRUE,auto_unbox=TRUE,null='null'))),
       p(class='chart-note','Human-approved inference is distinct from source verification. No calibrated probability or residual-risk claim is implied. Reference FMEAs are never opened.'))
@@ -168,6 +175,8 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
     req(allowed()); r <- record(); if(is.null(r)) return(NULL)
     tagList(p(paste('Revision',r$revision,'/',r$review_status)),textInput('eng_reviewer','Engineer / reviewer name'),textAreaInput('eng_note','Review note / rationale'),
       selectInput('eng_decision','Decision',choices=c('Needs review / reopen'='NEEDS_REVIEW','Approve'='APPROVED','Reject'='REJECTED')),
+      selectInput('eng_disposition','Engineering disposition',choices=c('No change'='', 'Valid additional failure mode'='valid_additional',
+        'Duplicate'='duplicate','Technically incorrect'='technically_incorrect','Insufficient evidence'='insufficient_evidence','Unresolved'='unresolved')),
       selectInput('eng_basis','Engineering basis',choices=c('Select a basis'='', 'Human-verified source citation'='source_verified','Human-approved inference'='approved_inference')),
       checkboxInput('eng_confirm','I reviewed the causal chain, assumptions, ratings and recommended action',FALSE),
       checkboxInput('eng_edit','Apply corrections below (original AI values remain unchanged)',FALSE),
@@ -185,6 +194,7 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
     req(allowed()); r <- record(); req(r)
     tryCatch({
       corrections <- list()
+      if(!is.null(input$eng_disposition)&&nzchar(input$eng_disposition)) corrections$judge_disposition <- input$eng_disposition
       if(isTRUE(input$eng_edit)) {
         for(k in c('severity','occurrence','detection')) {
           v <- trimws(input[[paste0('eng_edit_',k)]]); if(nzchar(v)&&!grepl('^([1-9]|10)$',v)) stop('Ratings must be whole numbers 1-10 or blank; no default ratings are substituted.')
@@ -213,5 +223,5 @@ engineering_server <- function(input,output,session,research=NULL,historical=NUL
     updateTextInput(session,'eng_search',value=''); updateSelectInput(session,'eng_severity',selected=pieces[1]); updateSelectInput(session,'eng_occurrence',selected=pieces[2])
     focus_ids(NULL)
   })
-  engineering_analytics_server(input,output,session,allowed,state,filtered,command,folder,focus_ids,research)
+  engineering_analytics_server(input,output,session,allowed,state,filtered,command,folder,focus_ids,research,identity_mapping)
 }

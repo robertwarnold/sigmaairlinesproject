@@ -2,9 +2,9 @@
 
 ## Surface and reference
 
-Mode: Operate. One continuously scrollable engineering analytics report. The supplied
-Engineering Team Dashboard screenshot is the approved reference: compact Metabase-style
-white cards on a neutral gray canvas. This replaces the former dark six-view shell.
+Mode: Operate. An executive-first engineering workspace with persistent navigation for
+five destinations. Use compact white surfaces on a neutral gray canvas and reveal
+technical diagnostics and source evidence through explicit view links and disclosures.
 
 ## Tokens
 
@@ -17,12 +17,11 @@ risk acceptance. Standard Segoe UI/Arial typography, 13px body, 23px page title,
 
 ## Composition
 
-Compact title and actions, global filters, dataset provenance, six desktop KPIs,
-attention summary, two-column risk charts, paired/triple AI charts, full-width FMEA
-register. Use a responsive 12-column chart grid with 10px gaps. KPIs become three
-columns at laptop widths and two on small screens. Technical tables scroll within
-their own container. Details/reviews remain inline; no primary sidebar or tab routes.
-Financial assumptions and study-level academic context use ordinary disclosures.
+Persistent primary navigation, a compact global filter disclosure, and dataset provenance.
+The executive brief uses five compact metrics, one coverage chart, findings and a decision.
+Engineering Quality, Experiments & Performance, Financial Impact and Data Explorer carry
+their own evidence. Technical tables scroll within their containers. Review details, finance
+assumptions and the academic poster use disclosures.
 
 ## Charts and evidence
 

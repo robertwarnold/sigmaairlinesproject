@@ -7,7 +7,8 @@ source_path <- Sys.getenv('SIGMA_DASHBOARD_DATA', file.path(project_root,'result
 fallback <- 'data/baseline.json'
 plan_path <- Sys.getenv('SIGMA_DASHBOARD_MANIFEST',file.path(project_root,'results','v4','round2-plan','experiment_manifest.json'))
 financial_defaults <- jsonlite::fromJSON('data/financial-defaults.json')
-source('single_page.R'); source('analytics.R'); source('judge_upload.R')
+source('single_page.R'); source('analytics.R'); source('judge_upload.R'); source('executive.R'); source('experiment_identity.R')
+experiment_mapping <- jsonlite::fromJSON(Sys.getenv('SIGMA_EXPERIMENT_MAPPINGS','data/experiment-mappings.json'),simplifyVector=FALSE)
 ui <- analytics_ui(financial_defaults)
 
 server <- function(input,output,session) {
@@ -199,13 +200,14 @@ server <- function(input,output,session) {
     subsystem=input$g_subsystem,review=input$g_review)))
   generation_table <- function(x,page=1,size=10) {
     if(!nrow(x)) return(chart_empty('No matching generations','Adjust filters or synchronize generation receipts.'))
-    columns <- c(run_id='Run ID',system='System',skill_version='Skill',generation_status='Generation',evaluation_status='Judge',missed_percentage='Missed',generation_timestamp='Timestamp (UTC)')
+    columns <- c(run_id='Experiment',skill_version='Skill',generation_status='Generation',evaluation_status='Judge',missed_percentage='Missed',generation_timestamp='Timestamp (UTC)')
+    labels <- experiment_labels(x,experiment_mapping)
     page <- max(1,min(ceiling(nrow(x)/size),if(is.null(page)) 1 else as.integer(page)))
     indexes <- seq.int((page-1)*size+1,min(page*size,nrow(x)))
     format_cell <- function(k,i) {
       v <- if(k %in% names(x)) x[[k]][i] else NA
       if(is.na(v)) return(if(k=='missed_percentage') 'Pending' else 'Unknown')
-      if(k=='run_id') { v <- sub('^.*:','',v); return(if(nchar(v)>32) paste0(substr(v,1,29),'...') else v) }
+      if(k=='run_id') return(labels[i])
       if(k=='missed_percentage') return(paste0(round(as.numeric(v),1),'%'))
       if(k=='generation_timestamp') return(format(as.POSIXct(v,format='%Y-%m-%dT%H:%M:%S',tz='UTC'),'%b %d, %H:%M',tz='UTC'))
       if(k=='generation_status') return(switch(v,success='Generated',failed='Failed',tools::toTitleCase(gsub('_',' ',v))))
@@ -233,14 +235,30 @@ server <- function(input,output,session) {
       if(nrow(match) && !is.na(match$url[1])) link <- a('Open GitHub workflow',href=match$url[1],target='_blank',rel='noopener noreferrer')
     }
     if(is.null(link) && 'parent_workflow_run_id' %in% names(row) && !is.na(row$parent_workflow_run_id[1]) && grepl('^[0-9]+$',row$parent_workflow_run_id[1])) link <- a('Open parent workflow (local artifact provenance)',href=paste0('https://github.com/robertwarnold/sigmaairlinesproject/actions/runs/',row$parent_workflow_run_id[1]),target='_blank',rel='noopener noreferrer')
-    div(link,div(class='detail-grid',lapply(names(row),function(k) div(strong(gsub('_',' ',k)),tags$pre(if(is.na(row[[k]][1])) 'Unavailable' else as.character(row[[k]][1]))))))
+    identity <- experiment_identity(as.list(row),if(exists('match',inherits=FALSE)&&nrow(match)) as.list(match[1,,drop=FALSE]) else list(),experiment_mapping)
+    engineering_id <- if('engineering_run_id' %in% names(row) && !is.na(row$engineering_run_id[1])) row$engineering_run_id[1] else row$run_id[1]
+    div(h3(identity$label),if(length(identity$conflicts)) p(paste('Metadata conflict:',paste(identity$conflicts,collapse=', '))),
+      if(!is.null(identity$branch)) p(paste('Branch:',identity$branch)),link,' ',
+      workspace_link('explorer','Inspect generated records',`data-open-run`=engineering_id),
+      div(class='detail-grid',lapply(names(row),function(k) div(strong(gsub('_',' ',k)),tags$pre(if(is.na(row[[k]][1])) 'Unavailable' else as.character(row[[k]][1]))))))
   })
   output$event_table <- renderTable({x <- as_table(data()$lifecycle_events); if(nrow(x) && !is.null(input$detail_run)) x <- x[x$object_id==input$detail_run,,drop=FALSE]; x})
-  observeEvent(input$reset_finance,{
-    for(name in names(financial_defaults)) {
-      if(name=='uncertainty_fraction') updateSliderInput(session,paste0('fin_',name),value=financial_defaults[[name]])
-      else updateNumericInput(session,paste0('fin_',name),value=financial_defaults[[name]])
+  set_assumptions <- function(values) {
+    for(name in names(values)) {
+      if(name=='uncertainty_fraction') updateSliderInput(session,paste0('fin_',name),value=values[[name]])
+      else updateNumericInput(session,paste0('fin_',name),value=values[[name]])
     }
+  }
+  observeEvent(input$reset_finance,{
+    updateSelectInput(session,'finance_preset',selected='Baseline')
+    set_assumptions(financial_defaults)
+  })
+  observeEvent(input$finance_preset,{
+    values <- financial_defaults
+    multiplier <- switch(input$finance_preset,Conservative=1.25,Optimistic=.75,1)
+    for(key in c('matched_review_minutes','missed_reconstruction_minutes','extra_review_minutes'))
+      values[[key]] <- values[[key]]*multiplier
+    set_assumptions(values)
   })
   scenario <- debounce(reactive({
     values <- financial_defaults
@@ -262,10 +280,47 @@ server <- function(input,output,session) {
     list(status='MODELED NOT MEASURED | Python cost model and 10,000 deterministic simulation draws | Research data unchanged',data=jsonlite::fromJSON(output_path))
   })
   financial <- reactive(financial_result()$data)
+  executive_server(input,output,data,historical_metrics,financial,number_text,historical)
+  observeEvent(input$open_system,updateSelectInput(session,'g_system',selected=input$open_system))
+  observeEvent(input$open_run,updateSelectInput(session,'g_run',selected=input$open_run))
+  output$active_analysis_filters <- renderText({
+    selected <- c(input$g_run,input$g_system,input$g_subsystem,input$g_model,input$g_skill,input$g_review)
+    selected <- selected[selected!='All']
+    if(length(selected)) paste(selected,collapse=' / ') else 'All experiments'
+  })
   output$financial_status <- renderText(financial_result()$status)
+  output$finance_inputs <- renderTable({
+    f <- financial(); req(f)
+    data.frame(Assumption=gsub('_',' ',names(f$assumptions)),Value=unlist(f$assumptions),row.names=NULL)
+  })
+  output$finance_provenance <- renderUI({
+    f <- financial(); req(f)
+    tagList(p(f$basis),p('Manual cost is labor rate times manual hours. Assisted cost combines paid engineering activities and assumed API attempt cost adjusted for success probability. First-year net benefit subtracts implementation and maintenance.'),
+      p('Calculation: analysis.research.finance via the financial-impact cost model. Presets vary three review effort rates; the live table reflects edits. API amounts are editable planning inputs.'),
+      p('The illustrative $92.71/hour rate scales the May 2025 BLS aerospace engineer median wage by the June 2026 private-industry compensation-to-wage ratio. Source periods and inputs are recorded in analysis/financial_impact/sources.json.'))
+  })
+  output$finance_export <- downloadHandler(filename=function() 'sigma-financial-scenario.csv',content=function(file) {
+    f <- financial(); req(f)
+    scalar <- function(values,section) {
+      keep <- lengths(values)==1L
+      data.frame(section=section,metric=names(values)[keep],value=as.character(unlist(values[keep])),row.names=NULL)
+    }
+    write.csv(rbind(scalar(f$assumptions,'Assumption'),scalar(f$modeled,'Modeled'),
+      data.frame(section='Provenance',metric=c('Basis','Calculation'),value=c(f$basis,'analysis.research.finance / cost_model'))),file,row.names=FALSE)
+  })
+  output$finance_brief <- downloadHandler(filename=function() 'sigma-financial-decision-brief.txt',content=function(file) {
+    f <- financial(); req(f)
+    writeLines(c('Sigma Airlines financial decision brief','Modeled planning scenario',
+      sprintf('Workload: %s FMEAs per year',f$assumptions$annual_volume),
+      sprintf('First-year net benefit: $%.2f',f$modeled$first_year_net_savings),
+      sprintf('Manual labor and AI-assisted cost per FMEA: $%.2f and $%.2f',f$modeled$manual_per_fmea,f$modeled$ai_per_fmea),
+      f$basis,'Measure paired engineering labor and review burden before approving a budget.','',
+      'Scenario inputs',paste(names(f$assumptions),unlist(f$assumptions),sep=': ')),file)
+  })
   output$financial_metrics <- renderUI({f <- financial(); if(is.null(f)) return(p('Scenario calculation pending'))
     div(class='finance-outcomes',
       kpi(number_text(f$modeled$annual_operating_savings,'$',0),'Modeled annual savings','Before implementation cost'),
+      kpi(number_text(f$modeled$percentage_reduction,'',1),'Unit cost reduction (%)','Modeled before fixed costs'),
       kpi(if(is.null(f$measured$actual_api_spending)) 'Unknown' else number_text(f$measured$actual_api_spending,'$',2),'Actual API spending','Unknown until invoices are complete'),
       kpi(number_text(f$modeled$review_cost_per_fmea,'$',0),'Estimated review / FMEA','Modeled engineering labor'),
       kpi(number_text(f$modeled$break_even_fmeas),'Break-even workload','FMEAs / modeled threshold'))
@@ -280,6 +335,6 @@ server <- function(input,output,session) {
   output$review_costs <- renderTable(as_table(financial()$quality_review_estimates),digits=2)
   output$historical_finance <- renderTable({h <- financial()$historical_scenario; if(is.null(h)) return(data.frame(Status='Pending')); data.frame(Metric=names(h),Value=vapply(h,function(x) paste(x,collapse=' to '),character(1)))})
 
-  engineering_server(input,output,session,research=data,historical=historical)
+  engineering_server(input,output,session,research=data,historical=historical,identity_mapping=experiment_mapping)
 }
 shinyApp(ui,server)

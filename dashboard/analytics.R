@@ -11,7 +11,7 @@ engineering_matrix_chart <- function(matrix) {
   svg_chart(c(body,'<text x="35" y="250">Occurrence \u2192 / severity 10 to 1 (top to bottom)</text>'),
     'Severity versus occurrence, existing 1-10 scales. Row counts only; not a formal risk acceptance matrix.',265)
 }
-engineering_analytics_server <- function(input,output,session,allowed,state,filtered,command,folder,focus_ids,research) {
+engineering_analytics_server <- function(input,output,session,allowed,state,filtered,command,folder,focus_ids,research,identity_mapping=list()) {
   selection <- debounce(reactive(filtered()$record_id),250)
   analytics <- reactive({
     if(!allowed()||is.null(state()$summary)) return(NULL)
@@ -108,7 +108,11 @@ engineering_analytics_server <- function(input,output,session,allowed,state,filt
     d<-d[which(!is.na(d[[timing[1]]])&d[[timing[1]]]>=0),,drop=FALSE]
     if('generation_status' %in% names(d))d<-d[d$generation_status=='success',,drop=FALSE]
     if(!nrow(d))return(chart_empty('No successful timed generations','Failed attempts are excluded from successful generation duration.'))
-    tagList(bar_rows(substr(d$run_id,1,45),d[[timing[1]]],max(1,d[[timing[1]]]),display=paste(round(d[[timing[1]]],1),'s')),p(class='chart-note','One duration per successful run, never repeated per failure-mode row.'))
+    d<-d[order(d$skill_version,d$system,d[[timing[1]]],na.last=TRUE),,drop=FALSE]
+    labels <- experiment_labels(d,identity_mapping)
+    tagList(bar_rows(paste(labels,d$skill_version,sep=' / '),d[[timing[1]]],max(1,d[[timing[1]]]),
+      display=paste(round(d[[timing[1]]],1),'s'),tips=d$run_id),
+      p(class='chart-note','Recorded generator duration per successful run. Labor and queue time require separate observations.'))
   })
   output$analytics_agreement <- renderUI({a<-analytics();d<-as_table(a$agreement);if(!nrow(d)||all(is.na(d$within_one_percentage)))return(chart_empty('Insufficient reviewed rating pairs','At least two explicit human corrections per rating are required. Approval without a rating correction is not an independent rating observation.'));tagList(bar_rows(d$rating,ifelse(is.na(d$within_one_percentage),0,d$within_one_percentage),100,display=ifelse(is.na(d$within_one_percentage),'Pending',paste0(round(d$within_one_percentage,1),'%')),tips=paste(d$rating,'n =',d$n)),chart_details(d,'Agreement denominators'))})
   output$analytics_trends <- renderUI({

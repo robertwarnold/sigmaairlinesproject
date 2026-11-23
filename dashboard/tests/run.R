@@ -2,13 +2,14 @@
 source('dashboard/bootstrap.R'); source('dashboard/data.R'); source('dashboard/plots.R'); source('dashboard/poster.R')
 library(testthat)
 
-test_that('single-page layout and shared global filters preserve selection semantics', {
+test_that('workspace routes and shared global filters preserve selection semantics', {
   library(shiny);library(bslib)
   source('dashboard/charts.R');source('dashboard/engineering.R');source('dashboard/single_page.R');source('dashboard/analytics.R')
   defaults<-jsonlite::fromJSON('dashboard/data/financial-defaults.json')
   html<-as.character(analytics_ui(defaults))
-  expect_match(html,'FMEA Engineering Dashboard',fixed=TRUE)
-  expect_false(grepl('navbar|sidebar|nav_panel',html))
+  expect_match(html,'FMEA Engineering Intelligence',fixed=TRUE)
+  for(view in names(workspace_views)) expect_match(html,paste0('href="#',view,'"'),fixed=TRUE)
+  expect_match(html,'executive_metrics',fixed=TRUE)
   expect_match(html,'id="fmea-register"',fixed=TRUE)
   expect_match(html,'analytics_health',fixed=TRUE)
   rows<-data.frame(record_id=c('one','two'),run_id=c('r1','r2'),system=c('A','B'),subsystem=c('s1','s2'),
@@ -25,6 +26,19 @@ test_that('single-page layout and shared global filters preserve selection seman
   matrix<-as.character(engineering_matrix_chart(data.frame(severity=9,occurrence=1,count=2)))
   expect_match(matrix,'Severity 9, occurrence 1: 2 rows',fixed=TRUE)
   expect_match(matrix,'not a formal risk acceptance',fixed=TRUE)
+})
+
+test_that('experiment identity uses structured evidence and flags conflicts', {
+  source('dashboard/experiment_identity.R')
+  mapping <- jsonlite::fromJSON('dashboard/data/experiment-mappings.json',simplifyVector=FALSE)
+  resolved <- experiment_identity(list(run_id='stable',original_filename='system_a_round2_run03.json'),mapping=mapping)
+  expect_equal(resolved$label,'System A \u2014 Round 2 \u2014 Run 03')
+  expect_equal(resolved$id,'stable')
+  expect_equal(experiment_identity(list(run_id='system_b_v4.0_run02.csv'),mapping=mapping)$label,
+    'Unresolved experiment \u2014 Run 02')
+  conflicting <- experiment_identity(list(system='B',run_id='round2-A-r03'),mapping=mapping)
+  expect_equal(conflicting$conflicts,'system')
+  expect_equal(conflicting$system,'B')
 })
 
 test_that('private RPN histogram preserves supplied bins and missing values stay outside', {

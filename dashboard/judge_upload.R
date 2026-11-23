@@ -49,7 +49,8 @@ judge_upload_server <- function(input,output,session,refresh) {
     branches <- input$github_branches
     req(all(grepl('^[A-Za-z0-9][A-Za-z0-9._/-]*$',branches)))
     tryCatch({
-      result <- run_import('sync',c('--no-render',as.vector(rbind('--branch',branches))))
+      engineering <- Sys.getenv('SIGMA_ENGINEERING_DATABASE',file.path(project_root,'results','engineering','workspace.sqlite'))
+      result <- run_import('sync',c('--no-render','--engineering-database',shQuote(engineering),as.vector(rbind('--branch',branches))))
       sync_status(paste('Status',result$status,'· Last successful refresh',
         if(is.null(result$last_successful_sync)) 'pending' else result$last_successful_sync,
         '· Import issues',NROW(result$problems)))
