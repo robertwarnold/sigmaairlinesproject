@@ -390,3 +390,18 @@ risk and AI-validation charts, and an inline FMEA register. Shared global filter
 drive Python-calculated selected-record metrics and private exports. Generation,
 judge import, financial scenarios and academic exports retain their existing workflows.
 The standard Shiny and private-workstation launch commands remain unchanged.
+
+## V4.6 integration and the official V4.0 generator
+
+The [V4.6 release guide](docs/v46-generator-integration.md) covers the five-view
+dashboard, current V4.0 response and diagnostics contracts, historical evidence
+boundaries, and an offline experiment-readiness checklist. The existing V4.0
+skill is improved in place. V1.2 remains the judge condition. The [campaign
+configuration](examples/research/v4-release-campaign.json) is a plan for five
+systems with four replicates each. It authorizes no generation.
+
+Launch the private dashboard with `Rscript dashboard/run_private.R`. Use
+`python -m analysis.research plan --output results/v4/round2-plan --model MODEL_ID`
+from the intended release checkout to build the ignored experiment and judging
+manifests. Replace `MODEL_ID` with the agreed Gemini model before freezing the
+configuration. This command runs offline and makes no model request.
