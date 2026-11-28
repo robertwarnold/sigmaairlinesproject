@@ -1,7 +1,7 @@
 # Application shell and shared filter projections.
 chart_tokens <- list(background='#f7f8fa',surface='#ffffff',raised='#eef2f5',ink='#33414c',
   muted='#65737e',accent='#387fb5',grid='#e0e5e9',warning='#9c6525',failure='#c85360')
-palette <- c('v2.0'='#697b8a','v3.0'='#8d78b4','v3.0-audit'='#af782c','v4.0'='#387fb5')
+palette <- c('v2.0'='#697b8a','v3.0'='#8d78b4','v3.0-audit'='#af782c','v4.0-inventory'='#387fb5')
 analytics_card <- function(title,id,note=NULL) chart_panel(title,uiOutput(id),note)
 workspace_views <- c(overview='Executive Overview',quality='Engineering Quality',
   experiments='Experiments & Performance',finance='Financial Impact',explorer='Data Explorer')

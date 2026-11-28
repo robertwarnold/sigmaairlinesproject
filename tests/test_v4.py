@@ -49,7 +49,7 @@ def release_fixture():
     return inventory,data
 
 
-def import_data(version='v4.0'):
+def import_data(version='v4.0-inventory'):
     return {'schema':'standalone-judge-import-1','workflow':'standalone_gemini','runs':[{
         'data_origin':'synthetic_test','run_id':'synthetic-A-1','system':'A','skill_version':version,'generator_model':'synthetic-only',
         'settings':{'temperature':0},'judge_model':'Claude Sonnet 5.5','judge_skill_version':'v1.2',
@@ -111,13 +111,13 @@ class V4EngineeringTests(unittest.TestCase):
             inventory['system_sha256']=hashlib.sha256(source.read_bytes()).hexdigest()
             path=root/'inventory.json'; path.write_text(json.dumps(inventory))
             with patch('fmea_generator.call_gemini',return_value={'text':json.dumps(data),'finish_reason':'STOP','max_output_tokens':50000}) as call,patch('fmea_generator.automatic_report'),patch('analysis.research.__main__.register'):
-                engine.generate_fmea(source,'synthetic',version='v4.0',inventory_file=path,output_dir=root)
-            call.assert_called_once(); self.assertEqual(call.call_args.kwargs['version'],'v4.0')
-            receipt=json.loads((root/'synthetic_v4.0_run01_execution.json').read_text())
+                engine.generate_fmea(source,'synthetic',version='v4.0-inventory',inventory_file=path,output_dir=root)
+            call.assert_called_once(); self.assertEqual(call.call_args.kwargs['version'],'v4.0-inventory')
+            receipt=json.loads((root/'synthetic_v4.0-inventory_run01_execution.json').read_text())
             self.assertEqual(receipt['completeness']['structural_status'],'PASS'); self.assertEqual(len(receipt['git_commit']),40)
             self.assertEqual(receipt['response_contract'],RESPONSE_VERSION)
             self.assertTrue(receipt['fmea_metrics']['schema_valid'])
-            diagnostics=root/'synthetic_v4.0_run01_diagnostics.json'
+            diagnostics=root/'synthetic_v4.0-inventory_run01_diagnostics.json'
             self.assertIn(diagnostics.name,receipt['artifacts'])
             report=json.loads(diagnostics.read_text())
             self.assertEqual(report['summary']['instances_covered'],3)
@@ -163,22 +163,22 @@ class V4ResearchTests(unittest.TestCase):
 
     def test_stratified_bootstrap_and_primary_anova(self):
         rows=[]
-        for version,base in [('v2.0',30),('v3.0',22),('v4.0',12)]:
+        for version,base in [('v2.0',30),('v3.0',22),('v4.0-inventory',12)]:
             for system in 'ABCDE':
                 for r in range(4):
                     rows.append({'skill_version':version,'system':system,'missed_percentage':base+r+ord(system)-65,'extra_unmatched_rows':2,'structural_status':'PASS','format_status':'PASS','unsupported_inflation_review':'PASS'})
-        ci=bootstrap(rows,('v2.0','v4.0')); self.assertEqual(ci,bootstrap(rows,('v2.0','v4.0')))
+        ci=bootstrap(rows,('v2.0','v4.0-inventory')); self.assertEqual(ci,bootstrap(rows,('v2.0','v4.0-inventory')))
         self.assertAlmostEqual(ci['improvement']['percentage_points'],18)
         result=compare(rows)
         self.assertLess(result['anova']['p'],.05); self.assertEqual(result['anova']['df_version'],1)
         self.assertEqual(result['exploratory_three_version']['df_version'],2)
         self.assertTrue(all(v=='PASS' for v in result['criteria'].values()))
-        self.assertEqual(anova(rows[:4],('v2.0','v4.0'))['status'],'INSUFFICIENT_DATA')
+        self.assertEqual(anova(rows[:4],('v2.0','v4.0-inventory'))['status'],'INSUFFICIENT_DATA')
 
     def test_registration_preserves_quality_metrics_and_is_idempotent(self):
         with tempfile.TemporaryDirectory(dir='results') as temp:
             root=Path(temp); source=root/'receipt.json'
-            source.write_text(json.dumps({'workflow':'standalone_gemini','experiment_id':'round2-v4-A-r01','attempt_id':'a','system_id':'system_A','prompt_version':'v4.0','model':'synthetic','status':'success','row_count':2}))
+            source.write_text(json.dumps({'workflow':'standalone_gemini','experiment_id':'round2-v4-A-r01','attempt_id':'a','system_id':'system_A','prompt_version':'v4.0-inventory','model':'synthetic','status':'success','row_count':2}))
             snapshot=root/'current.json'; atomic_json(snapshot,empty_snapshot())
             first=register(source,snapshot); second=register(source,snapshot)
             self.assertEqual(len(second['registry']),1); self.assertEqual(first['statistics'],second['statistics'])
@@ -204,7 +204,7 @@ class V4ResearchTests(unittest.TestCase):
     def test_v4_plan_exclusive_twenty_runs(self):
         with tempfile.TemporaryDirectory(dir='results') as temp:
             root=Path(temp); data=plan(root/'plan','unconfirmed')
-            self.assertEqual(len(data['runs']),20); self.assertEqual({r['skill_version'] for r in data['runs']},{'v4.0'})
+            self.assertEqual(len(data['runs']),20); self.assertEqual({r['skill_version'] for r in data['runs']},{'v4.0-inventory'})
             self.assertTrue(all(r['run_id'].startswith('round2-v4-') for r in data['runs']))
             with self.assertRaises(FileExistsError): plan(root/'plan','unconfirmed')
 

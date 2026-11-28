@@ -95,7 +95,7 @@ dashboard_runs <- function(d,runs=as_table(d$runs),scatter=FALSE) {
 }
 dashboard_versions <- function(d) {
   rows <- as_table(d$per_version)
-  htmltools::tagList(lapply(c('v2.0','v3.0','v3.0-audit','v4.0'),function(v) {
+  htmltools::tagList(lapply(c('v2.0','v3.0','v3.0-audit','v4.0-inventory'),function(v) {
     r <- if(nrow(rows)) rows[rows$skill_version==v,,drop=FALSE] else rows
     if(!nrow(r)) return(htmltools::div(class='version-line',htmltools::strong(v),htmltools::span('Awaiting independent evaluation')))
     value <- r$system_weighted_mean[1]

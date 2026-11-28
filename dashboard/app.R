@@ -61,7 +61,7 @@ server <- function(input,output,session) {
   output$evidence_status <- renderText(paste('Evidence:',data()$research_status,'|',refresh_key()$status))
   output$snapshot_status <- renderText(paste('Study data as of',data()$last_updated,'| Snapshot',substr(data()$data_version,1,12),'|',data()$validation_status))
   output$poster_results <- renderUI({
-    d <- data(); versions <- as_table(d$per_version); v4 <- if (nrow(versions)) versions[versions$skill_version=='v4.0',,drop=FALSE] else data.frame()
+    d <- data(); versions <- as_table(d$per_version); v4 <- if (nrow(versions)) versions[versions$skill_version=='v4.0-inventory',,drop=FALSE] else data.frame()
     delta <- d$statistics$confidence_intervals$improvement
     tagList(p(strong(paste0('V2 reported pooled missed rate: ',d$baseline$pooled_missed_percentage_reported,'%'))),
       p(if (nrow(v4)) sprintf('V4 run mean missed rate: %.1f%% (%d evaluated runs)',v4$mean_run_missed_percentage[1],v4$runs[1]) else 'V4 missed rate: Pending Evaluation | 0 evaluated runs'),
@@ -93,7 +93,7 @@ server <- function(input,output,session) {
   output$criteria <- renderUI({criteria <- data()$statistics$criteria; div(class='criteria-grid',lapply(names(criteria),function(k) div(strong(criteria[[k]]),span(gsub('_',' ',k)))))})
   output$pending_versions <- renderUI({
     available <- unique(as_table(data()$runs)$skill_version)
-    p(paste(paste(setdiff(c('v2.0','v3.0','v3.0-audit','v4.0'),available),'Pending Evaluation'),collapse=' | '))
+    p(paste(paste(setdiff(c('v2.0','v3.0','v3.0-audit','v4.0-inventory'),available),'Pending Evaluation'),collapse=' | '))
   })
   filtered <- reactive({
     runs <- as_table(data()$runs)
@@ -157,8 +157,8 @@ server <- function(input,output,session) {
   output$historical_reference <- renderUI({b <- data()$baseline; p(paste('Historical V2 report:',b$total_runs,'evaluated FMEAs;',b$pooled_missed_percentage_reported,'% pooled missed. Separate from the current experiment.'))})
   output$mission_kpis <- renderUI({
     ops <- data()$operations; runs <- as_table(data()$runs); versions <- as_table(data()$per_version)
-    current <- if(nrow(versions)) versions[versions$skill_version=='v4.0',,drop=FALSE] else versions
-    v4 <- if(nrow(runs)) runs[runs$skill_version=='v4.0',,drop=FALSE] else runs
+    current <- if(nrow(versions)) versions[versions$skill_version=='v4.0-inventory',,drop=FALSE] else versions
+    v4 <- if(nrow(runs)) runs[runs$skill_version=='v4.0-inventory',,drop=FALSE] else runs
     exact_cohort <- nrow(v4)>0 && all(v4$run_id %in% active_plan()$runs$run_id)
     missed <- if(exact_cohort && nrow(current)) paste0(number_text(current$pooled_missed_percentage[1],digits=1),'%') else 'Pending'
     div(class='kpi-row',

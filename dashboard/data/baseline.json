@@ -99,7 +99,7 @@
     },
     "limitations": "Report-derived pooled V2 baseline cannot support run means, CIs or ANOVA. Bootstrap is exploratory with four runs/cell; no item-independence claim. Engineering review remains required.",
     "planned_v4_runs": 20,
-    "primary_comparison": "v2.0 vs v4.0",
+    "primary_comparison": "v2.0 vs v4.0-inventory",
     "research_status": "PENDING_LIVE_EVALUATION",
     "secondary_v3_vs_v4": {
       "anova": {

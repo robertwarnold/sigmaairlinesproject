@@ -74,7 +74,7 @@ in raw JSON and the receipt audit; exported CSV preserves existing columns.
 Local generator syntax, only after separate generation authorization:
 
 ```powershell
-python fmea_generator.py --version v4.0 --system system_descriptions/system_B.txt --case-id system_B --run 2 --model CONFIRMED_ROUND1_MODEL_ID --inventory results/v4/inventory-B.json --campaign-id round2-v4-B-r02
+python fmea_generator.py --version v4.0-inventory --system system_descriptions/system_B.txt --case-id system_B --run 2 --model CONFIRMED_ROUND1_MODEL_ID --inventory results/v4/inventory-B.json --campaign-id round2-v4-B-r02
 ```
 
 The Actions legacy `run` input remains supported as an alias for `run_number`.
@@ -98,7 +98,7 @@ python scripts/v4_schedule.py --manifest results/v4/confirmed-plan/experiment_ma
 The schedule printer makes no network calls. It prints the first pilot command:
 
 ```powershell
-gh workflow run generate-fmea.yml --ref feat/fmea-skill-v4-research-dashboard -f mode=single -f skill_version=v4.0 -f system=system_B -f model=CONFIRMED_ROUND1_MODEL_ID -f run_number=2 -f batch_id=round2-v4-B-r02 -f approved_calls=1
+gh workflow run generate-fmea.yml --ref feat/fmea-skill-v4-research-dashboard -f mode=single -f skill_version=v4.0-inventory -f system=system_B -f model=CONFIRMED_ROUND1_MODEL_ID -f run_number=2 -f batch_id=round2-v4-B-r02 -f approved_calls=1
 gh run list --workflow generate-fmea.yml --limit 5
 gh run watch RUN_ID
 gh run download RUN_ID --dir results/github/RUN_ID
@@ -135,7 +135,7 @@ confirmed plan after checkout of the approved commit; never rewrite an executed 
 ## Gap audit and targeted remediation
 
 ```powershell
-python standalone_v4.py --system system_descriptions/system_B.txt --inventory results/v4/inventory-B.json --response results/github/RUN_ID/system_B_v4.0_run02_raw.txt --output results/v4/gap-report.json
+python standalone_v4.py --system system_descriptions/system_B.txt --inventory results/v4/inventory-B.json --response results/github/RUN_ID/system_B_v4.0-inventory_run02_raw.txt --output results/v4/gap-report.json
 ```
 
 Audit checks independent unit/repeat IDs, all 18 case decisions, input applicability,
@@ -153,7 +153,7 @@ The unchanged private judge skill v1.2 and original report/item records were una
 No new judge methodology or paid judge client was invented. Prepare one task:
 
 ```powershell
-python scripts/prepare_v4_judge.py --manifest results/v4/confirmed-plan/experiment_manifest.json --run-id round2-v4-B-r02 --generation-receipt results/github/RUN_ID/system_B_v4.0_run02_execution.json --output results/v4/judge-task-B-r02.json
+python scripts/prepare_v4_judge.py --manifest results/v4/confirmed-plan/experiment_manifest.json --run-id round2-v4-B-r02 --generation-receipt results/github/RUN_ID/system_B_v4.0-inventory_run02_execution.json --output results/v4/judge-task-B-r02.json
 ```
 
 A human runs that task with the **existing external Claude Sonnet 5.5 judge v1.2** and

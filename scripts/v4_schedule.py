@@ -14,5 +14,5 @@ if data['schema']!='round2-v4-plan-1': raise SystemExit('V4 manifest required')
 if not 1<=args.start<=20 or not 1<=args.count<=20 or args.start+args.count-1>20: raise SystemExit('Invalid schedule range')
 print('# PREPARATION ONLY: verify frozen conditions, pilot acceptance, shared daily quota and explicit paid-call authorization before running commands.')
 for run in data['runs'][args.start-1:args.start-1+args.count]:
-    if run['skill_version']!='v4.0': raise SystemExit('Mixed treatment')
-    print('gh workflow run generate-fmea.yml --ref feat/fmea-skill-v4-research-dashboard -f mode=single -f skill_version=v4.0 -f system=system_'+run['system']+' -f model='+shlex.quote(data['generator_model'])+' -f run_number='+str(run['replicate'])+' -f batch_id='+run['run_id']+' -f approved_calls=1')
+    if run['skill_version']!='v4.0-inventory': raise SystemExit('Mixed treatment')
+    print('gh workflow run generate-fmea.yml --ref feat/fmea-skill-v4-research-dashboard -f mode=single -f skill_version=v4.0-inventory -f system=system_'+run['system']+' -f model='+shlex.quote(data['generator_model'])+' -f run_number='+str(run['replicate'])+' -f batch_id='+run['run_id']+' -f approved_calls=1')

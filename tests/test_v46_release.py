@@ -33,7 +33,7 @@ class ReleasePipelineTests(unittest.TestCase):
             with (patch('fmea_generator.call_gemini',return_value=result) as call,
                   patch('fmea_generator.automatic_report'),patch('analysis.research.__main__.register')):
                 with self.assertRaisesRegex(ValueError,'schema identifier'):
-                    engine.generate_fmea(source,'system_A',version='v4.0',inventory_file=inventory_path,output_dir=root)
+                    engine.generate_fmea(source,'system_A',version='v4.0-inventory',inventory_file=inventory_path,output_dir=root)
             call.assert_called_once()
             receipt=json.loads(next(root.glob('*_execution.json')).read_text(encoding='utf-8'))
             self.assertEqual(receipt['failure_classification'],'validation_failure')
@@ -52,7 +52,7 @@ class ReleasePipelineTests(unittest.TestCase):
             result={'text':json.dumps(response),'finish_reason':'STOP','max_output_tokens':10000}
             with (patch('fmea_generator.call_gemini',return_value=result) as call,
                   patch('fmea_generator.automatic_report'), patch('analysis.research.__main__.register')):
-                engine.generate_fmea(package,'system_A',version='v4.0',inventory_file=inv,
+                engine.generate_fmea(package,'system_A',version='v4.0-inventory',inventory_file=inv,
                                      output_dir=root,model='synthetic-only')
             call.assert_called_once()
             receipt_path=next(root.glob('*_execution.json'))

@@ -113,7 +113,7 @@ def characterize_csv(path):
         source = list(reader)
     if not source or any(None in row or None in row.values() for row in source):
         raise ValueError("Empty/malformed standalone FMEA CSV")
-    if release and (any(row['version']!='v4.0' or not row['row_id'] for row in source) or
+    if release and (any(row['version']!='v4.0-inventory' or not row['row_id'] for row in source) or
                     len({row['row_id'] for row in source})!=len(source)):
         raise ValueError('Invalid V4 CSV row identity')
     rows = parse_fmea(json.dumps([{f: (None if release and r[f]=='' else int(r[f])) if f in RATINGS else r[f]

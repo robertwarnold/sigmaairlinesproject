@@ -55,7 +55,7 @@ on:
         description: Standalone skill version (single mode only)
         default: v2.0
         type: choice
-        options: [v2.0, v3.0, v3.0-audit, v4.0]
+        options: [v2.0, v3.0, v3.0-audit, v4.0-inventory]
       run:
         description: Legacy single-run replicate alias (overrides run_number when set)
         default: ""
@@ -301,9 +301,9 @@ jobs:
           esac
           test "$GITHUB_RUN_ATTEMPT" = 1 || exit 1
           [[ "$RUN_NUMBER" =~ ^[1-9][0-9]*$ ]] || exit 1
-          case "$SELECTED_VERSION" in v2.0|v3.0|v3.0-audit|v4.0) ;; *) exit 1 ;; esac
+          case "$SELECTED_VERSION" in v2.0|v3.0|v3.0-audit|v4.0-inventory) ;; *) exit 1 ;; esac
           campaign_id="single-${GITHUB_RUN_ID}"
-          if [ "$SELECTED_VERSION" = v4.0 ]; then
+          if [ "$SELECTED_VERSION" = v4.0-inventory ]; then
             test "$APPROVED_CALLS" = 1 || exit 1
             [[ "$BATCH_ID" =~ ^round2-v4-[A-E]-r[0-9][0-9]$ ]] || exit 1
             python -c 'import os; s=os.environ["SELECTED_SYSTEM"]; r=int(os.environ["RUN_NUMBER"]); assert s in ["system_"+x for x in "ABCDE"] and 1<=r<=4; assert os.environ["BATCH_ID"]=="round2-v4-"+s[-1]+"-r"+str(r).zfill(2)'
@@ -312,7 +312,7 @@ jobs:
             python -c 'import json,os; title="single "+os.environ["BATCH_ID"]+" ("+os.environ["SELECTED_MODEL"]+")"; runs=[r for p in json.load(open("/tmp/prior.json")) for r in p["workflow_runs"]]; assert not any(r["display_title"]==title and str(r["id"])!=os.environ["GITHUB_RUN_ID"] for r in runs), "Study run already dispatched; do not retry"'
           fi
           inventory_args=()
-          if [ "$SELECTED_VERSION" = v4.0 ]; then
+          if [ "$SELECTED_VERSION" = v4.0-inventory ]; then
             python standalone_v4.py --system "system_descriptions/${SELECTED_SYSTEM}.txt" --system-id "$SELECTED_SYSTEM" --output results/input_inventory.json
             inventory_args=(--inventory results/input_inventory.json)
           fi

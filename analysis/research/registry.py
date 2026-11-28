@@ -14,7 +14,7 @@ import tempfile
 
 from analysis.round2.__main__ import private, read, ingest
 
-VERSIONS=('v2.0','v3.0','v3.0-audit','v4.0')
+VERSIONS=('v2.0','v3.0','v3.0-audit','v4.0-inventory')
 DIAGNOSTIC_COUNTS=('inventory_elements','instances_covered','components_covered','components_identified',
                    'interfaces_covered','interfaces_identified','candidate_rows','potential_duplicates',
                    'unsupported_flags','completeness_warnings','severity_review_flags')
@@ -216,7 +216,7 @@ class Registry:
     def validate_cohort(self,records):
         if not records: return [],[]
         contracts={self.generation(run['run_id']).get('response_contract')
-                   for run in records if run['skill_version']=='v4.0' and self.generation(run['run_id'])}
+                   for run in records if run['skill_version']=='v4.0-inventory' and self.generation(run['run_id'])}
         if len(contracts)>1:
             raise ValueError('Do not pool official V4.0 and development V4.0 responses')
         with tempfile.TemporaryDirectory(dir=self.path.parent) as temp:

@@ -171,7 +171,7 @@ def build(judges, output, receipts=(), reviews=(), render=True):
     all_reviews=unique_sources(list(reviews)+catalog['reviews'])
     stage=Path(tempfile.mkdtemp(prefix='.research-',dir=output.parent))
     try:
-        result=aggregate(all_judges,stage/'validated',treatment='v4.0')
+        result=aggregate(all_judges,stage/'validated',treatment='v4.0-inventory')
         runs,items,provenance,missing=ingest(all_judges)
         events=review_events(all_reviews,runs,items)
         write_csv(stage/'validated'/'engineering_review.csv',events)
@@ -280,7 +280,7 @@ def plan(output, model, seed=5300):
     from standalone_v4 import DIAGNOSTICS_VERSION, RESPONSE_VERSION, SCORING_PROFILE
     manifest=old_plan(output,model,seed)
     manifest['schema']='round2-v4-plan-1'; manifest['git_commit']=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
-    manifest['skill_sha256']=hashlib.sha256((ROOT/'skill/fmea_instructions_v4.md').read_bytes()).hexdigest()
+    manifest['skill_sha256']=hashlib.sha256((ROOT/'skill/fmea_instructions_v4_inventory.md').read_bytes()).hexdigest()
     manifest.update(prepared_at=stamp(),response_contract=RESPONSE_VERSION,diagnostics_schema=DIAGNOSTICS_VERSION,
                     scoring_profile=SCORING_PROFILE,provider='Gemini',
                     generator_source_sha256=hashlib.sha256((ROOT/'fmea_generator.py').read_bytes()).hexdigest(),
@@ -289,7 +289,7 @@ def plan(output, model, seed=5300):
     manifest['settings']['max_output_tokens']='Resolve from explicitly selected model and record in each receipt'
     manifest['condition_status']='Planned only. Freeze inputs, inventory, model, and identifier-only judge provenance before execution.'
     for run in manifest['runs']:
-        run['skill_version']='v4.0'; run['run_id']=run['run_id'].replace('round2-','round2-v4-')
+        run['skill_version']='v4.0-inventory'; run['run_id']=run['run_id'].replace('round2-','round2-v4-')
         run.update(generation_timestamp=None,evaluation_timestamp=None,artifacts=[],git_commit=manifest['git_commit'],skill_sha256=manifest['skill_sha256'])
     atomic_json(private(output)/'experiment_manifest.json',manifest)
     atomic_json(private(output)/'judging_manifest.json',{'schema':'judging-queue-4','judge_model':manifest['judge_model'],'judge_skill_version':manifest['judge_skill_version'],'methodology_status':'unchanged_external_judge_required','runs':manifest['runs']})
