@@ -10,7 +10,7 @@ parser.add_argument('--manifest',required=True); parser.add_argument('--run-id',
 parser.add_argument('--output',required=True); parser.add_argument('--generation-receipt',required=True)
 args=parser.parse_args(); manifest=read(private(args.manifest)); receipt=read(private(args.generation_receipt))
 run=next((r for r in manifest['runs'] if r['run_id']==args.run_id),None)
-if not run or receipt.get('prompt_version')!='v4.0' or receipt.get('status')!='success': raise SystemExit('Successful matching V4 receipt required')
+if not run or receipt.get('prompt_version')!='v4.0-inventory' or receipt.get('status')!='success': raise SystemExit('Successful matching V4 receipt required')
 if receipt['system_id'].removeprefix('system_')!=run['system'] or receipt['run_number']!=run['replicate']: raise SystemExit('Generation identity mismatch')
 path=private(args.output)
 if path.exists(): raise FileExistsError(path)

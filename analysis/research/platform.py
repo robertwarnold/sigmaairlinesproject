@@ -86,7 +86,7 @@ def _snapshot(store,output,render=True):
                             'latest_workflow':latest[-1] if latest else None}
         # Conditional field accuracy uses each field's observed matched-item denominator.
         accuracy=[]
-        for version in ('v2.0','v3.0','v3.0-audit','v4.0'):
+        for version in ('v2.0','v3.0','v3.0-audit','v4.0-inventory'):
             rows=[r for r in validated if r['skill_version']==version]
             for field in QUALITY:
                 denominator=sum(r[field+'_denominator'] for r in rows)

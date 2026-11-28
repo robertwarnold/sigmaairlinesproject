@@ -91,7 +91,7 @@ def findings(row, unit):
 
 def normalize(raw, inventory, receipt, dataset_version, response_hash, inventory_hash):
     if not isinstance(receipt,dict) or not isinstance(inventory,dict): raise ValueError('Receipt and inventory must be objects')
-    if receipt.get('workflow') != 'standalone_gemini' or receipt.get('prompt_version') != 'v4.0':
+    if receipt.get('workflow') != 'standalone_gemini' or receipt.get('prompt_version') != 'v4.0-inventory':
         raise ValueError('Only standalone Gemini V4 output is supported; canonical workflow remains separate')
     for key in ('attempt_id', 'experiment_id', 'system_id', 'system_sha256', 'skill_sha256', 'model', 'configuration', 'git_commit', 'started_at'):
         if key not in receipt or receipt[key] is None or receipt[key] == '': raise ValueError('Missing receipt provenance: ' + key)
@@ -123,7 +123,7 @@ def normalize(raw, inventory, receipt, dataset_version, response_hash, inventory
     if any(isinstance(v,(list,dict)) for v in settings.values()): raise ValueError('Configuration values must be scalar')
     meta = {'run_id': run_id, 'experiment_id': receipt['experiment_id'], 'system': receipt['system_id'],
             'dataset_id': receipt['system_sha256'], 'dataset_version': dataset_version,
-            'workflow': 'standalone_gemini', 'skill_version': 'v4.0', 'skill_sha256': receipt['skill_sha256'],
+            'workflow': 'standalone_gemini', 'skill_version': 'v4.0-inventory', 'skill_sha256': receipt['skill_sha256'],
             'generator_model': receipt['model'], 'generator_provider':'Gemini', 'configuration': settings, 'git_commit': receipt['git_commit'],
             'scoring_policy': POLICY, 'rating_range': [1, 10], 'generation_timestamp': receipt['started_at'],
             'generation_status': receipt['status'], 'response_sha256': response_hash, 'inventory_sha256': inventory_hash,

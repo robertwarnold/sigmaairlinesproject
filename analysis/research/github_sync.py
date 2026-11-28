@@ -95,7 +95,7 @@ def archive_generated_members(store, archive, receipt_member, receipt, generatio
 
 
 def import_engineering_run(store, engineering, archive, receipt_path, receipt, members):
-    if receipt.get('prompt_version')!='v4.0' or receipt.get('status')!='success':
+    if receipt.get('prompt_version')!='v4.0-inventory' or receipt.get('status')!='success':
         return None
     responses = [entry for entry in members if entry['member'].endswith(('_raw.txt','.json'))
                  and not entry['member'].endswith('_diagnostics.json')]

@@ -19,7 +19,7 @@ from test_v4 import import_data
 
 def receipt(root,attempt='a',system='A',workflow=None,status='success',rows=2):
     data={'workflow':'standalone_gemini','experiment_id':'synthetic-test','attempt_id':attempt,
-          'source_attempt_id':attempt,'system_id':'system_'+system,'prompt_version':'v4.0',
+          'source_attempt_id':attempt,'system_id':'system_'+system,'prompt_version':'v4.0-inventory',
           'model':'synthetic-only','configuration':{'temperature':0},'status':status,
           'started_at':'2026-11-15T10:00:00+00:00','finished_at':'2026-11-15T10:01:00+00:00',
           'row_count':rows if status=='success' else None,'api_request_seconds':60,
@@ -127,7 +127,7 @@ class RegistryTests(unittest.TestCase):
         parsed=adapt(self.root/'analysis.xlsx'); self.store.preview(parsed)
 
     def test_planned_run_receipt_links_without_duplicate_generation(self):
-        manifest=self.root/'manifest.json'; manifest.write_text(json.dumps({'generator_model':'synthetic-only','runs':[{'run_id':'round2-v4-A-r01','system':'A','skill_version':'v4.0','replicate':1}]}))
+        manifest=self.root/'manifest.json'; manifest.write_text(json.dumps({'generator_model':'synthetic-only','runs':[{'run_id':'round2-v4-A-r01','system':'A','skill_version':'v4.0-inventory','replicate':1}]}))
         self.store.plan(manifest)
         path=receipt(self.root); data=json.loads(path.read_text()); data['study_run_id']='round2-v4-A-r01'; path.write_text(json.dumps(data))
         self.store.receipt(path)

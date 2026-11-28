@@ -331,6 +331,15 @@ Explicit `--version v3.0` selects the new inventory/case audit; existing command
 still default to v2.0. See [Round 2 execution and import runbook](docs/round2-runbook.md)
 for private judge imports, analysis workbooks, controlled pilot dispatch and limitations.
 
+## Skill v4.0
+
+`skill/fmea_instructions_v4.md` is skill v4.0: v3.0's text plus rules for escalation
+levels, assembly sub-elements, per-unit supply connections and system-level severity,
+derived from the judged Round 2 (v3.0) results. It keeps v3.0's 13-column JSON array, so
+judge v1.2 reads it unchanged. Select it with `-f skill_version=v4.0` (the default is
+still v2.0). The changelog is at the end of the skill. The separate inventory-audit
+condition described below is labelled `v4.0-inventory`.
+
 ## V4 research platform and Shiny poster
 
 V4 extends the discovered remote V3 and complementary local audit work while retaining

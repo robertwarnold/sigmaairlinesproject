@@ -14,7 +14,7 @@ PROMPT_VERSION = "v2.0"
 FIELDS = ["component", "function", "failure_mode", "cause", "local_effect",
           "system_effect", "recommended_action", "severity", "occurrence",
           "detection", "rating_rationale", "evidence", "review_flag"]
-SKILL_FILES = {"v2.0": ROOT / "skill/fmea_instructions.md", "v3.0": ROOT / "skill/fmea_instructions_v3_remote.md", "v3.0-audit": ROOT / "skill/fmea_instructions_v3.md", "v4.0": ROOT / "skill/fmea_instructions_v4.md"}
+SKILL_FILES = {"v2.0": ROOT / "skill/fmea_instructions.md", "v3.0": ROOT / "skill/fmea_instructions_v3_remote.md", "v3.0-audit": ROOT / "skill/fmea_instructions_v3.md", "v4.0": ROOT / "skill/fmea_instructions_v4.md", "v4.0-inventory": ROOT / "skill/fmea_instructions_v4_inventory.md"}
 
 RATINGS = ("severity", "occurrence", "detection")
 # Timing belongs in a per-attempt sidecar rather than being repeated in every row.
@@ -149,7 +149,7 @@ def call_gemini(system_text, model=None, execution=None, before_request=None, ve
                     system_instruction=instructions,
                     temperature=0,
                     response_mime_type="application/json",
-                    response_schema=RESPONSE_SCHEMA if version in ("v2.0", "v3.0") else v4_schema() if version == "v4.0" else v3_schema(),
+                    response_schema=RESPONSE_SCHEMA if version in ("v2.0", "v3.0", "v4.0") else v4_schema() if version == "v4.0-inventory" else v3_schema(),
                     max_output_tokens=max_output_tokens,
                 ),
             )
@@ -178,7 +178,7 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
     if version not in SKILL_FILES:
         raise ValueError(f"Unsupported skill version: {version}")
     v4_inventory = None
-    if version == "v4.0":
+    if version == "v4.0-inventory":
         from standalone_v4 import load_inventory
         v4_inventory = load_inventory(inventory_file, system_file)
     if isinstance(run, bool) or not isinstance(run, int) or run < 1:
@@ -198,7 +198,7 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
     raw_path = output_dir / f"{prefix}_raw.txt"
     csv_path = output_dir / f"{prefix}.csv"
     metadata_path = output_dir / f"{prefix}_execution.json"
-    diagnostics_path = output_dir / f"{prefix}_diagnostics.json" if version=="v4.0" else None
+    diagnostics_path = output_dir / f"{prefix}_diagnostics.json" if version=="v4.0-inventory" else None
     output_paths=(csv_path,raw_path,metadata_path)+((diagnostics_path,) if diagnostics_path else ())
     for path in output_paths:
         if os.path.lexists(path):
@@ -218,11 +218,11 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
               "inventory_sha256": file_hash(inventory_file) if inventory_file else None,
               "supersedes_attempt_id": execution.get("supersedes_attempt_id"),
               "configuration": {"temperature": 0, "response_mime_type": "application/json",
-                                "response_schema": RESPONSE_SCHEMA if version in ("v2.0", "v3.0") else v4_schema() if version == "v4.0" else v3_schema(), "retry_attempts": 1},
+                                "response_schema": RESPONSE_SCHEMA if version in ("v2.0", "v3.0", "v4.0") else v4_schema() if version == "v4.0-inventory" else v3_schema(), "retry_attempts": 1},
               "started_at": utc_now(), "api_request_seconds": None,
               "parsing_validation_seconds": None, "status": "running", "failure_classification": None,
               "usage_metadata": None, "estimated_cost": None,
-              "completeness": {"status": "not_required_by_v2"} if version in ("v2.0", "v3.0") else {"status": "awaiting_validation"},
+              "completeness": {"status": "not_required_by_v2"} if version in ("v2.0", "v3.0", "v4.0") else {"status": "awaiting_validation"},
               "execution": execution}
     if diagnostics_path:
         from standalone_v4 import DIAGNOSTICS_VERSION, RESPONSE_VERSION, SCORING_PROFILE
@@ -255,7 +255,7 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
         parse_start = time.perf_counter()
         try:
             # Reuse the unchanged v2 schema/rating validation and local RPN arithmetic.
-            if version == "v4.0":
+            if version == "v4.0-inventory":
                 rows, record["completeness"] = parse_v4(result["text"], v4_inventory,require_release=True)
             elif version == "v3.0-audit":
                 rows, record["completeness"] = parse_v3(result["text"])
@@ -312,7 +312,7 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
             automatic_report(metadata_path)
         except Exception as reporting_error:
             print(f"[REPORTING] {type(reporting_error).__name__}; generation outcome preserved", flush=True)
-        if version == "v4.0" and not os.getenv("SIGMA_RESEARCH_DATABASE"):
+        if version == "v4.0-inventory" and not os.getenv("SIGMA_RESEARCH_DATABASE"):
             try:
                 from analysis.research.__main__ import register
                 register(metadata_path, ROOT / "results/research/current.json")

@@ -4,7 +4,7 @@
   "pre_improvement_commit": "2c4ab3dddf68eadc1552f3e240bd96d4ca0b077b",
   "generator_implementation_commit": "07b799e4315d21966417382d82c455fc53e2a9a5",
   "implementation_commit_timestamp": "2026-11-23T18:01:11Z",
-  "generator_skill_version": "v4.0",
+  "generator_skill_version": "v4.0-inventory",
   "skill_source_sha256_git_blob": "07bb52c5df1c5bea1eef873cd83a3b0e87264ba6c55358b6e697b6f05625829e",
   "generator_source_sha256_git_blob": "9c235ca0de3c0694e4355acd4f2b533c7b4f6afdf795b0cd0038141b562b1b5f",
   "validator_source_sha256_git_blob": "4ac5c1d0efce1095bb868dc2221d47daf239db9bfaa97c0f766b4083b00bac28",

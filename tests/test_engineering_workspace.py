@@ -22,7 +22,7 @@ def fixture(root, attempt='run-1'):
                                'row_ids':['r1'] if c=='failure to start' else []} for c in CATEGORIES],'review_flags':[],'complete':True}
     response=root/'response.json'; inventory=root/'inventory.json'; receipt=root/'receipt.json'
     response.write_text(encoded(raw),encoding='utf-8'); inventory.write_text(encoded(inv),encoding='utf-8')
-    meta={'workflow':'standalone_gemini','prompt_version':'v4.0','attempt_id':attempt,'experiment_id':'SYNTHETIC-ONLY',
+    meta={'workflow':'standalone_gemini','prompt_version':'v4.0-inventory','attempt_id':attempt,'experiment_id':'SYNTHETIC-ONLY',
           'system_id':'A','system_sha256':inv['system_sha256'],'inventory_sha256':file_digest(inventory),'skill_sha256':'synthetic-skill',
           'model':'synthetic-offline','configuration':{'temperature':0},'git_commit':'synthetic','started_at':'2026-11-15T00:00:00+00:00',
           'status':'success','artifacts':{'response.json':{'sha256':file_digest(response)}},'data_origin':'synthetic_test'}

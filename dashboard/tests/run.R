@@ -13,7 +13,7 @@ test_that('workspace routes and shared global filters preserve selection semanti
   expect_match(html,'id="fmea-register"',fixed=TRUE)
   expect_match(html,'analytics_health',fixed=TRUE)
   rows<-data.frame(record_id=c('one','two'),run_id=c('r1','r2'),system=c('A','B'),subsystem=c('s1','s2'),
-    generator_model=c('m1','m2'),skill_version='v4.0',review_status=c('NEEDS_REVIEW','APPROVED'),severity=c(9,3),occurrence=c(1,2),
+    generator_model=c('m1','m2'),skill_version='v4.0-inventory',review_status=c('NEEDS_REVIEW','APPROVED'),severity=c(9,3),occurrence=c(1,2),
     generation_timestamp=c('2026-11-15','2026-11-14'),component=c('Synthetic MOTOR','Synthetic valve'))
   expect_equal(filter_engineering_rows(rows,list(system='A'))$record_id,'one')
   expect_equal(filter_engineering_rows(rows,list(model='m2',review='APPROVED'))$record_id,'two')
@@ -34,7 +34,7 @@ test_that('experiment identity uses structured evidence and flags conflicts', {
   resolved <- experiment_identity(list(run_id='stable',original_filename='system_a_round2_run03.json'),mapping=mapping)
   expect_equal(resolved$label,'System A \u00b7 Round 2 \u00b7 Run 03')
   expect_equal(resolved$id,'stable')
-  expect_equal(experiment_identity(list(run_id='system_b_v4.0_run02.csv'),mapping=mapping)$label,
+  expect_equal(experiment_identity(list(run_id='system_b_v4.0-inventory_run02.csv'),mapping=mapping)$label,
     'System B \u00b7 Round unverified \u00b7 Run 02')
   expect_equal(experiment_identity(list(run_id='legacy:system_c_v2.0_run01'),mapping=mapping)$label,
     'System C \u00b7 Round unverified \u00b7 Run 01')
@@ -127,9 +127,9 @@ test_that('private workspace requires explicit loopback origin and does not expo
   expect_false(grepl('<script>',html,fixed=TRUE)); expect_match(html,'Unknown')
 })
 test_that('manifest progress excludes historical aliases and duplicate attempts', {
-  d <- list(registry=data.frame(run_id=c('old','planned-A','planned-A'),system='A',skill_version='v4.0',
+  d <- list(registry=data.frame(run_id=c('old','planned-A','planned-A'),system='A',skill_version='v4.0-inventory',
     generation_status='success',evaluation_status=c('not_evaluated','evaluated','evaluated')))
-  plan <- list(runs=data.frame(run_id=c('planned-A','planned-B'),system=c('A','B'),skill_version='v4.0'),status='SYNTHETIC TEST PLAN')
+  plan <- list(runs=data.frame(run_id=c('planned-A','planned-B'),system=c('A','B'),skill_version='v4.0-inventory'),status='SYNTHETIC TEST PLAN')
   html <- as.character(workspace_progress(d,plan))
   expect_match(html,'SYNTHETIC TEST PLAN'); expect_match(html,'Exact manifest run IDs only')
   expect_false(grepl('>2</span>',html,fixed=TRUE))
@@ -142,9 +142,9 @@ test_that('accepted synthetic snapshot refresh updates charts and corruption ret
   save(d); previous <- getwd(); setwd('dashboard'); on.exit(setwd(previous),add=TRUE)
   env <- new.env(parent=globalenv()); sys.source('app.R',envir=env); env$source_path <- path
   shiny::testServer(env$server, {
-    session$setInputs(refresh=1,versions='v4.0',systems='A',eval_status='All',dates=c('2026-01-01','2026-12-31'))
+    session$setInputs(refresh=1,versions='v4.0-inventory',systems='A',eval_status='All',dates=c('2026-01-01','2026-12-31'))
     session$flushReact(); expect_match(output$run_plot$html,'Awaiting independent evaluation')
-    d$runs <- data.frame(run_id='SYNTHETIC-REFRESH',system='A',skill_version='v4.0',missed_percentage=17,
+    d$runs <- data.frame(run_id='SYNTHETIC-REFRESH',system='A',skill_version='v4.0-inventory',missed_percentage=17,
       generated_rows=30,found=20,missed=4,extra_unmatched_rows=1)
     d$last_updated <- '2026-11-17T00:00:00+00:00'; save(d)
     session$setInputs(refresh=2); session$elapse(30010); session$flushReact()
@@ -169,8 +169,8 @@ test_that('dashboard components preserve validated data and separate pending evi
 
 test_that('synthetic evaluated chart marks retain identity, supplied rates and intervals', {
   d <- read_snapshot('dashboard/data/baseline.json')
-  d$runs <- data.frame(run_id='SYNTHETIC-<script>',system='A',skill_version='v4.0',missed_percentage=17,generated_rows=30)
-  d$per_version <- data.frame(skill_version='v4.0',system_weighted_mean=17,mean_run_missed_percentage=19,runs=4,ci_low=12,ci_high=23)
+  d$runs <- data.frame(run_id='SYNTHETIC-<script>',system='A',skill_version='v4.0-inventory',missed_percentage=17,generated_rows=30)
+  d$per_version <- data.frame(skill_version='v4.0-inventory',system_weighted_mean=17,mean_run_missed_percentage=19,runs=4,ci_low=12,ci_high=23)
   original <- serialize(d,NULL)
   r <- as.character(dashboard_runs(d)); v <- as.character(dashboard_versions(d))
   expect_match(r,'17% missed'); expect_match(r,'data-run=')
@@ -198,13 +198,13 @@ test_that('synthetic financial graphics preserve loss and unknown spending', {
 
 test_that('synthetic run selection exposes only a matching accepted run', {
   d <- read_snapshot('dashboard/data/baseline.json')
-  d$runs <- data.frame(run_id='SYNTHETIC-SELECT',system='A',skill_version='v4.0',
+  d$runs <- data.frame(run_id='SYNTHETIC-SELECT',system='A',skill_version='v4.0-inventory',
     missed_percentage=17,generated_rows=30,found=20,missed=4,extra_unmatched_rows=1)
   path <- tempfile(fileext='.json'); jsonlite::write_json(d,path,auto_unbox=TRUE,dataframe='rows',null='null')
   previous <- getwd(); setwd('dashboard'); on.exit(setwd(previous),add=TRUE)
   env <- new.env(parent=globalenv()); sys.source('app.R',envir=env); env$source_path <- path
   shiny::testServer(env$server, {
-    session$setInputs(refresh=1,versions='v4.0',systems='A',eval_status='All',dates=c('2026-01-01','2026-12-31'))
+    session$setInputs(refresh=1,versions='v4.0-inventory',systems='A',eval_status='All',dates=c('2026-01-01','2026-12-31'))
     session$flushReact()
     expect_match(output$run_plot$html,'SYNTHETIC-SELECT')
     session$setInputs(chart_run='SYNTHETIC-SELECT'); session$flushReact()
@@ -219,7 +219,7 @@ test_that('Shiny server starts and renders baseline-only outputs without keys', 
   sys.source('app.R', envir = app_env)
   app_env$source_path <- normalizePath('data/baseline.json')
   shiny::testServer(app_env$server, {
-    session$setInputs(refresh=1,versions=c('v2.0','v3.0','v4.0'),systems=LETTERS[1:5],run='All',eval_status='All',dates=c('2026-01-01','2026-12-31'))
+    session$setInputs(refresh=1,versions=c('v2.0','v3.0','v4.0-inventory'),systems=LETTERS[1:5],run='All',eval_status='All',dates=c('2026-01-01','2026-12-31'))
     session$flushReact()
     expect_equal(data()$schema,'sigma-dashboard-4')
     expect_match(output$evidence_status,'REPORT_DERIVED_BASELINE_ONLY')
@@ -238,7 +238,7 @@ test_that('financial scenarios use Python, retain negative savings and reset def
   env <- new.env(parent=globalenv()); sys.source('app.R',envir=env)
   env$source_path <- normalizePath('data/baseline.json')
   shiny::testServer(env$server, {
-    session$setInputs(refresh=1,versions=c('v2.0','v3.0','v3.0-audit','v4.0'),systems=LETTERS[1:5],run='All',eval_status='All',dates=c('2026-01-01','2026-12-31'))
+    session$setInputs(refresh=1,versions=c('v2.0','v3.0','v3.0-audit','v4.0-inventory'),systems=LETTERS[1:5],run='All',eval_status='All',dates=c('2026-01-01','2026-12-31'))
     session$flushReact(); session$elapse(1000)
     base <- financial_result()$data
     expect_equal(base$status,'MODELED_NOT_MEASURED')
@@ -258,13 +258,13 @@ test_that('4.1 reader rejects premature quality and figures handle synthetic eva
   for(name in c('workflow_executions','evaluations','lifecycle_events','financial','field_accuracy')) d[[name]] <- list()
   d$operations <- list(evaluated_fmeas=0)
   d$financial <- list(status='MODELED_NOT_MEASURED',measured=list())
-  d$registry <- data.frame(generation_id='synthetic-only',system='A',skill_version='v4.0',generation_status='success',evaluation_status='awaiting_evaluation',missed_percentage=NA_real_)
+  d$registry <- data.frame(generation_id='synthetic-only',system='A',skill_version='v4.0-inventory',generation_status='success',evaluation_status='awaiting_evaluation',missed_percentage=NA_real_)
   expect_equal(validate_snapshot(d)$schema,'sigma-dashboard-4.1')
   d$registry$missed_percentage <- 12
   expect_error(validate_snapshot(d))
   d <- read_snapshot('dashboard/data/baseline.json')
   d$research_status <- 'SYNTHETIC_TEST_ONLY'
-  d$runs <- data.frame(run_id='SYNTHETIC-ONLY',system='A',skill_version='v4.0',missed_percentage=10,generated_rows=20)
+  d$runs <- data.frame(run_id='SYNTHETIC-ONLY',system='A',skill_version='v4.0-inventory',missed_percentage=10,generated_rows=20)
   expect_s3_class(coverage_plot(d),'ggplot')
   expect_s3_class(completeness_plot(d),'ggplot')
   expect_s3_class(field_accuracy_plot(d),'ggplot')

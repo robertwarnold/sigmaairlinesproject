@@ -7,7 +7,7 @@ poster_export <- function(data, path) {
   text <- function(label,x,y,size=18,col=chart_tokens$ink,face='plain',just='left') grid::grid.text(label,x,y,just=just,gp=grid::gpar(fontsize=size,col=col,fontface=face))
   text('SIGMA AIRLINES  /  SYSEN 5300',.035,.95,18,chart_tokens$accent,'bold')
   text('Can structured engineering coverage reduce missed failure modes?',.035,.89,32,face='bold')
-  v4 <- as_table(data$per_version); if (nrow(v4)) v4 <- v4[v4$skill_version=='v4.0',,drop=FALSE]
+  v4 <- as_table(data$per_version); if (nrow(v4)) v4 <- v4[v4$skill_version=='v4.0-inventory',,drop=FALSE]
   v4_label <- if (nrow(v4)) sprintf('V4 run mean: %.1f%%',v4$mean_run_missed_percentage[1]) else 'V4: Pending Evaluation'
   text(paste0('V2 report pooled: ',data$baseline$pooled_missed_percentage_reported,'%  |  ',v4_label,'  |  ',data$research_status),.035,.83,19)
   print(coverage_plot(data),vp=grid::viewport(x=.27,y=.55,width=.49,height=.47))

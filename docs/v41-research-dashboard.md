@@ -123,7 +123,7 @@ artifacts are reported, never reconstructed or counted as zero-quality FMEAs.
 
 ```powershell
 python -m analysis.research register-plan --manifest results/v4/committed-plan/experiment_manifest.json
-python -m analysis.research register-generation --receipt results/github/RUN_ID/system_B_v4.0_run02_execution.json
+python -m analysis.research register-generation --receipt results/github/RUN_ID/system_B_v4.0-inventory_run02_execution.json
 python -m analysis.research migrate --receipts results/first_execution.json results/second_execution.json
 ```
 

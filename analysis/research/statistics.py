@@ -3,7 +3,7 @@ from statistics import mean, stdev
 import numpy as np
 from scipy import stats
 
-VERSIONS=('v2.0','v3.0','v3.0-audit','v4.0')
+VERSIONS=('v2.0','v3.0','v3.0-audit','v4.0-inventory')
 SYSTEMS=tuple('ABCDE')
 
 
@@ -61,10 +61,10 @@ def anova(runs, versions):
 
 def compare(runs):
     """Designated primary contrast is always V2 versus V4, never V3 substituted."""
-    primary=anova(runs,('v2.0','v4.0'))
-    ci=bootstrap(runs,('v2.0','v4.0'))
+    primary=anova(runs,('v2.0','v4.0-inventory'))
+    ci=bootstrap(runs,('v2.0','v4.0-inventory'))
     criteria={k:'PENDING' for k in ('mean_below_20','version_p_below_0_05','four_systems_improve','no_system_worsens_over_5pp','extra_rows_at_most_4_8','structural_completeness','valid_format','unsupported_inflation_acceptable')}
-    v4=[r for r in runs if r['skill_version']=='v4.0']
+    v4=[r for r in runs if r['skill_version']=='v4.0-inventory']
     # Criteria are not declared PASS on an incomplete 20-run experiment.
     ready=all(r.get('comparison_eligible',True) for r in v4) and all(sum(r['system']==s for r in v4)>=4 for s in SYSTEMS)
     status=lambda value:'PASS' if value else 'FAIL'
@@ -82,8 +82,8 @@ def compare(runs):
             criteria['no_system_worsens_over_5pp']=status(min(deltas.values())>=-5)
         else:
             criteria['four_systems_improve']=criteria['no_system_worsens_over_5pp']='INSUFFICIENT_DATA'
-    return {'primary_comparison':'v2.0 vs v4.0','anova':primary,'confidence_intervals':ci,'criteria':criteria,
-            'secondary_v3_vs_v4':{'anova':anova(runs,('v3.0','v4.0')),'confidence_intervals':bootstrap(runs,('v3.0','v4.0'))},
-            'exploratory_three_version':anova(runs,('v2.0','v3.0','v4.0')),'exploratory_four_version':anova(runs,VERSIONS),'planned_v4_runs':20,'evaluated_v4_runs':len(v4),
+    return {'primary_comparison':'v2.0 vs v4.0-inventory','anova':primary,'confidence_intervals':ci,'criteria':criteria,
+            'secondary_v3_vs_v4':{'anova':anova(runs,('v3.0','v4.0-inventory')),'confidence_intervals':bootstrap(runs,('v3.0','v4.0-inventory'))},
+            'exploratory_three_version':anova(runs,('v2.0','v3.0','v4.0-inventory')),'exploratory_four_version':anova(runs,VERSIONS),'planned_v4_runs':20,'evaluated_v4_runs':len(v4),
             'research_status':'PENDING_LIVE_EVALUATION' if not v4 else 'EVALUATED_DATA_AVAILABLE',
             'limitations':'Report-derived pooled V2 baseline cannot support run means, CIs or ANOVA. Bootstrap is exploratory with four runs/cell; no item-independence claim. Engineering review remains required.'}
