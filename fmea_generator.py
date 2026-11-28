@@ -14,7 +14,7 @@ PROMPT_VERSION = "v2.0"
 FIELDS = ["component", "function", "failure_mode", "cause", "local_effect",
           "system_effect", "recommended_action", "severity", "occurrence",
           "detection", "rating_rationale", "evidence", "review_flag"]
-SKILL_FILES = {"v2.0": ROOT / "skill/fmea_instructions.md", "v3.0": ROOT / "skill/fmea_instructions_v3_remote.md", "v3.0-audit": ROOT / "skill/fmea_instructions_v3.md", "v4.0-inventory": ROOT / "skill/fmea_instructions_v4_inventory.md"}
+SKILL_FILES = {"v2.0": ROOT / "skill/fmea_instructions.md", "v3.0": ROOT / "skill/fmea_instructions_v3_remote.md", "v3.0-audit": ROOT / "skill/fmea_instructions_v3.md", "v4.0": ROOT / "skill/fmea_instructions_v4.md", "v4.0-inventory": ROOT / "skill/fmea_instructions_v4_inventory.md"}
 
 RATINGS = ("severity", "occurrence", "detection")
 # Timing belongs in a per-attempt sidecar rather than being repeated in every row.
@@ -149,7 +149,7 @@ def call_gemini(system_text, model=None, execution=None, before_request=None, ve
                     system_instruction=instructions,
                     temperature=0,
                     response_mime_type="application/json",
-                    response_schema=RESPONSE_SCHEMA if version in ("v2.0", "v3.0") else v4_schema() if version == "v4.0-inventory" else v3_schema(),
+                    response_schema=RESPONSE_SCHEMA if version in ("v2.0", "v3.0", "v4.0") else v4_schema() if version == "v4.0-inventory" else v3_schema(),
                     max_output_tokens=max_output_tokens,
                 ),
             )
@@ -218,11 +218,11 @@ def generate_fmea(system_file, case_id, version=PROMPT_VERSION, run=1,
               "inventory_sha256": file_hash(inventory_file) if inventory_file else None,
               "supersedes_attempt_id": execution.get("supersedes_attempt_id"),
               "configuration": {"temperature": 0, "response_mime_type": "application/json",
-                                "response_schema": RESPONSE_SCHEMA if version in ("v2.0", "v3.0") else v4_schema() if version == "v4.0-inventory" else v3_schema(), "retry_attempts": 1},
+                                "response_schema": RESPONSE_SCHEMA if version in ("v2.0", "v3.0", "v4.0") else v4_schema() if version == "v4.0-inventory" else v3_schema(), "retry_attempts": 1},
               "started_at": utc_now(), "api_request_seconds": None,
               "parsing_validation_seconds": None, "status": "running", "failure_classification": None,
               "usage_metadata": None, "estimated_cost": None,
-              "completeness": {"status": "not_required_by_v2"} if version in ("v2.0", "v3.0") else {"status": "awaiting_validation"},
+              "completeness": {"status": "not_required_by_v2"} if version in ("v2.0", "v3.0", "v4.0") else {"status": "awaiting_validation"},
               "execution": execution}
     if diagnostics_path:
         from standalone_v4 import DIAGNOSTICS_VERSION, RESPONSE_VERSION, SCORING_PROFILE

@@ -195,6 +195,42 @@ class FMEATests(unittest.TestCase):
         self.assertEqual(rows[0]["RPN"], 1)
         self.assertTrue((out / "case_v2.0_run01.csv").is_file())
 
+    def test_v4_uses_its_own_skill_and_the_v3_array_contract(self):
+        import hashlib
+        from fmea_generator import ROOT, SKILL_FILES
+        skill = ROOT / "skill/fmea_instructions_v4.md"
+        self.assertEqual(SKILL_FILES["v4.0"], skill)
+        self.assertNotEqual(SKILL_FILES["v4.0"], SKILL_FILES["v4.0-inventory"])
+        self.assertIn("# FMEA Generator v4.0", skill.read_text(encoding="utf-8"))
+        out = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        system = out / "system.txt"
+        system.write_text("test system", encoding="utf-8")
+        result = {"text": json.dumps([VALID_ROW]), "finish_reason": "STOP", "max_output_tokens": 100}
+        with patch("fmea_generator.call_gemini", return_value=result) as call:
+            rows = generate_fmea(system, "case", version="v4.0", run=2, output_dir=out / "out")
+        self.assertEqual(call.call_args.kwargs.get("version"), "v4.0")
+        self.assertEqual(rows[0]["RPN"], 1)
+        self.assertTrue((out / "out" / "case_v4.0_run02.csv").is_file())
+        receipt = json.loads((out / "out" / "case_v4.0_run02_execution.json").read_text(encoding="utf-8"))
+        self.assertEqual(receipt["prompt_version"], "v4.0")
+        self.assertEqual(receipt["skill_sha256"], hashlib.sha256(skill.read_bytes()).hexdigest())
+        self.assertEqual(receipt["completeness"], {"status": "not_required_by_v2"})
+
+    def test_v4_request_uses_the_v3_array_schema(self):
+        from google.genai import types
+        client = MagicMock()
+        client.models.get.return_value = SimpleNamespace(output_token_limit=65536)
+        client.models.generate_content.return_value = SimpleNamespace(
+            text="[]", candidates=[SimpleNamespace(finish_reason=types.FinishReason.STOP)])
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "offline-test-key"}), \
+                patch("fmea_generator.load_local_env"), \
+                patch("google.genai.Client", return_value=client):
+            call_gemini("test system", model="test-model", version="v4.0")
+        config = client.models.generate_content.call_args.kwargs["config"]
+        schema = types.Schema.model_validate(config.response_schema)
+        self.assertEqual(schema.type, types.Type.ARRAY)
+        self.assertEqual(set(schema.items.required), set(FIELDS))
+
 
 if __name__ == "__main__":
     unittest.main()

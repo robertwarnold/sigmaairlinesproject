@@ -61,10 +61,12 @@ def import_data(version='v4.0-inventory'):
 class V4EngineeringTests(unittest.TestCase):
     def test_version_identity_and_preservation(self):
         self.assertEqual(engine.PROMPT_VERSION,'v2.0')
-        self.assertEqual(len(set(engine.SKILL_FILES.values())),4)
+        self.assertEqual(len(set(engine.SKILL_FILES.values())),5)
         self.assertEqual(hashlib.sha256(engine.SKILL_FILES['v2.0'].read_bytes().replace(b'\r\n',b'\n')).hexdigest(),'082d9e51a01611a2daa7cecab7600359f8920ac64327b643e2fd4fe97942f7a3')
         self.assertEqual(hashlib.sha256(engine.SKILL_FILES['v3.0'].read_bytes().replace(b'\r\n',b'\n')).hexdigest(),'d9877524017e949570f5b623b197b1c8db117d9d456cbab28f9756f22e45e3b2')
         self.assertEqual(hashlib.sha256(engine.SKILL_FILES['v3.0-audit'].read_bytes().replace(b'\r\n',b'\n')).hexdigest(),'a34f9fa40aa02603d36db25efe4b2aae45efa0f328b74cdb93b2de85ebd3666c')
+        self.assertEqual(hashlib.sha256(engine.SKILL_FILES['v4.0'].read_bytes().replace(b'\r\n',b'\n')).hexdigest(),'06fc629c20f23b9ec1a5f1ac3e5280c24fee7470345b0e8ecf58d159e818683d')
+        self.assertEqual(hashlib.sha256(engine.SKILL_FILES['v4.0-inventory'].read_bytes().replace(b'\r\n',b'\n')).hexdigest(),'07bb52c5df1c5bea1eef873cd83a3b0e87264ba6c55358b6e697b6f05625829e')
         from google.genai import types
         self.assertEqual(types.Schema.model_validate(engine.v4_schema()).type,types.Type.OBJECT)
 
