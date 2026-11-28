@@ -65,6 +65,7 @@ Each row describes one failure type with its own effects and ratings. Never comb
 ## Row construction
 - One row per individual unit per distinct failure mode and cause. Do not group numbered units; name them as in the component list with the unit number, e.g. "Motor 1", "Motor 2". Never write a range or group ("Motor 1-4", "all motors", "each motor", "typical of all units") in a row.
 - Identical units get the same set of failure types, each in its own rows, unless the package states a difference between them.
+- Analyse every identical unit in the same depth as the first one. Each unit gets the same rows as the first unit: the same failure types, sub-elements, supply connections and escalation levels, each written out in full with that unit's own name. Never analyse the first unit in detail and then shorten the later units, give them fewer rows, or refer back to an earlier unit (for example "as for Motor 1").
 - Trace effects through the architecture described: use the power chain, dependencies, redundancy and isolation facts in the package to state the local effect and the system effect.
 - Derive system_effect by following the failure through the system as described: which redundancy, protective functions, fallback modes and containment act on it? State the most likely system-level end effect with those provisions working as the package describes them. Do not assume a second, independent failure in the same row. The case where containment fails belongs in its own escalation row (step 2), not in the same row.
 - recommended_action must be specific and implementable (a design change, monitoring, inspection, redundancy or procedure). Build on existing provisions listed in the package rather than repeating them. Do not present a recommended action as an existing feature.
@@ -103,6 +104,7 @@ Before returning the sheet, check it against your item list from step 1:
 - Count the sub-elements and the per-unit supply connections on your item list, and check that each one has its own rows. For example, four supplied units need four supply-connection items, each with its own rows.
 - Every item that stores or converts energy has a row for each credible escalation level from step 2.
 - Identical units have the same failure types, unless the package states a difference.
+- Count the rows for each identical unit. Every unit in a group of identical units must have the same number of rows as the first unit, covering the same failure types, sub-elements, supply connections and escalation levels, unless the package states a difference. If a later unit has fewer rows than the first, add its missing rows.
 - No row covers more than one unit or more than one failure type.
 Add any missing rows. Output length is not a constraint: never merge units or failure types, or drop rows, to keep the sheet short.
 
@@ -117,3 +119,4 @@ v4.0 (from v3.0). The output format, columns, occurrence and detection guidance 
 4. Completeness check: counts sub-elements, per-unit connections and escalation levels against the item list. Targets gaps 1-3.
 5. Row construction: system_effect is the most likely end effect given the stated redundancy, protections, fallbacks and containment; failed containment goes in its own escalation row. Targets gap 4 (end effect).
 6. Severity: rates the row's stated system-level end effect instead of the worst credible effect, with guidance for fallbacks, redundancy and latent losses. Targets gap 4 (severity).
+7. Row construction and completeness check: every identical unit is analysed in the same depth as the first, and rows are counted per unit. Added after pilot sheets analysed the first unit in depth and later identical units with fewer rows.
